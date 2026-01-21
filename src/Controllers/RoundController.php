@@ -1,0 +1,125 @@
+<?php
+
+declare(strict_types=1);
+
+namespace CAH\Controllers;
+
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use CAH\Services\RoundService;
+use CAH\Services\GameService;
+use CAH\Exceptions\GameException;
+use CAH\Exceptions\GameNotFoundException;
+use CAH\Exceptions\ValidationException;
+use CAH\Exceptions\UnauthorizedException;
+use CAH\Utils\Response as JsonResponse;
+use CAH\Utils\Validator;
+
+class RoundController
+{
+    /**
+     * Submit cards for the current round
+     */
+    public function submit(Request $request, Response $response): Response
+    {
+        try {
+            // Get authenticated session data from request attributes (set by AuthMiddleware)
+            $gameId = $request->getAttribute('game_id');
+            $playerId = $request->getAttribute('player_id');
+
+            $data = $request->getParsedBody() ?? [];
+
+            $validator = (new Validator())
+                ->required($data['card_ids'] ?? null, 'card_ids')
+                ->array($data['card_ids'] ?? null, 'card_ids', 1);
+
+            if ($validator->fails()) {
+                throw new ValidationException('Validation failed', $validator->getErrors());
+            }
+
+            $cardValidation = Validator::validateCardIds($data['card_ids']);
+            if ( ! $cardValidation['valid']) {
+                throw new ValidationException($cardValidation['error']);
+            }
+
+            $gameState = RoundService::submitCards(
+                $gameId,
+                $playerId,
+                $cardValidation['card_ids']
+            );
+
+            return JsonResponse::success($response, ['game_state' => $gameState]);
+
+        } catch (GameNotFoundException $e) {
+            return JsonResponse::notFound($response, $e->getMessage());
+        } catch (UnauthorizedException $e) {
+            return JsonResponse::error($response, $e->getMessage(), 403);
+        } catch (ValidationException $e) {
+            return JsonResponse::validationError($response, $e->getErrors(), $e->getMessage());
+        } catch (GameException $e) {
+            return JsonResponse::error($response, $e->getMessage(), $e->getCode() ?: 400);
+        } catch (\Exception $e) {
+            return JsonResponse::error($response, $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Pick winner and advance to next round
+     */
+    public function pickWinner(Request $request, Response $response): Response
+    {
+        try {
+            // Get authenticated session data from request attributes (set by AuthMiddleware)
+            $gameId = $request->getAttribute('game_id');
+            $playerId = $request->getAttribute('player_id');
+
+            $data = $request->getParsedBody() ?? [];
+
+            $validator = (new Validator())
+                ->required($data['winner_id'] ?? null, 'winner_id')
+                ->required($data['next_czar_id'] ?? null, 'next_czar_id');
+
+            if ($validator->fails()) {
+                throw new ValidationException('Validation failed', $validator->getErrors());
+            }
+
+            $winnerId = $data['winner_id'];
+            $nextCzarId = $data['next_czar_id'];
+
+            // Use player_id from session as czar_id
+            $gameState = RoundService::pickWinner($gameId, $playerId, $winnerId);
+
+            $winner = RoundService::checkForWinner($gameState);
+
+            if ($winner) {
+                $gameState = RoundService::endGame($gameId, $winner['id']);
+
+                return JsonResponse::success($response, [
+                    'game_state' => $gameState,
+                    'game_over' => true,
+                    'winner' => $winner,
+                ]);
+            }
+
+            $gameState = GameService::setNextCzar($gameId, $playerId, $nextCzarId);
+
+            $gameState = RoundService::advanceToNextRound($gameId);
+
+            return JsonResponse::success($response, [
+                'game_state' => $gameState,
+                'game_over' => false,
+            ]);
+
+        } catch (GameNotFoundException $e) {
+            return JsonResponse::notFound($response, $e->getMessage());
+        } catch (UnauthorizedException $e) {
+            return JsonResponse::error($response, $e->getMessage(), 403);
+        } catch (ValidationException $e) {
+            return JsonResponse::validationError($response, $e->getErrors(), $e->getMessage());
+        } catch (GameException $e) {
+            return JsonResponse::error($response, $e->getMessage(), $e->getCode() ?: 400);
+        } catch (\Exception $e) {
+            return JsonResponse::error($response, $e->getMessage(), 500);
+        }
+    }
+}

@@ -1,0 +1,43 @@
+# Enable rewrite engine
+RewriteEngine On
+
+# Allow direct access to admin folder and its files
+RewriteCond %{REQUEST_URI} ^/admin/
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Redirect all other requests to index.php (API routes)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ index.php [QSA,L]
+
+# Set proper MIME types
+<IfModule mod_mime.c>
+    AddType application/json .json
+</IfModule>
+
+# Enable compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE text/plain
+</IfModule>
+
+# Security headers
+<IfModule mod_headers.c>
+    # Prevent MIME type sniffing
+    Header set X-Content-Type-Options "nosniff"
+
+    # Prevent clickjacking
+    Header set X-Frame-Options "DENY"
+
+    # Enable XSS protection
+    Header set X-XSS-Protection "1; mode=block"
+    
+    # HTTP Strict Transport Security (HSTS)
+    # max-age=31536000 (1 year), includeSubDomains, preload
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    
+    # Content Security Policy for API
+    Header set Content-Security-Policy "default-src 'none'; frame-ancestors 'none';"
+</IfModule>

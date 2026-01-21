@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CAH Admin Panel</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Login Screen -->
+        <div id="login-screen" class="screen active">
+            <div class="login-container">
+                <h1>CAH Admin Panel</h1>
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="password">Admin Password</label>
+                        <input type="password" id="password" name="password" required autocomplete="current-password">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Login</button>
+                    <div id="login-error" class="error-message"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main Admin Screen -->
+        <div id="admin-screen" class="screen">
+            <header class="admin-header">
+                <h1>CAH Admin Panel</h1>
+                <button id="logout-btn" class="btn btn-secondary">Logout</button>
+            </header>
+
+            <nav class="admin-nav">
+                <button class="nav-btn active" data-section="cards">Cards</button>
+                <button class="nav-btn" data-section="tags">Tags</button>
+                <button class="nav-btn" data-section="games">Games</button>
+                <button class="nav-btn" data-section="tag-assignment">Tag Assignment</button>
+            </nav>
+
+            <main class="admin-content">
+                <!-- Cards Section -->
+                <section id="cards-section" class="content-section active">
+                    <div class="section-header">
+                        <h2>Manage Cards</h2>
+                        <div class="actions">
+                            <button id="import-cards-btn" class="btn btn-primary">Import Cards</button>
+                        </div>
+                    </div>
+
+                    <div class="filters">
+                        <div class="filter-group">
+                            <label for="card-type-filter">Type</label>
+                            <select id="card-type-filter">
+                                <option value="">All Types</option>
+                                <option value="white">White Cards</option>
+                                <option value="black">Black Cards</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="card-active-filter">Status</label>
+                            <select id="card-active-filter">
+                                <option value="1">Active Only</option>
+                                <option value="0">Inactive Only</option>
+                                <option value="">All Cards</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="card-tags-filter">Tags</label>
+                            <select id="card-tags-filter" multiple size="4">
+                                <option value="">Loading tags...</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="card-limit-filter">Show</label>
+                            <select id="card-limit-filter">
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                                <option value="200">200</option>
+                                <option value="500">500</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <button id="apply-filters-btn" class="btn btn-secondary">Apply Filters</button>
+                        </div>
+                    </div>
+
+                    <div id="cards-list" class="data-list">
+                        <div class="loading">Loading cards...</div>
+                    </div>
+
+                    <div class="pagination">
+                        <button id="prev-page" class="btn btn-secondary" disabled>Previous</button>
+                        <span id="page-info">Page 1</span>
+                        <button id="next-page" class="btn btn-secondary">Next</button>
+                    </div>
+                </section>
+
+                <!-- Tags Section -->
+                <section id="tags-section" class="content-section">
+                    <div class="section-header">
+                        <h2>Manage Tags</h2>
+                        <div class="actions">
+                            <button id="create-tag-btn" class="btn btn-primary">Create Tag</button>
+                        </div>
+                    </div>
+
+                    <div id="tags-list" class="data-list">
+                        <div class="loading">Loading tags...</div>
+                    </div>
+                </section>
+
+                <!-- Games Section -->
+                <section id="games-section" class="content-section">
+                    <div class="section-header">
+                        <h2>Active Games</h2>
+                    </div>
+
+                    <div id="games-list" class="data-list">
+                        <div class="loading">Loading games...</div>
+                    </div>
+                </section>
+
+                <!-- Tag Assignment Section -->
+                <section id="tag-assignment-section" class="content-section">
+                    <div class="section-header">
+                        <h2>Tag Assignment</h2>
+                    </div>
+
+                    <div class="tag-selector">
+                        <label for="tag-assignment-select">Select Tag:</label>
+                        <select id="tag-assignment-select">
+                            <option value="">-- Select a tag --</option>
+                        </select>
+                    </div>
+
+                    <div id="tag-assignment-cards" class="card-grid">
+                        <div class="info-message">Select a tag to view and manage card assignments</div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Import Cards Modal -->
+    <div id="import-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Import Cards</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="import-card-type">Card Type</label>
+                    <select id="import-card-type" class="form-control">
+                        <option value="mixed">Mixed (CSV has type column)</option>
+                        <option value="white">White Cards Only</option>
+                        <option value="black">Black Cards Only</option>
+                    </select>
+                </div>
+                <div id="import-format-info">
+                    <p><strong>Mixed format:</strong> <code>type,text,tags</code></p>
+                    <p>Example: <code>white,"Card text",tag1,tag2</code></p>
+                </div>
+                <div class="form-group">
+                    <label for="csv-file">CSV File</label>
+                    <input type="file" id="csv-file" accept=".csv">
+                </div>
+                <div id="import-status" class="status-message"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="upload-csv-btn" class="btn btn-primary">Upload</button>
+                <button class="modal-close btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Card Modal -->
+    <div id="edit-card-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Card</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-card-form">
+                    <input type="hidden" id="edit-card-id" value="">
+                    <div class="form-group">
+                        <label for="edit-card-text">Card Text</label>
+                        <textarea id="edit-card-text" name="text" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-card-type">Type</label>
+                        <select id="edit-card-type" name="type" required>
+                            <option value="white">White</option>
+                            <option value="black">Black</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-card-tags">Tags</label>
+                        <select id="edit-card-tags" name="tags" multiple size="6">
+                            <option value="">Loading tags...</option>
+                        </select>
+                        <small>Hold Ctrl (Cmd on Mac) to select multiple tags</small>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="edit-card-active" name="active" checked>
+                            Active
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-card-tags">Tags</label>
+                        <select id="edit-card-tags" name="tags" multiple size="6">
+                            <!-- Tags will be populated dynamically -->
+                        </select>
+                        <small style="color: #666; font-size: 0.85em; margin-top: 4px; display: block;">Hold Ctrl (Cmd on Mac) to select multiple tags</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="save-card-btn" class="btn btn-primary">Save</button>
+                <button class="modal-close btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Tag Modal -->
+    <div id="create-tag-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="tag-modal-title">Create Tag</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="create-tag-form">
+                    <input type="hidden" id="tag-id" value="">
+                    <div class="form-group">
+                        <label for="tag-name">Tag Name</label>
+                        <input type="text" id="tag-name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tag-description">Description (optional)</label>
+                        <textarea id="tag-description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="tag-active" name="active" checked>
+                            Active
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="save-tag-btn" class="btn btn-primary">Save</button>
+                <button class="modal-close btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

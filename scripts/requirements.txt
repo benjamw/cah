@@ -1,0 +1,8 @@
+# Python dependencies for card management scripts
+
+# Required for Excel (.xlsx) file support
+openpyxl>=3.1.0
+
+# Optional for OpenDocument (.ods) file support
+odfpy>=1.4.1
+
