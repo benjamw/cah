@@ -1,42 +1,152 @@
+# ============================================
+# Cards Against Humanity - Production Ready
+# ============================================
+#
+# DEPLOYMENT INSTRUCTIONS:
+# 1. Upload client/dist/index.html to root as /index.html
+# 2. Upload client/dist/assets/ to root as /assets/
+# 3. Upload api/, admin/, config/, src/, vendor/, data/ folders
+# 4. Upload this .htaccess to root
+# 5. Upload .htaccess files from api/ and admin/ subdirectories
+# 6. Create .env file in root (see DEPLOYMENT.md)
+#
+# URL STRUCTURE:
+# - https://yourdomain.com/          → Client app (React SPA)
+# - https://yourdomain.com/api/      → API endpoints
+# - https://yourdomain.com/admin/    → Admin panel
+#
+# All paths work with or without trailing slashes
+# ============================================
+
 # Enable rewrite engine
 RewriteEngine On
 
+# Remove trailing slashes (except for root)
+RewriteCond %{REQUEST_URI} !^/$
+RewriteCond %{REQUEST_URI} (.+)/$
+RewriteRule ^ %1 [R=301,L]
+
+# -----------------------------------------
+# Admin Panel Routes
+# -----------------------------------------
 # Allow direct access to admin folder files
-RewriteCond %{REQUEST_URI} ^/admin/
 RewriteCond %{REQUEST_FILENAME} -f
+RewriteCond %{REQUEST_URI} ^/admin/
 RewriteRule ^ - [L]
 
-# Redirect admin folder requests to admin/index.html if file doesn't exist
-RewriteCond %{REQUEST_URI} ^/admin/
+# Route admin folder requests to admin/index.html (SPA routing)
+RewriteCond %{REQUEST_URI} ^/admin(/.*)?$
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ admin/index.html [L]
 
-# Redirect API requests to api/index.php
-RewriteCond %{REQUEST_URI} ^/api/
+# -----------------------------------------
+# API Routes
+# -----------------------------------------
+# Route all API requests to api/index.php
+RewriteCond %{REQUEST_URI} ^/api(/.*)?$
 RewriteRule ^ api/index.php [QSA,L]
 
-# Allow direct access to client folder files (for React assets)
-RewriteCond %{REQUEST_URI} ^/client/
+# -----------------------------------------
+# Client App Routes (Root Level)
+# -----------------------------------------
+# NOTE: Upload client/dist/* contents to root level
+# (index.html and assets/ folder should be at root)
+
+# Allow direct access to files (assets, etc.)
 RewriteCond %{REQUEST_FILENAME} -f
 RewriteRule ^ - [L]
 
-# Redirect all other requests to client directory
-RewriteCond %{REQUEST_URI} !^/admin/
-RewriteCond %{REQUEST_URI} !^/api/
-RewriteCond %{REQUEST_URI} !^/client/
-RewriteRule ^(.*)$ client/$1 [L]
-
-# Handle client-side routing (for React Router)
-RewriteCond %{REQUEST_URI} ^/client/
+# Fallback to index.html for client-side routing (React Router)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ client/index.html [L]
+RewriteCond %{REQUEST_URI} !^/admin
+RewriteCond %{REQUEST_URI} !^/api
+RewriteRule ^ index.html [L]
 
-# Set proper MIME types
+# -----------------------------------------
+# MIME Types
+# -----------------------------------------
 <IfModule mod_mime.c>
     AddType text/html .html
     AddType text/css .css
-    AddType application/javascript .js
+    AddType application/javascript .js .mjs
     AddType application/json .json
+    AddType image/svg+xml .svg
+    AddType image/webp .webp
+    AddType font/woff2 .woff2
+    AddType font/woff .woff
+    AddType font/ttf .ttf
 </IfModule>
+
+# -----------------------------------------
+# Compression
+# -----------------------------------------
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE image/svg+xml
+</IfModule>
+
+# -----------------------------------------
+# Browser Caching
+# -----------------------------------------
+<IfModule mod_expires.c>
+    ExpiresActive On
+    
+    # Images
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    
+    # Fonts
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/ttf "access plus 1 year"
+    
+    # CSS and JavaScript
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    
+    # HTML (no caching for SPA)
+    ExpiresByType text/html "access plus 0 seconds"
+</IfModule>
+
+# -----------------------------------------
+# Security Headers
+# -----------------------------------------
+<IfModule mod_headers.c>
+    # Prevent MIME type sniffing
+    Header set X-Content-Type-Options "nosniff"
+    
+    # Prevent clickjacking
+    Header set X-Frame-Options "DENY"
+    
+    # Enable XSS protection
+    Header set X-XSS-Protection "1; mode=block"
+    
+    # HTTP Strict Transport Security (HSTS)
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    
+    # Content Security Policy
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none';"
+</IfModule>
+
+# -----------------------------------------
+# Protect Sensitive Files
+# -----------------------------------------
+<FilesMatch "^\.env$|^\.htaccess$|^composer\.(json|lock)$">
+    Require all denied
+</FilesMatch>
+
+# Protect vendor and src directories from direct access
+RedirectMatch 403 ^/vendor/
+RedirectMatch 403 ^/src/
+RedirectMatch 403 ^/config/
+RedirectMatch 403 ^/data/

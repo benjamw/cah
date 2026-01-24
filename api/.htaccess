@@ -1,13 +1,7 @@
 # Enable rewrite engine
 RewriteEngine On
 
-# Allow direct access to admin folder and its files
-RewriteCond %{REQUEST_URI} ^/admin/
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
-
-# Redirect all other requests to index.php (API routes)
+# Route all requests to index.php (API routes)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.php [QSA,L]
@@ -35,7 +29,6 @@ RewriteRule ^ index.php [QSA,L]
     Header set X-XSS-Protection "1; mode=block"
     
     # HTTP Strict Transport Security (HSTS)
-    # max-age=31536000 (1 year), includeSubDomains, preload
     Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
     
     # Content Security Policy for API

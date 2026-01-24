@@ -1,7 +1,7 @@
 # Enable rewrite engine
 RewriteEngine On
 
-# Redirect all requests to index.html (for SPA routing)
+# Route all requests to index.html (for SPA routing)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ index.html [L]
@@ -11,6 +11,7 @@ RewriteRule ^ index.html [L]
     AddType text/html .html
     AddType text/css .css
     AddType application/javascript .js
+    AddType application/json .json
 </IfModule>
 
 # Enable compression
@@ -18,6 +19,7 @@ RewriteRule ^ index.html [L]
     AddOutputFilterByType DEFLATE text/html
     AddOutputFilterByType DEFLATE text/css
     AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/json
 </IfModule>
 
 # Security headers
@@ -32,10 +34,8 @@ RewriteRule ^ index.html [L]
     Header set X-XSS-Protection "1; mode=block"
     
     # HTTP Strict Transport Security (HSTS)
-    # max-age=31536000 (1 year), includeSubDomains, preload
     Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
     
     # Content Security Policy
-    Header set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none';"
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'; frame-ancestors 'none';"
 </IfModule>
-

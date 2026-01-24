@@ -53,11 +53,12 @@ your-domain.com/
 ├── api/
 │   ├── .htaccess          ← Upload
 │   └── index.php          ← Upload
-├── client/
-│   └── dist/              ← Upload entire folder (built files)
-│       ├── index.html
-│       ├── assets/
-│       └── ...
+├── admin/
+│   ├── .htaccess          ← Upload
+│   ├── index.html         ← Upload
+│   ├── app.js             ← Upload
+│   ├── styles.css         ← Upload
+│   └── example-import.csv ← Upload (optional)
 ├── config/
 │   ├── database.php       ← Upload
 │   └── game.php           ← Upload
@@ -73,20 +74,26 @@ your-domain.com/
 │   └── Utils/
 ├── vendor/                ← Upload entire folder (from composer install)
 ├── data/                  ← Upload (contains card data CSV/SQL files)
+├── assets/                ← Upload (from client/dist/assets/)
+├── index.html             ← Upload (from client/dist/index.html)
 ├── .htaccess              ← Upload (root htaccess)
 ├── .env                   ← Create on server (see Step 3)
 └── composer.json          ← Upload (for reference)
 ```
 
+**IMPORTANT**: The client files from `client/dist/` should be uploaded to the ROOT level:
+- `client/dist/index.html` → `/index.html` (root)
+- `client/dist/assets/` → `/assets/` (root)
+
 ### 2.3 Files NOT to Upload
 
 Do **NOT** upload these:
 - `node_modules/` (frontend dependencies)
-- `client/src/` (source files, only need `dist/`)
-- `client/package.json` (not needed on server)
+- `client/` folder (source files not needed, only upload the built files from `dist/`)
 - `tests/` (unit tests)
 - `.git/` (git repository)
 - `.env.example` (example only)
+
 
 ---
 
@@ -175,39 +182,57 @@ mysql -u your_user -p your_database < data/cards.sql
 
 ## Step 5: Configure Apache
 
-### 5.1 Root `.htaccess`
+### 5.1 Root `.htaccess` (Production-Ready)
 
-The root `.htaccess` should redirect requests:
+The root `.htaccess` file is already configured and ready to upload as-is. It handles:
 
-```apache
-# Main .htaccess in project root
-RewriteEngine On
+- **API Routes**: `/api/*` → routes to `api/index.php`
+- **Admin Panel**: `/admin/*` → serves admin panel SPA
+- **Client App**: `/` (root) → serves the React client app
+- **Trailing Slash Removal**: Automatically removes trailing slashes
+- **Security Headers**: Includes all recommended security headers
+- **Compression & Caching**: Optimizes performance
+- **File Protection**: Blocks direct access to sensitive files
 
-# Redirect API requests
-RewriteRule ^api/(.*)$ api/index.php [QSA,L]
+**No modifications needed** - just upload the `.htaccess` files as they are in the repository.
 
-# Serve static files from client/dist
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^(.*)$ client/dist/$1 [L]
+### 5.2 Directory Structure on Server
 
-# Fallback to index.html for client-side routing
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ client/dist/index.html [L]
+```
+public_html/ (or www/)
+├── .env                   ← Create this
+├── .htaccess              ← Upload from root
+├── index.html             ← Upload from client/dist/index.html
+├── assets/                ← Upload from client/dist/assets/
+├── api/
+│   ├── .htaccess          ← Upload from api/.htaccess
+│   └── index.php
+├── admin/
+│   ├── .htaccess          ← Upload from admin/.htaccess
+│   ├── index.html
+│   ├── app.js
+│   └── styles.css
+├── config/
+├── src/
+├── vendor/
+├── data/
+└── composer.json
 ```
 
-### 5.2 API `.htaccess`
+### 5.3 HTTPS Configuration
 
-The `api/.htaccess` should route all API requests:
+The `.htaccess` files have HSTS (HTTP Strict Transport Security) headers commented out by default. After you enable SSL/TLS on your server:
 
-```apache
-# api/.htaccess
-RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^ index.php [QSA,L]
-```
+1. Uncomment the HSTS line in each `.htaccess` file:
+   ```apache
+   # Change this:
+   # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+   
+   # To this:
+   Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+   ```
+
+2. Update your `.env` file to use `https://` in `CORS_ALLOWED_ORIGINS`
 
 ---
 
@@ -301,21 +326,23 @@ Ensure your domain has SSL/TLS enabled:
 
 ```
 public_html/ (or www/)
-├── .env
-├── .htaccess
+├── .env                   ← Create this
+├── .htaccess              ← Upload from root
+├── index.html             ← Upload from client/dist/index.html
+├── assets/                ← Upload from client/dist/assets/
 ├── api/
 │   ├── .htaccess
 │   └── index.php
-├── client/
-│   └── dist/
-│       ├── index.html
-│       └── assets/
+├── admin/
+│   ├── .htaccess
+│   ├── index.html
+│   ├── app.js
+│   └── styles.css
 ├── config/
 ├── src/
 ├── vendor/
 ├── data/
-├── composer.json
-└── admin/ (optional, if included)
+└── composer.json
 ```
 
 ---
