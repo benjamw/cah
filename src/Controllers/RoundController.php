@@ -8,6 +8,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use CAH\Services\RoundService;
 use CAH\Services\GameService;
+use CAH\Models\Game;
 use CAH\Exceptions\GameException;
 use CAH\Exceptions\GameNotFoundException;
 use CAH\Exceptions\ValidationException;
@@ -76,15 +77,13 @@ class RoundController
             $data = $request->getParsedBody() ?? [];
 
             $validator = (new Validator())
-                ->required($data['winner_id'] ?? null, 'winner_id')
-                ->required($data['next_czar_id'] ?? null, 'next_czar_id');
+                ->required($data['winner_id'] ?? null, 'winner_id');
 
             if ($validator->fails()) {
                 throw new ValidationException('Validation failed', $validator->getErrors());
             }
 
             $winnerId = $data['winner_id'];
-            $nextCzarId = $data['next_czar_id'];
 
             // Use player_id from session as czar_id
             $gameState = RoundService::pickWinner($gameId, $playerId, $winnerId);
@@ -101,6 +100,9 @@ class RoundController
                 ]);
             }
 
+            // Automatically determine next czar from the updated player data
+            $nextCzarId = GameService::getNextCzar($gameState);
+            
             $gameState = GameService::setNextCzar($gameId, $playerId, $nextCzarId);
 
             $gameState = RoundService::advanceToNextRound($gameId);

@@ -26,7 +26,7 @@ class GameController
             $data = $request->getParsedBody() ?? [];
 
             $validator = (new Validator())
-                ->required($data['creator_name'] ?? null, 'creator_name')
+                ->required($data['player_name'] ?? null, 'player_name')
                 ->required($data['tag_ids'] ?? null, 'tag_ids')
                 ->array($data['tag_ids'] ?? null, 'tag_ids', 1);
 
@@ -37,7 +37,7 @@ class GameController
             $settings = $data['settings'] ?? [];
 
             $result = GameService::createGame(
-                $data['creator_name'],
+                $data['player_name'],
                 $data['tag_ids'],
                 $settings
             );
@@ -149,9 +149,24 @@ class GameController
                 throw new GameNotFoundException($gameId);
             }
 
+            // Check If-Modified-Since header for conditional request
+            $ifModifiedSince = $request->getHeaderLine('If-Modified-Since');
+            if ($ifModifiedSince) {
+                $updatedAtTimestamp = strtotime($game['updated_at']);
+                $ifModifiedSinceTimestamp = strtotime($ifModifiedSince);
+                
+                // If the game hasn't been modified since the client's last request, return 304
+                if ($updatedAtTimestamp <= $ifModifiedSinceTimestamp) {
+                    return $response->withStatus(304); // Not Modified
+                }
+            }
+
             // Hydrate card IDs with full card data
             $playerData = GameService::hydrateCards($game['player_data']);
             $playerData = GameService::filterHands($playerData, $request->getAttributes()['player_id']);
+
+            // Add Last-Modified header
+            $response = $response->withHeader('Last-Modified', gmdate('D, d M Y H:i:s', strtotime($game['updated_at'])) . ' GMT');
 
             return JsonResponse::success($response, [
                 'game_id' => $game['game_id'],

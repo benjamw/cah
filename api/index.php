@@ -153,6 +153,8 @@ $app->post('/api/round/pick-winner', [RoundController::class, 'pickWinner'])->ad
 
 // Player routes - Protected (auth required)
 $app->post('/api/player/remove', [PlayerController::class, 'remove'])->add(new AuthMiddleware());
+$app->post('/api/player/transfer-host', [PlayerController::class, 'transferHost'])->add(new AuthMiddleware());
+$app->post('/api/player/leave', [PlayerController::class, 'leave'])->add(new AuthMiddleware());
 
 // Card routes - Protected (auth required)
 $app->post('/api/cards/get', [CardController::class, 'getByIds'])->add(new AuthMiddleware());

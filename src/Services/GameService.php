@@ -546,7 +546,9 @@ class GameService
                 'player_data' => $playerData,
             ]);
 
-            return $playerData;
+            // Re-fetch the game and hydrate before returning
+            $updatedGame = Game::find($gameId);
+            return self::hydrateGameState($updatedGame)['player_data'];
         });
     }
 
@@ -556,7 +558,7 @@ class GameService
      * @param array $playerData Game player data
      * @return string|null Next czar's player ID
      */
-    private static function getNextCzar(array $playerData): ?string
+    public static function getNextCzar(array $playerData): ?string
     {
         // Filter out Rando from eligible czars
         $eligiblePlayers = array_filter(
@@ -949,6 +951,7 @@ class GameService
 
     /**
      * Filters out all other player's hands except the current player's
+     * Also filters submissions until all players have submitted (Czar should not see partial submissions)
      *
      * @param array $playerData Game player data
      * @param string $playerId Game player UUID
@@ -960,6 +963,22 @@ class GameService
         foreach ($playerData['players'] as & $player) {
             if ($player['id'] !== $playerId) {
                 $player['hand'] = [];
+            }
+        }
+
+        // Hide submissions from czar until all players have submitted
+        $isCzar = $playerData['current_czar_id'] === $playerId;
+        if ($isCzar && isset($playerData['submissions'])) {
+            $expectedSubmissions = count($playerData['players']) - 1; // Exclude czar
+            $actualSubmissions = count($playerData['submissions']);
+            
+            // Only show submissions if all players have submitted
+            if ($actualSubmissions < $expectedSubmissions) {
+                // Keep the array length but hide the content
+                $playerData['submissions'] = array_map(
+                    fn() => ['submitted' => true],
+                    $playerData['submissions']
+                );
             }
         }
 
@@ -1011,6 +1030,212 @@ class GameService
                 'cards_reshuffled' => count($discardPile),
                 'new_draw_pile_size' => count($result['draw_pile']),
             ];
+        });
+    }
+
+    /**
+     * Transfer host/creator status to another player and optionally remove current host
+     *
+     * @param string $gameId Game code
+     * @param string $currentHostId Current host's player ID
+     * @param string $newHostId New host's player ID
+     * @param bool $removeCurrentHost Whether to remove the current host after transfer
+     * @return array Updated game state
+     */
+    public static function transferHost(string $gameId, string $currentHostId, string $newHostId, bool $removeCurrentHost = false): array
+    {
+        return LockService::withGameLock($gameId, function () use ($gameId, $currentHostId, $newHostId, $removeCurrentHost) {
+            $game = Game::find($gameId);
+
+            if ( ! $game) {
+                throw new GameNotFoundException($gameId);
+            }
+
+            $playerData = $game['player_data'];
+
+            if ($playerData['creator_id'] !== $currentHostId) {
+                throw new UnauthorizedException('Only the game creator can transfer host');
+            }
+
+            if ($currentHostId === $newHostId) {
+                throw new ValidationException('Cannot transfer host to yourself');
+            }
+
+            // Verify new host exists
+            $newHostPlayer = self::findPlayer($playerData, $newHostId);
+            if ( ! $newHostPlayer) {
+                throw new PlayerNotFoundException($newHostId);
+            }
+
+            // Transfer creator status
+            $playerData['creator_id'] = $newHostId;
+
+            if ($removeCurrentHost) {
+                // Remove the old host from the game
+                $playerIndex = null;
+                $playerHand = [];
+
+                foreach ($playerData['players'] as $index => $player) {
+                    if ($player['id'] === $currentHostId) {
+                        $playerIndex = $index;
+                        $playerHand = $player['hand'] ?? [];
+                        break;
+                    }
+                }
+
+                if ($playerIndex !== null) {
+                    array_splice($playerData['players'], $playerIndex, 1);
+
+                    // Remove from player_order if present
+                    if ( ! empty($playerData['player_order'])) {
+                        $playerData['player_order'] = array_values(array_filter(
+                            $playerData['player_order'],
+                            fn($id): bool => $id !== $currentHostId
+                        ));
+                    }
+
+                    // Return cards to discard pile
+                    if ( ! empty($playerHand)) {
+                        $discardPile = $game['discard_pile'] ?? [];
+                        $discardPile = array_merge($discardPile, $playerHand);
+                        Game::update($gameId, ['discard_pile' => $discardPile]);
+                    }
+
+                    // Handle if removed player was czar
+                    if ($playerData['current_czar_id'] === $currentHostId) {
+                        $playerData['current_czar_id'] = self::getNextCzar($playerData);
+                    }
+
+                    // Remove submissions if player was in current round
+                    $playerData['submissions'] = array_values(array_filter(
+                        $playerData['submissions'],
+                        fn($sub): bool => $sub['player_id'] !== $currentHostId
+                    ));
+                }
+            }
+
+            // Update is_creator flags AFTER removal
+            foreach ($playerData['players'] as &$player) {
+                $player['is_creator'] = ($player['id'] === $newHostId);
+            }
+            unset($player); // Break the reference
+
+            Game::updatePlayerData($gameId, $playerData);
+
+            return $playerData;
+        });
+    }
+
+    /**
+     * Player leaves the game (removes themselves)
+     *
+     * @param string $gameId Game code
+     * @param string $playerId Player ID who is leaving
+     * @return array Updated game state
+     */
+    public static function leaveGame(string $gameId, string $playerId): array
+    {
+        return LockService::withGameLock($gameId, function () use ($gameId, $playerId) {
+            $game = Game::find($gameId);
+
+            if ( ! $game) {
+                throw new GameNotFoundException($gameId);
+            }
+
+            $playerData = $game['player_data'];
+
+            $player = self::findPlayer($playerData, $playerId);
+            if ( ! $player) {
+                throw new PlayerNotFoundException($playerId);
+            }
+
+            // Allow creator to leave if they're the last player or if there's only one player left
+            $isCreator = $playerData['creator_id'] === $playerId;
+            $playerCount = count($playerData['players']);
+            
+            // Only block creator from leaving if there are OTHER players who could become host
+            if ($isCreator && $playerCount > 1) {
+                throw new UnauthorizedException('Game creator must transfer host before leaving');
+            }
+
+            // Find and remove player
+            $playerIndex = null;
+            $playerHand = [];
+
+            foreach ($playerData['players'] as $index => $p) {
+                if ($p['id'] === $playerId) {
+                    $playerIndex = $index;
+                    $playerHand = $p['hand'] ?? [];
+                    break;
+                }
+            }
+
+            if ($playerIndex !== null) {
+                array_splice($playerData['players'], $playerIndex, 1);
+
+                // Remove from player_order if present
+                if ( ! empty($playerData['player_order'])) {
+                    $playerData['player_order'] = array_values(array_filter(
+                        $playerData['player_order'],
+                        fn($id): bool => $id !== $playerId
+                    ));
+                }
+
+                // Return cards to discard pile
+                if ( ! empty($playerHand)) {
+                    $discardPile = $game['discard_pile'] ?? [];
+                    $discardPile = array_merge($discardPile, $playerHand);
+                    Game::update($gameId, ['discard_pile' => $discardPile]);
+                }
+
+                // Handle if player was czar during active round
+                $isPlayingState = $playerData['state'] === GameState::PLAYING->value;
+                $isCzar = $playerData['current_czar_id'] === $playerId;
+                $hasSubmissions = ! empty($playerData['submissions']);
+
+                if ($isPlayingState && $isCzar && $hasSubmissions) {
+                    // Reset round: return submitted cards to players' hands
+                    foreach ($playerData['submissions'] as $submission) {
+                        $submittingPlayerId = $submission['player_id'];
+                        $submittedCards = $submission['cards'];
+
+                        foreach ($playerData['players'] as &$p) {
+                            if ($p['id'] === $submittingPlayerId) {
+                                $p['hand'] = array_merge($p['hand'], $submittedCards);
+                                break;
+                            }
+                        }
+                    }
+
+                    // Clear submissions
+                    $playerData['submissions'] = [];
+
+                    // Draw new black card if there are still players
+                    if (!empty($playerData['players'])) {
+                        $blackPile = $game['draw_pile']['black'] ?? [];
+                        if (!empty($blackPile)) {
+                            $blackResult = CardService::drawBlackCard($blackPile);
+                            $playerData['current_black_card'] = $blackResult['card'];
+                            $game['draw_pile']['black'] = $blackResult['remaining_pile'];
+                        }
+                    }
+                }
+
+                // Select next czar if removed player was czar and there are still players
+                if ($playerData['current_czar_id'] === $playerId && !empty($playerData['players'])) {
+                    $playerData['current_czar_id'] = self::getNextCzar($playerData);
+                }
+
+                // Remove submissions from player
+                $playerData['submissions'] = array_values(array_filter(
+                    $playerData['submissions'],
+                    fn($sub): bool => $sub['player_id'] !== $playerId
+                ));
+            }
+
+            Game::updatePlayerData($gameId, $playerData);
+
+            return $playerData;
         });
     }
 }

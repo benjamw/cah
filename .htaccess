@@ -16,6 +16,23 @@ RewriteRule ^ admin/index.html [L]
 RewriteCond %{REQUEST_URI} ^/api/
 RewriteRule ^ api/index.php [QSA,L]
 
+# Allow direct access to client folder files (for React assets)
+RewriteCond %{REQUEST_URI} ^/client/
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# Redirect all other requests to client directory
+RewriteCond %{REQUEST_URI} !^/admin/
+RewriteCond %{REQUEST_URI} !^/api/
+RewriteCond %{REQUEST_URI} !^/client/
+RewriteRule ^(.*)$ client/$1 [L]
+
+# Handle client-side routing (for React Router)
+RewriteCond %{REQUEST_URI} ^/client/
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ client/index.html [L]
+
 # Set proper MIME types
 <IfModule mod_mime.c>
     AddType text/html .html

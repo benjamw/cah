@@ -709,7 +709,7 @@ function renderGames(games) {
             <div class="game-item" data-id="${game.game_id}">
                 <div class="item-info">
                     <div class="item-title">
-                        Game: ${game.game_id}
+                        Game ID: ${game.game_id}
                     </div>
                     <div class="item-meta">
                         State: ${state} |
