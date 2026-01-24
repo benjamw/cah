@@ -23,14 +23,14 @@ class AdminAuthService
      */
     public static function login(string $password, string $ipAddress, ?string $userAgent = null): ?array
     {
-        $adminPassword = $_ENV['ADMIN_PASSWORD'] ?? getenv('ADMIN_PASSWORD');
-        
-        if (empty($adminPassword) || $adminPassword === 'your_admin_password_here') {
+        $adminPasswordHash = $_ENV['ADMIN_PASSWORD_HASH'] ?? getenv('ADMIN_PASSWORD_HASH');
+
+        if (empty($adminPasswordHash)) {
             throw new \Exception('Admin password not configured');
         }
         
         // Verify password
-        if ($password !== $adminPassword) {
+        if ( ! password_verify($password, $adminPasswordHash)) {
             return null;
         }
         
