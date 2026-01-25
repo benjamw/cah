@@ -8,6 +8,11 @@ declare(strict_types=1);
  * Loads environment, sets up database, and seeds test data
  */
 
+// Enable all error reporting for tests
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
 require __DIR__ . '/../vendor/autoload.php';
 
 use CAH\Database\Database;
@@ -28,10 +33,25 @@ $dbConfig = require __DIR__ . '/../config/database.php';
 // Initialize database
 Database::init($dbConfig);
 
+// Clean up any leftover test data first
+$connection = Database::getConnection();
+try {
+    $connection->exec("DELETE FROM cards_to_tags");
+    $connection->exec("DELETE FROM tags WHERE name = 'test_base'");
+    $connection->exec("DELETE FROM cards");
+    $connection->exec("DELETE FROM games");
+    $connection->exec("DELETE FROM rate_limits");
+    $connection->exec("DELETE FROM admin_sessions");
+    
+    // Reset auto-increment counters
+    $connection->exec("ALTER TABLE cards AUTO_INCREMENT = 1");
+    $connection->exec("ALTER TABLE tags AUTO_INCREMENT = 1");
+} catch (\Exception $e) {
+    // Ignore errors if tables are already empty
+}
+
 // Seed test data
 echo "Seeding test data...\n";
-
-$connection = Database::getConnection();
 
 // Insert test white cards (increased for testing with multiple players)
 $whiteCards = [];
@@ -71,14 +91,13 @@ $tagId = $connection->lastInsertId();
 // Define test tag ID as a constant for use in tests
 define('TEST_TAG_ID', (int) $tagId);
 
-// Tag all cards with test_base
+// Tag all cards with test_base - get actual card IDs from database
 $whiteCardCount = count($whiteCards);
 $blackCardCount = count($blackCards);
-$totalCards = $whiteCardCount + $blackCardCount;
-
+$cardIds = $connection->query("SELECT card_id FROM cards ORDER BY card_id")->fetchAll(PDO::FETCH_COLUMN);
 $stmt = $connection->prepare("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)");
-for ($i = 1; $i <= $totalCards; $i++) {
-    $stmt->execute([$i, $tagId]);
+foreach ($cardIds as $cardId) {
+    $stmt->execute([$cardId, $tagId]);
 }
 
 echo "Seeded {$whiteCardCount} white cards\n";
@@ -97,6 +116,7 @@ register_shutdown_function(function () use ($connection) {
         $connection->exec("DELETE FROM cards");
         $connection->exec("DELETE FROM games");
         $connection->exec("DELETE FROM rate_limits");
+        $connection->exec("DELETE FROM admin_sessions");
         
         // Reset auto-increment
         $connection->exec("ALTER TABLE cards AUTO_INCREMENT = 1");

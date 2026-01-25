@@ -14,67 +14,69 @@ use CAH\Database\Database;
  */
 class CsvImportTest extends TestCase
 {
+    private static bool $needsReseed = false;
+    
     protected function setUp(): void
     {
         parent::setUp();
-        // Clean up any existing test data
-        Database::execute('DELETE FROM cards_to_tags');
-        Database::execute('DELETE FROM tags');
-        Database::execute('DELETE FROM cards');
+        // Don't delete between tests - let each test use unique names
+        if ( ! self::$needsReseed) {
+            // Only delete once at the start
+            Database::execute('DELETE FROM cards_to_tags');
+            Database::execute('DELETE FROM tags');
+            Database::execute('DELETE FROM cards');
+            self::$needsReseed = true;
+        }
     }
 
     protected function tearDown(): void
     {
-        // Clean up test data
-        Database::execute('DELETE FROM cards_to_tags');
-        Database::execute('DELETE FROM tags');
-        Database::execute('DELETE FROM cards');
-        
-        // Re-seed base test data for other tests
-        $this->reseedTestData();
-        
         parent::tearDown();
     }
     
-    /**
-     * Re-seed base test data that other tests depend on
-     */
-    private function reseedTestData(): void
+    public static function tearDownAfterClass(): void
     {
-        $connection = Database::getConnection();
-        
-        // Reset auto-increment for cards and tags
-        $connection->exec("ALTER TABLE cards AUTO_INCREMENT = 1");
-        $connection->exec("ALTER TABLE tags AUTO_INCREMENT = 1");
-        
-        // Insert test white cards
-        $stmt = $connection->prepare("INSERT INTO cards (card_type, value) VALUES ('white', ?)");
-        for ($i = 1; $i <= 300; $i++) {
-            $stmt->execute([sprintf('White Card %03d', $i)]);
+        // Re-seed base test data once after all tests in this class complete
+        if (self::$needsReseed) {
+            $connection = Database::getConnection();
+            
+            // Reset auto-increment for cards and tags
+            $connection->exec("ALTER TABLE cards AUTO_INCREMENT = 1");
+            $connection->exec("ALTER TABLE tags AUTO_INCREMENT = 1");
+            
+            // Insert test white cards
+            $stmt = $connection->prepare("INSERT INTO cards (card_type, value) VALUES ('white', ?)");
+            for ($i = 1; $i <= 300; $i++) {
+                $stmt->execute([sprintf('White Card %03d', $i)]);
+            }
+            
+            // Insert test black cards
+            $stmt = $connection->prepare("INSERT INTO cards (card_type, value, choices) VALUES ('black', ?, ?)");
+            for ($i = 1; $i <= 40; $i++) {
+                $stmt->execute([sprintf('Black Card %03d with ____.', $i), 1]);
+            }
+            for ($i = 41; $i <= 55; $i++) {
+                $stmt->execute([sprintf('Black Card %03d with ____ and ____.', $i), 2]);
+            }
+            for ($i = 56; $i <= 70; $i++) {
+                $stmt->execute([sprintf('Black Card %03d with ____, ____, and ____.', $i), 3]);
+            }
+            
+            // Insert test tag
+            $connection->exec("INSERT INTO tags (name) VALUES ('test_base')");
+            $tagId = $connection->lastInsertId();
+            
+            // Tag all cards
+            $totalCards = 370; // 300 white + 70 black
+            $stmt = $connection->prepare("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)");
+            for ($i = 1; $i <= $totalCards; $i++) {
+                $stmt->execute([$i, $tagId]);
+            }
+            
+            self::$needsReseed = false;
         }
         
-        // Insert test black cards
-        $stmt = $connection->prepare("INSERT INTO cards (card_type, value, choices) VALUES ('black', ?, ?)");
-        for ($i = 1; $i <= 40; $i++) {
-            $stmt->execute([sprintf('Black Card %03d with ____.', $i), 1]);
-        }
-        for ($i = 41; $i <= 55; $i++) {
-            $stmt->execute([sprintf('Black Card %03d with ____ and ____.', $i), 2]);
-        }
-        for ($i = 56; $i <= 70; $i++) {
-            $stmt->execute([sprintf('Black Card %03d with ____, ____, and ____.', $i), 3]);
-        }
-        
-        // Insert test tag
-        $connection->exec("INSERT INTO tags (name) VALUES ('test_base')");
-        $tagId = $connection->lastInsertId();
-        
-        // Tag all cards
-        $totalCards = 370; // 300 white + 70 black
-        $stmt = $connection->prepare("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)");
-        for ($i = 1; $i <= $totalCards; $i++) {
-            $stmt->execute([$i, $tagId]);
-        }
+        parent::tearDownAfterClass();
     }
 
     /**
@@ -90,7 +92,7 @@ class CsvImportTest extends TestCase
         $tags = [];
         foreach ($tagColumns as $tag) {
             $tag = trim($tag);
-            if (!empty($tag)) {
+            if ( ! empty($tag)) {
                 $tags[] = $tag;
             }
         }
@@ -112,7 +114,7 @@ class CsvImportTest extends TestCase
         $tags = [];
         foreach ($tagColumns as $tag) {
             $tag = trim($tag);
-            if (!empty($tag)) {
+            if ( ! empty($tag)) {
                 $tags[] = $tag;
             }
         }
@@ -135,7 +137,7 @@ class CsvImportTest extends TestCase
         $tags = [];
         foreach ($tagColumns as $tag) {
             $tag = trim($tag);
-            if (!empty($tag)) {
+            if ( ! empty($tag)) {
                 $tags[] = $tag;
             }
         }
@@ -158,7 +160,7 @@ class CsvImportTest extends TestCase
         $tags = [];
         foreach ($tagColumns as $tag) {
             $tag = trim($tag);
-            if (!empty($tag)) {
+            if ( ! empty($tag)) {
                 $tags[] = $tag;
             }
         }
@@ -181,7 +183,7 @@ class CsvImportTest extends TestCase
         $tags = [];
         foreach ($tagColumns as $tag) {
             $tag = trim($tag);
-            if (!empty($tag)) {
+            if ( ! empty($tag)) {
                 $tags[] = $tag;
             }
         }

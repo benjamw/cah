@@ -8,6 +8,7 @@ use CAH\Constants\GameDefaults;
 use CAH\Constants\SessionKeys;
 use CAH\Database\Database;
 use CAH\Enums\GameState;
+use CAH\Enums\GameEndReason;
 use CAH\Models\Game;
 use CAH\Models\Card;
 use CAH\Models\Tag;
@@ -17,6 +18,7 @@ use CAH\Exceptions\InvalidGameStateException;
 use CAH\Exceptions\UnauthorizedException;
 use CAH\Exceptions\ValidationException;
 use CAH\Exceptions\GameCodeGenerationException;
+use CAH\Exceptions\InsufficientCardsException;
 use CAH\Utils\GameCodeGenerator;
 use CAH\Utils\Validator;
 
@@ -60,20 +62,6 @@ use CAH\Utils\Validator;
  */
 class GameService
 {
-    private static ?array $gameConfig = null;
-
-    /**
-     * Get game configuration
-     *
-     * @return array<string, mixed>
-     */
-    private static function getConfig(): array
-    {
-        if (self::$gameConfig === null) {
-            self::$gameConfig = require __DIR__ . '/../../config/game.php';
-        }
-        return self::$gameConfig;
-    }
     /**
      * Create a new game
      *
@@ -122,7 +110,7 @@ class GameService
         $creatorId = self::generatePlayerId();
         $piles = CardService::buildDrawPile($tagIds);
 
-        $config = self::getConfig();
+        $config = ConfigService::getGameConfig();
         $playerData = [
             'settings' => array_merge([
                 'rando_enabled' => false,
@@ -202,17 +190,7 @@ class GameService
      */
     public static function generatePlayerId(): string
     {
-        return sprintf(
-            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            random_int(0, 0xffff),
-            random_int(0, 0xffff),
-            random_int(0, 0xffff),
-            random_int(0, 0x0fff) | 0x4000,
-            random_int(0, 0x3fff) | 0x8000,
-            random_int(0, 0xffff),
-            random_int(0, 0xffff),
-            random_int(0, 0xffff)
-        );
+        return PlayerHelper::generatePlayerId();
     }
 
 
@@ -258,7 +236,7 @@ class GameService
                 ];
             }
 
-            $maxPlayers = self::getConfig()['max_players'];
+            $maxPlayers = ConfigService::getGameValue('max_players', 10);
             if (count($playerData['players']) >= $maxPlayers) {
                 throw new ValidationException("Game is full (maximum {$maxPlayers} players)");
             }
@@ -324,7 +302,7 @@ class GameService
                 throw new InvalidGameStateException('Game has already started');
             }
 
-            $config = self::getConfig();
+            $config = ConfigService::getGameConfig();
             $minPlayers = $config['min_players'];
             if (count($playerData['players']) < $minPlayers) {
                 throw new ValidationException("Need at least {$minPlayers} players to start");
@@ -333,6 +311,25 @@ class GameService
             $whitePile = $game['draw_pile']['white'];
             $blackPile = $game['draw_pile']['black'];
             $handSize = $playerData['settings']['hand_size'];
+
+            // Calculate total cards needed
+            // EXPLAIN 
+            $nonRandoPlayerCount = count($playerData['players']);
+            if ($playerData['settings']['rando_enabled']) {
+                $nonRandoPlayerCount++; // Add Rando to count, but Rando doesn't get cards
+                $nonRandoPlayerCount--; // Actually, Rando never has a hand, so don't count
+            }
+            
+            // Check if enough white cards to deal initial hands
+            $cardsNeededForHands = $nonRandoPlayerCount * $handSize;
+            if (count($whitePile) < $cardsNeededForHands) {
+                throw new InsufficientCardsException('white', $cardsNeededForHands, count($whitePile));
+            }
+            
+            // Check if at least one black card available
+            if (empty($blackPile)) {
+                throw new InsufficientCardsException('black', 1, 0);
+            }
 
             // Add Rando Cardrissian if enabled
             if ($playerData['settings']['rando_enabled']) {
@@ -449,31 +446,14 @@ class GameService
                 throw new ValidationException('Cannot remove yourself from the game');
             }
 
-            // Check minimum player count - must have more than minimum to remove
-            $minPlayers = $playerData['settings']['min_players'] ?? 3;
-            if (count($playerData['players']) <= $minPlayers) {
-                throw new ValidationException("Cannot remove player: would leave fewer than {$minPlayers} players");
-            }
+            // Check minimum player count before removal
+            self::checkMinimumPlayersBeforeRemoval($playerData);
 
-            $playerIndex = null;
-            $playerHand = [];
+            // Find and extract player to remove
+            [$playerIndex, $playerHand] = self::findPlayerToRemove($playerData, $targetPlayerId);
 
-            foreach ($playerData['players'] as $index => $player) {
-                if ($player['id'] === $targetPlayerId) {
-                    $playerIndex = $index;
-                    $playerHand = $player['hand'] ?? [];
-                    break;
-                }
-            }
-
-            if ($playerIndex === null) {
-                throw new PlayerNotFoundException($targetPlayerId);
-            }
-
-            // Remove player from players array
+            // Remove player from players array and player order
             array_splice($playerData['players'], $playerIndex, 1);
-
-            // Remove from player order
             $orderIndex = array_search($targetPlayerId, $playerData['player_order']);
             if ($orderIndex !== false) {
                 array_splice($playerData['player_order'], $orderIndex, 1);
@@ -488,52 +468,13 @@ class GameService
             }
 
             // Handle czar removal during active round
-            $isPlayingState = $playerData['state'] === GameState::PLAYING->value;
             $isCzar = $playerData['current_czar_id'] === $targetPlayerId;
-            $hasSubmissions = ! empty($playerData['submissions']);
-
-            if ($isPlayingState && $isCzar && $hasSubmissions) {
-                // Reset round state: return submitted cards to players' hands
-                foreach ($playerData['submissions'] as $submission) {
-                    $submittingPlayerId = $submission['player_id'];
-                    $submittedCards = $submission['cards'];
-
-                    // Find the player and return cards to their hand
-                    foreach ($playerData['players'] as &$player) {
-                        if ($player['id'] === $submittingPlayerId) {
-                            // Skip Rando (has no hand)
-                            if (empty($player['is_rando'])) {
-                                $player['hand'] = array_merge($player['hand'], $submittedCards);
-                            } else {
-                                // Rando's cards go back to pile
-                                $whitePile = CardService::returnCardsToPile($whitePile, $submittedCards);
-                            }
-                            break;
-                        }
-                    }
-                }
-
-                // Clear submissions
-                $playerData['submissions'] = [];
-
-                // Draw new black card
-                $blackResult = CardService::drawBlackCard($blackPile);
-                $playerData['current_black_card'] = $blackResult['card'];
-                $blackPile = $blackResult['remaining_pile'];
-
-                // Deal bonus cards if needed for new black card
-                $choices = CardService::getBlackCardChoices($playerData['current_black_card']);
-                $bonusCards = CardService::calculateBonusCards($choices);
-
-                if ($bonusCards > 0) {
-                    foreach ($playerData['players'] as &$player) {
-                        if (empty($player['is_rando'])) {
-                            $result = CardService::drawWhiteCards($whitePile, $bonusCards);
-                            $player['hand'] = array_merge($player['hand'], $result['cards']);
-                            $whitePile = $result['remaining_pile'];
-                        }
-                    }
-                }
+            if (self::shouldResetRound($playerData, $isCzar)) {
+                [$playerData, $whitePile, $blackPile] = self::handleCzarRemovalDuringRound(
+                    $playerData,
+                    $whitePile,
+                    $blackPile
+                );
             }
 
             // Assign new czar if removed player was czar
@@ -541,32 +482,8 @@ class GameService
                 $playerData['current_czar_id'] = self::getNextCzar($playerData);
             }
 
-            // Check if too few players remain (need at least 3 to play)
-            $minPlayers = 3;
-            $eligiblePlayers = array_filter(
-                $playerData['players'],
-                fn($p): bool => empty($p['is_rando'])
-            );
-            
-            if (count($eligiblePlayers) < $minPlayers && $playerData['state'] !== GameState::FINISHED->value) {
-                // End the game due to too few players
-                $playerData['state'] = GameState::FINISHED->value;
-                $playerData['finished_at'] = (new \DateTime())->format('Y-m-d H:i:s');
-                $playerData['end_reason'] = GameEndReason::TOO_FEW_PLAYERS->value;
-                
-                // Find player with highest score as winner
-                $highestScore = -1;
-                $winnerId = null;
-                foreach ($playerData['players'] as $player) {
-                    if ($player['score'] > $highestScore) {
-                        $highestScore = $player['score'];
-                        $winnerId = $player['id'];
-                    }
-                }
-                if ($winnerId !== null) {
-                    $playerData['winner_id'] = $winnerId;
-                }
-            }
+            // Check if too few players remain and end game if needed
+            $playerData = self::checkAndHandleGameEnd($playerData);
 
             Game::update($gameId, [
                 'draw_pile' => ['white' => $whitePile, 'black' => $blackPile],
@@ -577,6 +494,234 @@ class GameService
             $updatedGame = Game::find($gameId);
             return self::hydrateCards($updatedGame['player_data']);
         });
+    }
+
+    /**
+     * Check if there are enough players to remove one
+     *
+     * @param array $playerData
+     * @throws ValidationException
+     */
+    private static function checkMinimumPlayersBeforeRemoval(array $playerData): void
+    {
+        $minPlayers = $playerData['settings']['min_players'] ?? 3;
+        if (count($playerData['players']) <= $minPlayers) {
+            throw new ValidationException("Cannot remove player: would leave fewer than {$minPlayers} players");
+        }
+    }
+
+    /**
+     * Find the player to remove and return their index and hand
+     *
+     * @param array $playerData
+     * @param string $targetPlayerId
+     * @return array [playerIndex, playerHand]
+     * @throws PlayerNotFoundException
+     */
+    private static function findPlayerToRemove(array $playerData, string $targetPlayerId): array
+    {
+        foreach ($playerData['players'] as $index => $player) {
+            if ($player['id'] === $targetPlayerId) {
+                return [$index, $player['hand'] ?? []];
+            }
+        }
+
+        throw new PlayerNotFoundException($targetPlayerId);
+    }
+
+    /**
+     * Determine if the round should be reset due to czar removal
+     *
+     * @param array $playerData
+     * @param bool $isCzar
+     * @return bool
+     */
+    private static function shouldResetRound(array $playerData, bool $isCzar): bool
+    {
+        $isPlayingState = $playerData['state'] === GameState::PLAYING->value;
+        $hasSubmissions = ! empty($playerData['submissions']);
+        return $isPlayingState && $isCzar && $hasSubmissions;
+    }
+
+    /**
+     * Handle czar removal during an active round - reset round state
+     *
+     * @param array $playerData
+     * @param array $whitePile
+     * @param array $blackPile
+     * @return array [$playerData, $whitePile, $blackPile]
+     */
+    private static function handleCzarRemovalDuringRound(
+        array $playerData,
+        array $whitePile,
+        array $blackPile
+    ): array {
+        // Return submitted cards to players' hands
+        foreach ($playerData['submissions'] as $submission) {
+            $submittingPlayerId = $submission['player_id'];
+            $submittedCards = $submission['cards'];
+
+            // Find the player and return cards to their hand
+            foreach ($playerData['players'] as &$player) {
+                if ($player['id'] === $submittingPlayerId) {
+                    // Skip Rando (has no hand)
+                    if (empty($player['is_rando'])) {
+                        $player['hand'] = array_merge($player['hand'], $submittedCards);
+                    } else {
+                        // Rando's cards go back to pile
+                        $whitePile = CardService::returnCardsToPile($whitePile, $submittedCards);
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Clear submissions
+        $playerData['submissions'] = [];
+
+        // Draw new black card
+        $blackResult = CardService::drawBlackCard($blackPile);
+        $playerData['current_black_card'] = $blackResult['card'];
+        $blackPile = $blackResult['remaining_pile'];
+
+        // Deal bonus cards if needed for new black card
+        $choices = CardService::getBlackCardChoices($playerData['current_black_card']);
+        $bonusCards = CardService::calculateBonusCards($choices);
+
+        if ($bonusCards > 0) {
+            foreach ($playerData['players'] as &$player) {
+                if (empty($player['is_rando'])) {
+                    $result = CardService::drawWhiteCards($whitePile, $bonusCards);
+                    $player['hand'] = array_merge($player['hand'], $result['cards']);
+                    $whitePile = $result['remaining_pile'];
+                }
+            }
+        }
+
+        return [$playerData, $whitePile, $blackPile];
+    }
+
+    /**
+     * Check if game should end due to too few players and handle game end
+     *
+     * @param array $playerData
+     * @return array Updated playerData
+     */
+    private static function checkAndHandleGameEnd(array $playerData): array
+    {
+        $minPlayers = 3;
+        $eligiblePlayers = array_filter(
+            $playerData['players'],
+            fn($p): bool => empty($p['is_rando'])
+        );
+        
+        if (count($eligiblePlayers) < $minPlayers && $playerData['state'] !== GameState::FINISHED->value) {
+            // End the game due to too few players
+            $playerData['state'] = GameState::FINISHED->value;
+            $playerData['finished_at'] = (new \DateTime())->format('Y-m-d H:i:s');
+            $playerData['end_reason'] = GameEndReason::TOO_FEW_PLAYERS->value;
+            
+            // Find player with highest score as winner
+            $highestScore = -1;
+            $winnerId = null;
+            foreach ($playerData['players'] as $player) {
+                if ($player['score'] > $highestScore) {
+                    $highestScore = $player['score'];
+                    $winnerId = $player['id'];
+                }
+            }
+            if ($winnerId !== null) {
+                $playerData['winner_id'] = $winnerId;
+            }
+        }
+
+        return $playerData;
+    }
+
+    /**
+     * Find player IDs by their names
+     *
+     * @param array $playerData
+     * @param string $playerName1
+     * @param string $playerName2
+     * @return array{0: string|null, 1: string|null} [player1Id, player2Id]
+     */
+    private static function findPlayerIdsByNames(array $playerData, string $playerName1, string $playerName2): array
+    {
+        $player1Id = null;
+        $player2Id = null;
+
+        foreach ($playerData['players'] as $player) {
+            if (strcasecmp((string) $player['name'], $playerName1) === 0) {
+                $player1Id = $player['id'];
+            }
+            if (strcasecmp((string) $player['name'], $playerName2) === 0) {
+                $player2Id = $player['id'];
+            }
+        }
+
+        return [$player1Id, $player2Id];
+    }
+
+    /**
+     * Insert new player into player order between two adjacent players
+     *
+     * @param array $playerOrder
+     * @param string $newPlayerId
+     * @param string $player1Id
+     * @param string $player2Id
+     * @return array Updated player order
+     */
+    private static function insertIntoPlayerOrder(
+        array $playerOrder,
+        string $newPlayerId,
+        string $player1Id,
+        string $player2Id
+    ): array {
+        $index1 = array_search($player1Id, $playerOrder);
+        $index2 = array_search($player2Id, $playerOrder);
+
+        if ($index1 !== false && $index2 !== false) {
+            $orderCount = count($playerOrder);
+            $insertIndex = self::findAdjacentInsertIndex($index1, $index2, $orderCount);
+            
+            if ($insertIndex !== null) {
+                array_splice($playerOrder, $insertIndex, 0, [$newPlayerId]);
+            } else {
+                // Players not adjacent, insert after first player
+                array_splice($playerOrder, $index1 + 1, 0, [$newPlayerId]);
+            }
+        } elseif ($index1 !== false) {
+            array_splice($playerOrder, $index1 + 1, 0, [$newPlayerId]);
+        } elseif ($index2 !== false) {
+            array_splice($playerOrder, $index2 + 1, 0, [$newPlayerId]);
+        }
+
+        return $playerOrder;
+    }
+
+    /**
+     * Find the insertion index if two players are adjacent in the order
+     *
+     * @param int $index1
+     * @param int $index2
+     * @param int $orderCount
+     * @return int|null Insert index, or null if not adjacent
+     */
+    private static function findAdjacentInsertIndex(int $index1, int $index2, int $orderCount): ?int
+    {
+        // Check if indices are adjacent
+        if (abs($index1 - $index2) === 1) {
+            return max($index1, $index2);
+        }
+
+        // Check if they wrap around (first and last positions)
+        if (($index1 === 0 && $index2 === $orderCount - 1) ||
+            ($index2 === 0 && $index1 === $orderCount - 1)) {
+            return $orderCount;
+        }
+
+        return null; // Not adjacent
     }
 
     /**
@@ -707,7 +852,7 @@ class GameService
                 }
 
                 // Check if the next czar completes the circle (loops back to first)
-                if (!empty($playerData['player_order']) && $nextCzarId === $playerData['player_order'][0]) {
+                if ( ! empty($playerData['player_order']) && $nextCzarId === $playerData['player_order'][0]) {
                     // Check if anyone was skipped
                     $eligiblePlayerIds = array_map(
                         fn($p) => $p['id'],
@@ -716,7 +861,7 @@ class GameService
                     
                     $skippedPlayers = array_diff($eligiblePlayerIds, $playerData['player_order']);
                     
-                    if (!empty($skippedPlayers)) {
+                    if ( ! empty($skippedPlayers)) {
                         // Store skipped players info - order NOT locked yet, waiting for placement
                         $skippedNames = [];
                         foreach ($playerData['players'] as $player) {
@@ -777,7 +922,7 @@ class GameService
                 throw new ValidationException('No skipped players to place');
             }
 
-            if (!in_array($skippedPlayerId, $playerData['skipped_players']['ids'], true)) {
+            if ( ! in_array($skippedPlayerId, $playerData['skipped_players']['ids'], true)) {
                 throw new ValidationException('Player is not in the skipped list');
             }
 
@@ -839,7 +984,7 @@ class GameService
 
             $playerData = $game['player_data'];
 
-            $maxPlayers = self::getConfig()['max_players'];
+            $maxPlayers = ConfigService::getGameValue('max_players', 10);
             if (count($playerData['players']) >= $maxPlayers) {
                 throw new ValidationException("Game is full (maximum {$maxPlayers} players)");
             }
@@ -850,17 +995,8 @@ class GameService
                 }
             }
 
-            $player1Id = null;
-            $player2Id = null;
-
-            foreach ($playerData['players'] as $player) {
-                if (strcasecmp((string) $player['name'], $playerName1) === 0) {
-                    $player1Id = $player['id'];
-                }
-                if (strcasecmp((string) $player['name'], $playerName2) === 0) {
-                    $player2Id = $player['id'];
-                }
-            }
+            // Find player IDs by names
+            [$player1Id, $player2Id] = self::findPlayerIdsByNames($playerData, $playerName1, $playerName2);
 
             if ( ! $player1Id || ! $player2Id) {
                 throw new ValidationException('Could not find specified players');
@@ -882,35 +1018,14 @@ class GameService
 
             $playerData['players'][] = $newPlayer;
 
+            // Insert into player order if order exists
             if ( ! empty($playerData['player_order'])) {
-                $index1 = array_search($player1Id, $playerData['player_order']);
-                $index2 = array_search($player2Id, $playerData['player_order']);
-
-                if ($index1 !== false && $index2 !== false) {
-                    $orderCount = count($playerData['player_order']);
-
-                    $isAdjacent = false;
-                    $insertIndex = 0;
-
-                    if (abs($index1 - $index2) === 1) {
-                        $isAdjacent = true;
-                        $insertIndex = max($index1, $index2);
-                    } elseif (($index1 === 0 && $index2 === $orderCount - 1) ||
-                              ($index2 === 0 && $index1 === $orderCount - 1)) {
-                        $isAdjacent = true;
-                        $insertIndex = $orderCount;
-                    }
-
-                    if ($isAdjacent) {
-                        array_splice($playerData['player_order'], $insertIndex, 0, [$playerId]);
-                    } else {
-                        array_splice($playerData['player_order'], $index1 + 1, 0, [$playerId]);
-                    }
-                } elseif ($index1 !== false) {
-                    array_splice($playerData['player_order'], $index1 + 1, 0, [$playerId]);
-                } elseif ($index2 !== false) {
-                    array_splice($playerData['player_order'], $index2 + 1, 0, [$playerId]);
-                }
+                $playerData['player_order'] = self::insertIntoPlayerOrder(
+                    $playerData['player_order'],
+                    $playerId,
+                    $player1Id,
+                    $player2Id
+                );
             }
 
             // Update database
@@ -944,13 +1059,7 @@ class GameService
      */
     public static function findPlayer(array $playerData, string $playerId): ?array
     {
-        foreach ($playerData['players'] as $player) {
-            if ($player['id'] === $playerId) {
-                return $player;
-            }
-        }
-
-        return null;
+        return PlayerHelper::findPlayer($playerData, $playerId);
     }
 
     /**
@@ -962,7 +1071,7 @@ class GameService
      */
     public static function isCreator(array $playerData, string $playerId): bool
     {
-        return $playerData['creator_id'] === $playerId;
+        return PlayerHelper::isCreator($playerData, $playerId);
     }
 
     /**
@@ -974,7 +1083,7 @@ class GameService
      */
     public static function isCzar(array $playerData, string $playerId): bool
     {
-        return $playerData['current_czar_id'] === $playerId;
+        return PlayerHelper::isCzar($playerData, $playerId);
     }
 
     /**
@@ -1092,7 +1201,7 @@ class GameService
             if ($actualSubmissions < $expectedSubmissions) {
                 // Keep the array length but hide the content
                 $playerData['submissions'] = array_map(
-                    fn() => ['submitted' => true],
+                    fn(): array => ['submitted' => true],
                     $playerData['submissions']
                 );
             } else {
@@ -1277,107 +1386,53 @@ class GameService
                 throw new UnauthorizedException('Game creator must transfer host before leaving');
             }
 
-            // Find and remove player
-            $playerIndex = null;
-            $playerHand = [];
+            // Find and extract player to remove
+            [$playerIndex, $playerHand] = self::findPlayerToRemove($playerData, $playerId);
 
-            foreach ($playerData['players'] as $index => $p) {
-                if ($p['id'] === $playerId) {
-                    $playerIndex = $index;
-                    $playerHand = $p['hand'] ?? [];
-                    break;
-                }
-            }
-
-            if ($playerIndex !== null) {
-                array_splice($playerData['players'], $playerIndex, 1);
-
-                // Remove from player_order if present
-                if ( ! empty($playerData['player_order'])) {
-                    $playerData['player_order'] = array_values(array_filter(
-                        $playerData['player_order'],
-                        fn($id): bool => $id !== $playerId
-                    ));
-                }
-
-                // Return cards to discard pile
-                if ( ! empty($playerHand)) {
-                    $discardPile = $game['discard_pile'] ?? [];
-                    $discardPile = array_merge($discardPile, $playerHand);
-                    Game::update($gameId, ['discard_pile' => $discardPile]);
-                }
-
-                // Handle if player was czar during active round
-                $isPlayingState = $playerData['state'] === GameState::PLAYING->value;
-                $isCzar = $playerData['current_czar_id'] === $playerId;
-                $hasSubmissions = ! empty($playerData['submissions']);
-
-                if ($isPlayingState && $isCzar && $hasSubmissions) {
-                    // Reset round: return submitted cards to players' hands
-                    foreach ($playerData['submissions'] as $submission) {
-                        $submittingPlayerId = $submission['player_id'];
-                        $submittedCards = $submission['cards'];
-
-                        foreach ($playerData['players'] as &$p) {
-                            if ($p['id'] === $submittingPlayerId) {
-                                $p['hand'] = array_merge($p['hand'], $submittedCards);
-                                break;
-                            }
-                        }
-                    }
-
-                    // Clear submissions
-                    $playerData['submissions'] = [];
-
-                    // Draw new black card if there are still players
-                    if (!empty($playerData['players'])) {
-                        $blackPile = $game['draw_pile']['black'] ?? [];
-                        if (!empty($blackPile)) {
-                            $blackResult = CardService::drawBlackCard($blackPile);
-                            $playerData['current_black_card'] = $blackResult['card'];
-                            $game['draw_pile']['black'] = $blackResult['remaining_pile'];
-                        }
-                    }
-                }
-
-                // Select next czar if removed player was czar and there are still players
-                if ($playerData['current_czar_id'] === $playerId && !empty($playerData['players'])) {
-                    $playerData['current_czar_id'] = self::getNextCzar($playerData);
-                }
-
-                // Remove submissions from player
-                $playerData['submissions'] = array_values(array_filter(
-                    $playerData['submissions'],
-                    fn($sub): bool => $sub['player_id'] !== $playerId
+            // Remove player from players array and player order
+            array_splice($playerData['players'], $playerIndex, 1);
+            
+            // Remove from player_order if present
+            if ( ! empty($playerData['player_order'])) {
+                $playerData['player_order'] = array_values(array_filter(
+                    $playerData['player_order'],
+                    fn($id): bool => $id !== $playerId
                 ));
-                
-                // Check if too few players remain (need at least 3 to play)
-                $minPlayers = 3;
-                $eligiblePlayers = array_filter(
-                    $playerData['players'],
-                    fn($p): bool => empty($p['is_rando'])
-                );
-                
-                if (count($eligiblePlayers) < $minPlayers && $playerData['state'] !== GameState::FINISHED->value) {
-                    // End the game due to too few players
-                    $playerData['state'] = GameState::FINISHED->value;
-                    $playerData['finished_at'] = (new \DateTime())->format('Y-m-d H:i:s');
-                    $playerData['end_reason'] = GameEndReason::TOO_FEW_PLAYERS->value;
-                    
-                    // Find player with highest score as winner
-                    $highestScore = -1;
-                    $winnerId = null;
-                    foreach ($playerData['players'] as $p) {
-                        if ($p['score'] > $highestScore) {
-                            $highestScore = $p['score'];
-                            $winnerId = $p['id'];
-                        }
-                    }
-                    if ($winnerId !== null) {
-                        $playerData['winner_id'] = $winnerId;
-                    }
-                }
             }
+
+            // Return cards to discard pile (different from removePlayer which returns to draw pile)
+            if ( ! empty($playerHand)) {
+                $discardPile = $game['discard_pile'] ?? [];
+                $discardPile = array_merge($discardPile, $playerHand);
+                Game::update($gameId, ['discard_pile' => $discardPile]);
+            }
+
+            $whitePile = $game['draw_pile']['white'];
+            $blackPile = $game['draw_pile']['black'];
+
+            // Handle czar removal during active round
+            $isCzar = $playerData['current_czar_id'] === $playerId;
+            if (self::shouldResetRound($playerData, $isCzar)) {
+                [$playerData, $whitePile, $blackPile] = self::handleCzarRemovalDuringRound(
+                    $playerData,
+                    $whitePile,
+                    $blackPile
+                );
+            }
+
+            // Select next czar if removed player was czar and there are still players
+            if ($isCzar && ! empty($playerData['players'])) {
+                $playerData['current_czar_id'] = self::getNextCzar($playerData);
+            }
+
+            // Remove submissions from player
+            $playerData['submissions'] = array_values(array_filter(
+                $playerData['submissions'],
+                fn($sub): bool => $sub['player_id'] !== $playerId
+            ));
+            
+            // Check if too few players remain and end game if needed
+            $playerData = self::checkAndHandleGameEnd($playerData);
 
             Game::updatePlayerData($gameId, $playerData);
 

@@ -57,7 +57,7 @@ function GamePlay({ gameData, onLeaveGame }) {
           player => player.id === gameData.playerId
         );
         
-        if (!playerStillInGame && !removedRef.current) {
+        if ( ! playerStillInGame && ! removedRef.current) {
           console.log('Player has been removed from the game');
           removedRef.current = true; // Prevent multiple alerts
           
@@ -76,7 +76,7 @@ function GamePlay({ gameData, onLeaveGame }) {
           player => player.id === gameData.playerId
         );
         
-        if (currentPlayer && currentPlayer.is_creator && !isCreator && !hostTransferAlertedRef.current) {
+        if (currentPlayer && currentPlayer.is_creator && ! isCreator && ! hostTransferAlertedRef.current) {
           console.log('Player became the new host');
           hostTransferAlertedRef.current = true; // Prevent multiple alerts
           setIsCreator(true);
@@ -153,7 +153,7 @@ function GamePlay({ gameData, onLeaveGame }) {
     }
   };
 
-  if (loading && !gameState) {
+  if (loading && ! gameState) {
     return (
       <div className="game-play">
         <div className="game-header">
@@ -166,7 +166,7 @@ function GamePlay({ gameData, onLeaveGame }) {
     );
   }
 
-  if (error && !gameState) {
+  if (error && ! gameState) {
     return (
       <div className="game-play">
         <div className="game-header">

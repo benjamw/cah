@@ -48,7 +48,7 @@ try {
     $sql = preg_replace('/\/\*.*?\*\//s', '', $sql);
     $statements = array_filter(
         array_map('trim', explode(';', $sql)),
-        fn($stmt) => !empty($stmt)
+        fn($stmt) => ! empty($stmt)
     );
 
     foreach ($statements as $statement) {

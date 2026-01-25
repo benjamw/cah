@@ -42,10 +42,14 @@ class GameController
                 $settings
             );
 
+            // Generate CSRF token for the session
+            $csrfToken = \CAH\Services\CsrfService::generateToken();
+
             return JsonResponse::success($response, [
                 'game_id' => $result['game_id'],
                 'player_id' => $result['player_id'],
                 'player_name' => $result['player_name'],
+                'csrf_token' => $csrfToken,
             ], null, 201);
 
         } catch (ValidationException $e) {
@@ -77,6 +81,9 @@ class GameController
 
             $result = GameService::joinGame($data['game_id'], $data['player_name']);
 
+            // Generate CSRF token for the session
+            $csrfToken = \CAH\Services\CsrfService::generateToken();
+
             // Game already started - return error with player names for late join
             if ($result['game_started']) {
                 return JsonResponse::error(
@@ -87,6 +94,7 @@ class GameController
                     [
                         'game_started' => true,
                         'player_names' => $result['player_names'],
+                        'csrf_token' => $csrfToken,
                     ]
                 );
             }
@@ -96,6 +104,7 @@ class GameController
                 'player_id' => $result['player_id'],
                 'player_name' => $result['player_name'],
                 'game_state' => $result['game_state'],
+                'csrf_token' => $csrfToken,
             ]);
 
         } catch (GameNotFoundException $e) {
@@ -152,7 +161,7 @@ class GameController
             // Check If-Modified-Since header for conditional request
             $ifModifiedSince = $request->getHeaderLine('If-Modified-Since');
             if ($ifModifiedSince) {
-                $updatedAtTimestamp = strtotime($game['updated_at']);
+                $updatedAtTimestamp = strtotime((string) $game['updated_at']);
                 $ifModifiedSinceTimestamp = strtotime($ifModifiedSince);
                 
                 // If the game hasn't been modified since the client's last request, return 304
@@ -170,7 +179,7 @@ class GameController
             $blackCardsRemaining = count($game['draw_pile']['black'] ?? []);
 
             // Add Last-Modified header
-            $response = $response->withHeader('Last-Modified', gmdate('D, d M Y H:i:s', strtotime($game['updated_at'])) . ' GMT');
+            $response = $response->withHeader('Last-Modified', gmdate('D, d M Y H:i:s', strtotime((string) $game['updated_at'])) . ' GMT');
 
             return JsonResponse::success($response, [
                 'game_id' => $game['game_id'],
@@ -242,10 +251,14 @@ class GameController
                 $data['adjacent_player_2']
             );
 
+            // Generate CSRF token for the session
+            $csrfToken = \CAH\Services\CsrfService::generateToken();
+
             return JsonResponse::success($response, [
                 'player_id' => $result['player_id'],
                 'player_name' => $result['player_name'],
                 'game_state' => $result['game_state'],
+                'csrf_token' => $csrfToken,
             ]);
 
         } catch (GameNotFoundException $e) {
@@ -297,7 +310,7 @@ class GameController
             $playerId = $request->getAttribute('player_id');
 
             $data = $request->getParsedBody();
-            if (!isset($data['skipped_player_id']) || !isset($data['before_player_id'])) {
+            if ( ! isset($data['skipped_player_id']) || ! isset($data['before_player_id'])) {
                 throw new ValidationException('skipped_player_id and before_player_id are required');
             }
 
@@ -310,9 +323,7 @@ class GameController
 
             return JsonResponse::success($response, ['game_state' => $gameState]);
 
-        } catch (GameNotFoundException $e) {
-            return JsonResponse::notFound($response, $e->getMessage());
-        } catch (PlayerNotFoundException $e) {
+        } catch (GameNotFoundException|PlayerNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
         } catch (UnauthorizedException $e) {
             return JsonResponse::error($response, $e->getMessage(), 403);

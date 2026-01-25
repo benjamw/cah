@@ -39,7 +39,7 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
   };
 
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+    if ( ! touchStart || ! touchEnd) return;
 
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
@@ -54,7 +54,7 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
   };
 
   const handlePickWinner = async () => {
-    if (!allSubmitted) return;
+    if ( ! allSubmitted) return;
 
     const currentSubmission = submissions[currentSubmissionIndex];
     
@@ -66,7 +66,7 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
         gameData.gameId,
         currentSubmission.player_id
       );
-      if (!response.success) {
+      if ( ! response.success) {
         setError(response.message || 'Failed to advance round');
       } else {
         // Check if we need to select next czar
@@ -89,13 +89,13 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
 
     try {
       const response = await setNextCzar(gameData.gameId, nextCzarId);
-      if (!response.success) {
+      if ( ! response.success) {
         setError(response.message || 'Failed to set next czar');
       } else {
         setShowCzarSelection(false);
         
         // Check if order was locked (without skipped players - those are handled separately)
-        if (response.data.order_locked && !response.data.skipped_players) {
+        if (response.data.order_locked && ! response.data.skipped_players) {
           showToast('Player order locked! The czar will now rotate automatically.');
         }
       }
@@ -162,7 +162,7 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
         <span>You are the Card Czar</span>
       </div>
 
-      {!allSubmitted && (
+      { ! allSubmitted && (
         <div className="card-section">
           {blackCard ? (
             <div className="card card-black">
@@ -177,7 +177,7 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
         </div>
       )}
 
-      {!allSubmitted ? (
+      { ! allSubmitted ? (
         <>
           <div className="waiting-for-submissions">
             <p>Waiting for players to submit their cards...</p>
@@ -269,7 +269,7 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
 }
 
 function formatCardText(text) {
-  if (!text) return '';
+  if ( ! text) return '';
 
   // Protect sequences of 3+ underscores (blanks) by replacing them temporarily
   // Using vertical tab character (U+000B) which won't appear in cards or be processed by markdown
@@ -294,7 +294,7 @@ function formatCardText(text) {
 
 function CzarSelectionModal({ players, currentCzarId, onSelectCzar, onCancel, selecting }) {
   // Filter out current czar and Rando
-  const eligiblePlayers = players.filter(p => p.id !== currentCzarId && !p.is_rando);
+  const eligiblePlayers = players.filter(p => p.id !== currentCzarId && ! p.is_rando);
 
   return (
     <div className="modal-overlay" onClick={onCancel}>

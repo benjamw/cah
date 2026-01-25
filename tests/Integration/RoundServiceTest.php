@@ -59,7 +59,10 @@ class RoundServiceTest extends TestCase
     {
         $game = $this->createPlayingGame();
         $gameId = $game['game_id'];
-        $gameState = $game['game_state'];
+        
+        // Fetch fresh game state from database (not the filtered one returned by startGame)
+        $gameData = Game::find($gameId);
+        $gameState = $gameData['player_data'];
 
         $czarId = $gameState['current_czar_id'];
         $nonCzarPlayer = null;
@@ -177,11 +180,27 @@ class RoundServiceTest extends TestCase
         // First submission should succeed
         RoundService::submitCards($gameId, $nonCzarPlayer['id'], $cardsToSubmit);
 
-        // Second submission should fail
+        // Second submission should fail with InvalidGameStateException (already submitted)
+        // Note: Player now has different cards in hand (they were replaced), so we need to
+        // use the new cards from their updated hand
+        $gameAfter = Game::find($gameId);
+        $playerDataAfter = $gameAfter['player_data'];
+        $updatedPlayer = null;
+        foreach ($playerDataAfter['players'] as $player) {
+            if ($player['id'] === $nonCzarPlayer['id']) {
+                $updatedPlayer = $player;
+                break;
+            }
+        }
+        
+        // Use getCardIds to extract just the IDs from the hand
+        $newCardsToSubmit = $this->getCardIds(array_slice($updatedPlayer['hand'], 0, $requiredCards));
+
+        // This should fail because player already submitted
         $this->expectException(InvalidGameStateException::class);
         $this->expectExceptionMessage('already submitted');
 
-        RoundService::submitCards($gameId, $nonCzarPlayer['id'], $cardsToSubmit);
+        RoundService::submitCards($gameId, $nonCzarPlayer['id'], $newCardsToSubmit);
     }
 
     public function testCheckForWinner(): void

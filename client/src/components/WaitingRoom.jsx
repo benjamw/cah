@@ -13,16 +13,16 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
   console.log('WaitingRoom props:', { gameState, gameData, players, settings });
 
   const handleRemovePlayer = async (playerId) => {
-    if (!gameData.isCreator || playerId === gameData.playerId) return;
+    if ( ! gameData.isCreator || playerId === gameData.playerId) return;
 
-    if (!window.confirm('Are you sure you want to remove this player?')) {
+    if ( ! window.confirm('Are you sure you want to remove this player?')) {
       return;
     }
 
     setRemoving(playerId);
     try {
       const response = await removePlayer(gameData.gameId, playerId);
-      if (!response.success) {
+      if ( ! response.success) {
         console.error('Failed to remove player:', response);
       }
       // Game state will update via polling
@@ -81,7 +81,7 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
         </div>
       )}
 
-      {!gameData.isCreator && (
+      { ! gameData.isCreator && (
         <div className="waiting-message">
           <h2>Waiting for game to start...</h2>
           <p className="waiting-subtext">
@@ -111,7 +111,7 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
                   <span className="player-name">{player.name}</span>
                   {player.is_creator && <span className="badge">Host</span>}
                 </div>
-                {gameData.isCreator && !player.is_creator && (
+                {gameData.isCreator && ! player.is_creator && (
                   <button
                     className="btn-remove-player"
                     onClick={() => handleRemovePlayer(player.id)}
@@ -151,11 +151,11 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
             <button 
               className="btn btn-primary" 
               onClick={onStartGame}
-              disabled={!canStart}
+              disabled={ ! canStart}
             >
               Start Game
             </button>
-            {!canStart && (
+            { ! canStart && (
               <p className="info-message">
                 Need at least {minPlayers} players to start
                 ({minPlayers - players.length} more needed)
@@ -183,7 +183,7 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
 }
 
 function HostTransferModal({ players, currentPlayerId, onTransfer, onCancel, transferring }) {
-  const otherPlayers = players.filter(p => p.id !== currentPlayerId && !p.is_rando);
+  const otherPlayers = players.filter(p => p.id !== currentPlayerId && ! p.is_rando);
 
   return (
     <div className="modal-overlay">

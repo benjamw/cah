@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use CAH\Controllers\AdminController;
+use CAH\Controllers\AdminCardController;
+use CAH\Controllers\AdminTagController;
+use CAH\Controllers\AdminGameController;
 use CAH\Controllers\CardController;
 use CAH\Controllers\GameController;
 use CAH\Controllers\PlayerController;
@@ -50,7 +53,7 @@ $app->add(new RateLimitMiddleware($gameConfig['rate_limit'] ?? []));
 
 // Configure CORS from environment
 $corsOrigins = $_ENV['CORS_ALLOWED_ORIGINS'] ?? '*';
-$allowedOrigins = $corsOrigins === '*' ? ['*'] : array_map('trim', explode(',', $corsOrigins));
+$allowedOrigins = $corsOrigins === '*' ? ['*'] : array_map(trim(...), explode(',', $corsOrigins));
 $app->add(new CorsMiddleware(['allowed_origins' => $allowedOrigins]));
 
 $displayErrorDetails = getenv('APP_DEBUG') === 'true' || getenv('APP_DEBUG') === '1';
@@ -172,17 +175,17 @@ $app->post('/api/admin/login', [AdminController::class, 'login']);
 
 // Admin routes - Protected (admin auth required)
 $app->post('/api/admin/logout', [AdminController::class, 'logout'])->add(new AdminAuthMiddleware());
-$app->get('/api/admin/cards/list', [AdminController::class, 'listCards'])->add(new AdminAuthMiddleware());
-$app->post('/api/admin/cards/import', [AdminController::class, 'importCards'])->add(new AdminAuthMiddleware());
-$app->put('/api/admin/cards/edit/{cardId}', [AdminController::class, 'editCard'])->add(new AdminAuthMiddleware());
-$app->delete('/api/admin/cards/delete/{cardId}', [AdminController::class, 'deleteCard'])->add(new AdminAuthMiddleware());
-$app->post('/api/admin/tags/create', [AdminController::class, 'createTag'])->add(new AdminAuthMiddleware());
-$app->put('/api/admin/tags/edit/{tagId}', [AdminController::class, 'editTag'])->add(new AdminAuthMiddleware());
-$app->delete('/api/admin/tags/delete/{tagId}', [AdminController::class, 'deleteTag'])->add(new AdminAuthMiddleware());
-$app->get('/api/admin/games/list', [AdminController::class, 'listGames'])->add(new AdminAuthMiddleware());
-$app->delete('/api/admin/games/delete/{gameId}', [AdminController::class, 'deleteGame'])->add(new AdminAuthMiddleware());
-$app->get('/api/admin/cards/{cardId}/tags', [AdminController::class, 'getCardTags'])->add(new AdminAuthMiddleware());
-$app->post('/api/admin/cards/{cardId}/tags/{tagId}', [AdminController::class, 'addCardTag'])->add(new AdminAuthMiddleware());
-$app->delete('/api/admin/cards/{cardId}/tags/{tagId}', [AdminController::class, 'removeCardTag'])->add(new AdminAuthMiddleware());
+$app->get('/api/admin/cards/list', [AdminCardController::class, 'listCards'])->add(new AdminAuthMiddleware());
+$app->post('/api/admin/cards/import', [AdminCardController::class, 'importCards'])->add(new AdminAuthMiddleware());
+$app->put('/api/admin/cards/edit/{cardId}', [AdminCardController::class, 'editCard'])->add(new AdminAuthMiddleware());
+$app->delete('/api/admin/cards/delete/{cardId}', [AdminCardController::class, 'deleteCard'])->add(new AdminAuthMiddleware());
+$app->post('/api/admin/tags/create', [AdminTagController::class, 'createTag'])->add(new AdminAuthMiddleware());
+$app->put('/api/admin/tags/edit/{tagId}', [AdminTagController::class, 'editTag'])->add(new AdminAuthMiddleware());
+$app->delete('/api/admin/tags/delete/{tagId}', [AdminTagController::class, 'deleteTag'])->add(new AdminAuthMiddleware());
+$app->get('/api/admin/games/list', [AdminGameController::class, 'listGames'])->add(new AdminAuthMiddleware());
+$app->delete('/api/admin/games/delete/{gameId}', [AdminGameController::class, 'deleteGame'])->add(new AdminAuthMiddleware());
+$app->get('/api/admin/cards/{cardId}/tags', [AdminCardController::class, 'getCardTags'])->add(new AdminAuthMiddleware());
+$app->post('/api/admin/cards/{cardId}/tags/{tagId}', [AdminCardController::class, 'addCardTag'])->add(new AdminAuthMiddleware());
+$app->delete('/api/admin/cards/{cardId}/tags/{tagId}', [AdminCardController::class, 'removeCardTag'])->add(new AdminAuthMiddleware());
 
 $app->run();

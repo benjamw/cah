@@ -351,7 +351,7 @@ class Game
         ";
         $result = Database::fetchOne($sql, [$gameId]);
 
-        if (!$result) {
+        if ( ! $result) {
             return null;
         }
 

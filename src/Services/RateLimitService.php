@@ -106,6 +106,17 @@ class RateLimitService
     }
 
     /**
+     * Clear recorded attempts for an IP/action (alias for reset)
+     *
+     * @param string $ipAddress Client IP address
+     * @param string $action Action being performed
+     */
+    public static function clearAttempts(string $ipAddress, string $action): void
+    {
+        self::reset($ipAddress, $action);
+    }
+
+    /**
      * Lock out an IP for a specific action
      *
      * @param string $ipAddress Client IP address

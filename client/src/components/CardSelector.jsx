@@ -17,7 +17,7 @@ function CardSelector({
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [submittedCardIds, setSubmittedCardIds] = useState([]);
 
-  const canSubmit = selectedCards.length === blanksNeeded && !hasSubmitted;
+  const canSubmit = selectedCards.length === blanksNeeded && ! hasSubmitted;
 
   // Load submitted cards from localStorage on mount and when submission status changes
   useEffect(() => {
@@ -41,7 +41,7 @@ function CardSelector({
   }, [gameData.gameId, gameState.current_round, hasSubmitted]);
 
   const handleSubmit = async () => {
-    if (!canSubmit) return;
+    if ( ! canSubmit) return;
 
     setSubmitting(true);
     setError('');
@@ -104,7 +104,7 @@ function CardSelector({
             <h4>Your Submission:</h4>
             <div className="submitted-cards-list">
               {submittedCardIds.map((card, index) => {
-                if (!card) return null;
+                if ( ! card) return null;
 
                 return (
                   <div key={card.card_id} className="submitted-card-preview">
@@ -138,7 +138,7 @@ function CardSelector({
             <div className="selected-cards-list-compact">
               {selectedCards.map((cardId, index) => {
                 const card = whiteCards.find((c) => c.card_id === cardId);
-                if (!card) return null;
+                if ( ! card) return null;
 
                 return (
                   <div
@@ -177,7 +177,7 @@ function CardSelector({
       <button
         className="btn btn-primary submit-cards-btn"
         onClick={handleSubmit}
-        disabled={!canSubmit || submitting}
+        disabled={ ! canSubmit || submitting}
       >
         {submitting ? 'Submitting...' : 'Submit Cards'}
       </button>

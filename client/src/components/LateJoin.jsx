@@ -10,7 +10,7 @@ function LateJoin({ gameId, playerName, playerNames, onGameJoined, onBack }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!adjacentPlayer1 || !adjacentPlayer2) {
+    if ( ! adjacentPlayer1 || ! adjacentPlayer2) {
       setError('Please select both players');
       return;
     }

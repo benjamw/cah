@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace CAH\Tests\Integration;
 
 use CAH\Tests\TestCase;
-use CAH\Controllers\AdminController;
+use CAH\Controllers\AdminCardController;
 use CAH\Models\Tag;
 use CAH\Models\Card;
 use CAH\Database\Database;
@@ -15,77 +15,78 @@ use Slim\Psr7\Factory\StreamFactory;
 use Slim\Psr7\UploadedFile;
 
 /**
- * Admin Controller CSV Import Test
+ * Admin Card Controller CSV Import Test
  *
- * Tests the actual AdminController::importCards method with real file uploads
+ * Tests the actual AdminCardController::importCards method with real file uploads
  */
 class AdminControllerImportTest extends TestCase
 {
-    private AdminController $controller;
+    private AdminCardController $controller;
+    private static bool $needsReseed = false;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->controller = new AdminController();
+        $this->controller = new AdminCardController();
         
-        // Clean up any existing test data
-        Database::execute('DELETE FROM cards_to_tags');
-        Database::execute('DELETE FROM tags');
-        Database::execute('DELETE FROM cards');
+        // Don't delete between tests - let each test use unique names
+        if ( ! self::$needsReseed) {
+            // Only delete once at the start
+            Database::execute('DELETE FROM cards_to_tags');
+            Database::execute('DELETE FROM tags');
+            Database::execute('DELETE FROM cards');
+            self::$needsReseed = true;
+        }
     }
 
     protected function tearDown(): void
     {
-        // Clean up test data
-        Database::execute('DELETE FROM cards_to_tags');
-        Database::execute('DELETE FROM tags');
-        Database::execute('DELETE FROM cards');
-        
-        // Re-seed base test data for other tests
-        $this->reseedTestData();
-        
         parent::tearDown();
     }
     
-    /**
-     * Re-seed base test data that other tests depend on
-     */
-    private function reseedTestData(): void
+    public static function tearDownAfterClass(): void
     {
-        $connection = Database::getConnection();
-        
-        // Reset auto-increment for cards and tags
-        $connection->exec("ALTER TABLE cards AUTO_INCREMENT = 1");
-        $connection->exec("ALTER TABLE tags AUTO_INCREMENT = 1");
-        
-        // Insert test white cards
-        $stmt = $connection->prepare("INSERT INTO cards (card_type, value) VALUES ('white', ?)");
-        for ($i = 1; $i <= 300; $i++) {
-            $stmt->execute([sprintf('White Card %03d', $i)]);
+        // Re-seed base test data once after all tests in this class complete
+        if (self::$needsReseed) {
+            $connection = Database::getConnection();
+            
+            // Reset auto-increment for cards and tags
+            $connection->exec("ALTER TABLE cards AUTO_INCREMENT = 1");
+            $connection->exec("ALTER TABLE tags AUTO_INCREMENT = 1");
+            
+            // Insert test white cards
+            $stmt = $connection->prepare("INSERT INTO cards (card_type, value) VALUES ('white', ?)");
+            for ($i = 1; $i <= 300; $i++) {
+                $stmt->execute([sprintf('White Card %03d', $i)]);
+            }
+            
+            // Insert test black cards
+            $stmt = $connection->prepare("INSERT INTO cards (card_type, value, choices) VALUES ('black', ?, ?)");
+            for ($i = 1; $i <= 40; $i++) {
+                $stmt->execute([sprintf('Black Card %03d with ____.', $i), 1]);
+            }
+            for ($i = 41; $i <= 55; $i++) {
+                $stmt->execute([sprintf('Black Card %03d with ____ and ____.', $i), 2]);
+            }
+            for ($i = 56; $i <= 70; $i++) {
+                $stmt->execute([sprintf('Black Card %03d with ____, ____, and ____.', $i), 3]);
+            }
+            
+            // Insert test tag
+            $connection->exec("INSERT INTO tags (name) VALUES ('test_base')");
+            $tagId = $connection->lastInsertId();
+            
+            // Tag all cards
+            $totalCards = 370; // 300 white + 70 black
+            $stmt = $connection->prepare("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)");
+            for ($i = 1; $i <= $totalCards; $i++) {
+                $stmt->execute([$i, $tagId]);
+            }
+            
+            self::$needsReseed = false;
         }
         
-        // Insert test black cards
-        $stmt = $connection->prepare("INSERT INTO cards (card_type, value, choices) VALUES ('black', ?, ?)");
-        for ($i = 1; $i <= 40; $i++) {
-            $stmt->execute([sprintf('Black Card %03d with ____.', $i), 1]);
-        }
-        for ($i = 41; $i <= 55; $i++) {
-            $stmt->execute([sprintf('Black Card %03d with ____ and ____.', $i), 2]);
-        }
-        for ($i = 56; $i <= 70; $i++) {
-            $stmt->execute([sprintf('Black Card %03d with ____, ____, and ____.', $i), 3]);
-        }
-        
-        // Insert test tag
-        $connection->exec("INSERT INTO tags (name) VALUES ('test_base')");
-        $tagId = $connection->lastInsertId();
-        
-        // Tag all cards
-        $totalCards = 370; // 300 white + 70 black
-        $stmt = $connection->prepare("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)");
-        for ($i = 1; $i <= $totalCards; $i++) {
-            $stmt->execute([$i, $tagId]);
-        }
+        parent::tearDownAfterClass();
     }
 
     /**
@@ -366,11 +367,11 @@ class AdminControllerImportTest extends TestCase
      */
     public function testControllerImportCsvWithNewlinesInCardText(): void
     {
-        // CSV with quoted fields containing newlines
+        // CSV with quoted fields containing newlines - use unique text
         $csvContent = "Card Text,Tag1,Tag2,Tag3,Tag4,Tag5,Tag6,Tag7,Tag8,Tag9,Tag10\n";
-        $csvContent .= "\"A card with\na newline in it\",Profanity,,,,,,,,,\n";
-        $csvContent .= "\"Another card\nwith multiple\nnewlines\",Violence,,,,,,,,,\n";
-        $csvContent .= "Normal card without newlines,,,,,,,,,,\n";
+        $csvContent .= "\"[NewlineTest] A card with\na newline in it\",Profanity_newlines,,,,,,,,,\n";
+        $csvContent .= "\"[NewlineTest] Another card\nwith multiple\nnewlines\",Violence_newlines,,,,,,,,,\n";
+        $csvContent .= "[NewlineTest] Normal card without newlines,,,,,,,,,,\n";
 
         $uploadedFile = $this->createUploadedFile($csvContent);
 
@@ -390,25 +391,28 @@ class AdminControllerImportTest extends TestCase
         $this->assertTrue($data['success']);
         $this->assertEquals(3, $data['data']['imported']);
 
-        // Verify cards were created with newlines preserved
+        // Verify cards were created with newlines preserved - filter by our prefix
         $cards = Card::getActiveByType('white');
-        $this->assertCount(3, $cards);
+        $ourCards = array_filter($cards, function($c) {
+            return strpos($c['value'], '[NewlineTest]') === 0;
+        });
+        $this->assertCount(3, $ourCards);
 
-        $cardTexts = array_column($cards, 'value');
+        $cardTexts = array_column($ourCards, 'value');
 
         // Check that newlines are preserved in card text
-        $this->assertContains("A card with\na newline in it", $cardTexts);
-        $this->assertContains("Another card\nwith multiple\nnewlines", $cardTexts);
-        $this->assertContains('Normal card without newlines', $cardTexts);
+        $this->assertContains("[NewlineTest] A card with\na newline in it", $cardTexts);
+        $this->assertContains("[NewlineTest] Another card\nwith multiple\nnewlines", $cardTexts);
+        $this->assertContains('[NewlineTest] Normal card without newlines', $cardTexts);
 
         // Verify tags were still added correctly
-        $card1 = array_values(array_filter($cards, function($c) {
-            return strpos($c['value'], 'A card with') === 0;
+        $card1 = array_values(array_filter($ourCards, function($c) {
+            return strpos($c['value'], '[NewlineTest] A card with') === 0;
         }))[0];
 
         $card1Tags = Tag::getCardTags($card1['card_id']);
         $this->assertCount(1, $card1Tags);
-        $this->assertEquals('Profanity', $card1Tags[0]['name']);
+        $this->assertEquals('Profanity_newlines', $card1Tags[0]['name']);
     }
 
     /**
@@ -416,9 +420,9 @@ class AdminControllerImportTest extends TestCase
      */
     public function testControllerImportCsvWithNewlinesAndCommas(): void
     {
-        // CSV with quoted fields containing both newlines and commas
+        // CSV with quoted fields containing both newlines and commas - use unique text
         $csvContent = "Card Text,Tag1,Tag2,Tag3,Tag4,Tag5,Tag6,Tag7,Tag8,Tag9,Tag10\n";
-        $csvContent .= "\"A card with,\ncommas and newlines\",Profanity,Violence,,,,,,,,\n";
+        $csvContent .= "\"[CommaNewlineTest] A card with,\ncommas and newlines\",Profanity_commanewline,Violence_commanewline,,,,,,,,\n";
 
         $uploadedFile = $this->createUploadedFile($csvContent);
 
@@ -438,17 +442,21 @@ class AdminControllerImportTest extends TestCase
         $this->assertTrue($data['success']);
         $this->assertEquals(1, $data['data']['imported']);
 
-        // Verify card text has both commas and newlines preserved
+        // Verify card text has both commas and newlines preserved - filter by our prefix
         $cards = Card::getActiveByType('black');
-        $this->assertCount(1, $cards);
-        $this->assertEquals("A card with,\ncommas and newlines", $cards[0]['value']);
+        $ourCards = array_filter($cards, function($c) {
+            return strpos($c['value'], '[CommaNewlineTest]') === 0;
+        });
+        $this->assertCount(1, $ourCards);
+        $ourCard = array_values($ourCards)[0];
+        $this->assertEquals("[CommaNewlineTest] A card with,\ncommas and newlines", $ourCard['value']);
 
         // Verify both tags were added
-        $cardTags = Tag::getCardTags($cards[0]['card_id']);
+        $cardTags = Tag::getCardTags($ourCard['card_id']);
         $this->assertCount(2, $cardTags);
         $tagNames = array_column($cardTags, 'name');
-        $this->assertContains('Profanity', $tagNames);
-        $this->assertContains('Violence', $tagNames);
+        $this->assertContains('Profanity_commanewline', $tagNames);
+        $this->assertContains('Violence_commanewline', $tagNames);
     }
 
     /**
@@ -456,9 +464,9 @@ class AdminControllerImportTest extends TestCase
      */
     public function testControllerImportCsvWithQuotedQuotes(): void
     {
-        // CSV with escaped quotes (doubled quotes)
+        // CSV with escaped quotes (doubled quotes) - use unique text
         $csvContent = "Card Text,Tag1,Tag2,Tag3,Tag4,Tag5,Tag6,Tag7,Tag8,Tag9,Tag10\n";
-        $csvContent .= "\"A card with \"\"quoted\"\" text\",Profanity,,,,,,,,,\n";
+        $csvContent .= "\"[QuotesTest] A card with \"\"quoted\"\" text\",Profanity_quotes,,,,,,,,,\n";
 
         $uploadedFile = $this->createUploadedFile($csvContent);
 
@@ -478,9 +486,13 @@ class AdminControllerImportTest extends TestCase
         $this->assertTrue($data['success']);
         $this->assertEquals(1, $data['data']['imported']);
 
-        // Verify card text has quotes preserved (CSV parser converts "" to ")
+        // Verify card text has quotes preserved (CSV parser converts "" to ") - filter by our prefix
         $cards = Card::getActiveByType('white');
-        $this->assertCount(1, $cards);
-        $this->assertEquals('A card with "quoted" text', $cards[0]['value']);
+        $ourCards = array_filter($cards, function($c) {
+            return strpos($c['value'], '[QuotesTest]') === 0;
+        });
+        $this->assertCount(1, $ourCards);
+        $ourCard = array_values($ourCards)[0];
+        $this->assertEquals('[QuotesTest] A card with "quoted" text', $ourCard['value']);
     }
 }

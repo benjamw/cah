@@ -198,16 +198,101 @@ class Card
      * @param string $cardType 'white' or 'black'
      * @return int
      */
-    public static function countActiveByType(string $cardType): int
-    {
-        $sql = "
-            SELECT COUNT(*) AS `count`
-            FROM cards
-            WHERE active = 1
-                AND card_type = ?
-        ";
-        $result = Database::fetchOne($sql, [$cardType]);
+    /**
+     * List cards with filtering, pagination, and total count
+     * 
+     * This method encapsulates the complex query logic for the admin card list
+     *
+     * @param string|null $cardType Filter by card type ('white' or 'black'), null for all
+     * @param int|null $tagId Filter by tag ID, null for no tag filter
+     * @param bool $noTags If true, only return cards with no tags
+     * @param bool $active Filter by active status
+     * @param int $limit Number of cards per page (0 for no limit)
+     * @param int $offset Offset for pagination
+     * @return array{cards: array, total: int} Array with 'cards' and 'total' count
+     */
+    public static function listWithFilters(
+        ?string $cardType,
+        ?int $tagId,
+        bool $noTags,
+        bool $active,
+        int $limit,
+        int $offset
+    ): array {
+        // Build main query
+        $sql = "SELECT c.* FROM cards c";
+        $params = [];
+        $conditions = [];
 
-        return (int) ($result['count'] ?? 0);
+        // Join with tags if filtering by tag
+        if ($tagId !== null) {
+            $sql .= " INNER JOIN cards_to_tags ct ON c.card_id = ct.card_id";
+            $conditions[] = "ct.tag_id = ?";
+            $params[] = $tagId;
+        } elseif ($noTags) {
+            // Filter for cards with no tags using LEFT JOIN
+            $sql .= " LEFT JOIN cards_to_tags ct ON c.card_id = ct.card_id";
+            $conditions[] = "ct.card_id IS NULL";
+        }
+
+        // Add filters
+        if ($cardType !== null) {
+            $conditions[] = "c.card_type = ?";
+            $params[] = $cardType;
+        }
+
+        $conditions[] = "c.active = ?";
+        $params[] = $active;
+
+        // Add WHERE clause
+        if ( ! empty($conditions)) {
+            $sql .= " WHERE " . implode(' AND ', $conditions);
+        }
+
+        // Add ordering and pagination
+        $sql .= " ORDER BY c.card_id ASC";
+
+        // Only add LIMIT if limit > 0 (0 means no limit)
+        if ($limit > 0) {
+            $sql .= " LIMIT ? OFFSET ?";
+            $params[] = $limit;
+            $params[] = $offset;
+        }
+
+        $cards = Database::fetchAll($sql, $params);
+
+        // Build count query (same filters but no LIMIT/OFFSET)
+        $countSql = "SELECT COUNT(DISTINCT c.card_id) as total FROM cards c";
+        $countParams = [];
+        $countConditions = [];
+
+        if ($tagId !== null) {
+            $countSql .= " INNER JOIN cards_to_tags ct ON c.card_id = ct.card_id";
+            $countConditions[] = "ct.tag_id = ?";
+            $countParams[] = $tagId;
+        } elseif ($noTags) {
+            $countSql .= " LEFT JOIN cards_to_tags ct ON c.card_id = ct.card_id";
+            $countConditions[] = "ct.card_id IS NULL";
+        }
+
+        if ($cardType !== null) {
+            $countConditions[] = "c.card_type = ?";
+            $countParams[] = $cardType;
+        }
+
+        $countConditions[] = "c.active = ?";
+        $countParams[] = $active;
+
+        if ( ! empty($countConditions)) {
+            $countSql .= " WHERE " . implode(' AND ', $countConditions);
+        }
+
+        $countResult = Database::fetchOne($countSql, $countParams);
+        $total = (int) ($countResult['total'] ?? 0);
+
+        return [
+            'cards' => $cards,
+            'total' => $total,
+        ];
     }
 }

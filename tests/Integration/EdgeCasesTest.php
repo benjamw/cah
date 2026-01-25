@@ -91,7 +91,7 @@ class EdgeCasesTest extends TestCase
 
         // Submit cards from non-czar players
         foreach ($players as $player) {
-            if ($player['id'] !== $czarId && !empty($player['hand'])) {
+            if ($player['id'] !== $czarId && ! empty($player['hand'])) {
                 $cardsToSubmit = $this->getCardIds(array_slice($player['hand'], 0, $requiredCards));
                 RoundService::submitCards($gameId, $player['id'], $cardsToSubmit);
             }

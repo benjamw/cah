@@ -18,7 +18,7 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled }) 
   };
 
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+    if ( ! touchStart || ! touchEnd) return;
 
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
@@ -49,7 +49,7 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled }) 
     setCurrentIndex(0);
   }, [cards.length]);
 
-  if (!cards || cards.length === 0) {
+  if ( ! cards || cards.length === 0) {
     return (
       <div className="card-swiper">
         <div className="card card-empty">No cards available</div>
@@ -105,7 +105,7 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled }) 
 }
 
 function formatCardText(text) {
-  if (!text) return '';
+  if ( ! text) return '';
 
   // Protect sequences of 3+ underscores (blanks) by replacing them temporarily
   // Using vertical tab character (U+000B) which won't appear in cards or be processed by markdown

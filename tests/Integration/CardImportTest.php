@@ -17,67 +17,69 @@ use CAH\Database\Database;
  */
 class CardImportTest extends TestCase
 {
+    private static bool $needsReseed = false;
+    
     protected function setUp(): void
     {
         parent::setUp();
-        // Clean up any existing test data
-        Database::execute('DELETE FROM cards_to_tags');
-        Database::execute('DELETE FROM tags');
-        Database::execute('DELETE FROM cards');
+        // Don't delete between tests - let each test use unique names
+        if ( ! self::$needsReseed) {
+            // Only delete once at the start
+            Database::execute('DELETE FROM cards_to_tags');
+            Database::execute('DELETE FROM tags');
+            Database::execute('DELETE FROM cards');
+            self::$needsReseed = true;
+        }
     }
 
     protected function tearDown(): void
     {
-        // Clean up test data
-        Database::execute('DELETE FROM cards_to_tags');
-        Database::execute('DELETE FROM tags');
-        Database::execute('DELETE FROM cards');
-        
-        // Re-seed base test data for other tests
-        $this->reseedTestData();
-        
         parent::tearDown();
     }
     
-    /**
-     * Re-seed base test data that other tests depend on
-     */
-    private function reseedTestData(): void
+    public static function tearDownAfterClass(): void
     {
-        $connection = Database::getConnection();
-        
-        // Reset auto-increment for cards and tags
-        $connection->exec("ALTER TABLE cards AUTO_INCREMENT = 1");
-        $connection->exec("ALTER TABLE tags AUTO_INCREMENT = 1");
-        
-        // Insert test white cards
-        $stmt = $connection->prepare("INSERT INTO cards (card_type, value) VALUES ('white', ?)");
-        for ($i = 1; $i <= 300; $i++) {
-            $stmt->execute([sprintf('White Card %03d', $i)]);
+        // Re-seed base test data once after all tests in this class complete
+        if (self::$needsReseed) {
+            $connection = Database::getConnection();
+            
+            // Reset auto-increment for cards and tags
+            $connection->exec("ALTER TABLE cards AUTO_INCREMENT = 1");
+            $connection->exec("ALTER TABLE tags AUTO_INCREMENT = 1");
+            
+            // Insert test white cards
+            $stmt = $connection->prepare("INSERT INTO cards (card_type, value) VALUES ('white', ?)");
+            for ($i = 1; $i <= 300; $i++) {
+                $stmt->execute([sprintf('White Card %03d', $i)]);
+            }
+            
+            // Insert test black cards
+            $stmt = $connection->prepare("INSERT INTO cards (card_type, value, choices) VALUES ('black', ?, ?)");
+            for ($i = 1; $i <= 40; $i++) {
+                $stmt->execute([sprintf('Black Card %03d with ____.', $i), 1]);
+            }
+            for ($i = 41; $i <= 55; $i++) {
+                $stmt->execute([sprintf('Black Card %03d with ____ and ____.', $i), 2]);
+            }
+            for ($i = 56; $i <= 70; $i++) {
+                $stmt->execute([sprintf('Black Card %03d with ____, ____, and ____.', $i), 3]);
+            }
+            
+            // Insert test tag
+            $connection->exec("INSERT INTO tags (name) VALUES ('test_base')");
+            $tagId = $connection->lastInsertId();
+            
+            // Tag all cards
+            $totalCards = 370; // 300 white + 70 black
+            $stmt = $connection->prepare("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)");
+            for ($i = 1; $i <= $totalCards; $i++) {
+                $stmt->execute([$i, $tagId]);
+            }
+            
+            self::$needsReseed = false;
         }
         
-        // Insert test black cards
-        $stmt = $connection->prepare("INSERT INTO cards (card_type, value, choices) VALUES ('black', ?, ?)");
-        for ($i = 1; $i <= 40; $i++) {
-            $stmt->execute([sprintf('Black Card %03d with ____.', $i), 1]);
-        }
-        for ($i = 41; $i <= 55; $i++) {
-            $stmt->execute([sprintf('Black Card %03d with ____ and ____.', $i), 2]);
-        }
-        for ($i = 56; $i <= 70; $i++) {
-            $stmt->execute([sprintf('Black Card %03d with ____, ____, and ____.', $i), 3]);
-        }
-        
-        // Insert test tag
-        $connection->exec("INSERT INTO tags (name) VALUES ('test_base')");
-        $tagId = $connection->lastInsertId();
-        
-        // Tag all cards
-        $totalCards = 370; // 300 white + 70 black
-        $stmt = $connection->prepare("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)");
-        for ($i = 1; $i <= $totalCards; $i++) {
-            $stmt->execute([$i, $tagId]);
-        }
+        parent::tearDownAfterClass();
     }
 
     /**
@@ -108,9 +110,9 @@ class CardImportTest extends TestCase
         $cardId = CardImportService::importCard('white', $cardText);
         $this->assertNotNull($cardId);
 
-        // Create tags
-        $profanityTagId = Tag::create('Profanity', null, true);
-        $violenceTagId = Tag::create('Violence', null, true);
+        // Create tags with unique names for this test
+        $profanityTagId = Tag::create('Profanity_withTags', null, true);
+        $violenceTagId = Tag::create('Violence_withTags', null, true);
 
         // Add tags to card
         Tag::addToCard($cardId, $profanityTagId);
@@ -121,8 +123,8 @@ class CardImportTest extends TestCase
         $this->assertCount(2, $tags);
 
         $tagNames = array_column($tags, 'name');
-        $this->assertContains('Profanity', $tagNames);
-        $this->assertContains('Violence', $tagNames);
+        $this->assertContains('Profanity_withTags', $tagNames);
+        $this->assertContains('Violence_withTags', $tagNames);
     }
 
     /**
@@ -130,14 +132,14 @@ class CardImportTest extends TestCase
      */
     public function testDuplicateTagsNotCreated(): void
     {
-        // Create a tag
-        $tagId1 = Tag::create('Profanity', null, true);
+        // Create a tag with unique name for this test
+        $tagId1 = Tag::create('Profanity_duplicateTest', null, true);
         
         // Try to find existing tag (simulating import logic)
         $existingTags = Tag::getAll();
         $tagId2 = null;
         foreach ($existingTags as $existingTag) {
-            if (strcasecmp($existingTag['name'], 'Profanity') === 0) {
+            if (strcasecmp($existingTag['name'], 'Profanity_duplicateTest') === 0) {
                 $tagId2 = $existingTag['tag_id'];
                 break;
             }
@@ -148,7 +150,7 @@ class CardImportTest extends TestCase
         // Verify only one tag exists
         $allTags = Tag::getAll();
         $profanityTags = array_filter($allTags, function($tag) {
-            return strcasecmp($tag['name'], 'Profanity') === 0;
+            return strcasecmp($tag['name'], 'Profanity_duplicateTest') === 0;
         });
         $this->assertCount(1, $profanityTags);
     }
@@ -158,14 +160,14 @@ class CardImportTest extends TestCase
      */
     public function testCaseInsensitiveTagMatching(): void
     {
-        // Create a tag with mixed case
-        $tagId1 = Tag::create('Profanity', null, true);
+        // Create a tag with mixed case and unique name for this test
+        $tagId1 = Tag::create('Profanity_caseTest', null, true);
         
         // Try to find with different case
         $existingTags = Tag::getAll();
         $tagId2 = null;
         foreach ($existingTags as $existingTag) {
-            if (strcasecmp($existingTag['name'], 'PROFANITY') === 0) {
+            if (strcasecmp($existingTag['name'], 'PROFANITY_CASETEST') === 0) {
                 $tagId2 = $existingTag['tag_id'];
                 break;
             }
@@ -179,8 +181,8 @@ class CardImportTest extends TestCase
      */
     public function testImportMultipleCardsWithSharedTags(): void
     {
-        // Create a shared tag
-        $profanityTagId = Tag::create('Profanity', null, true);
+        // Create a shared tag with unique name for this test
+        $profanityTagId = Tag::create('Profanity_multipleCards', null, true);
 
         // Import two cards
         $cardId1 = CardImportService::importCard('white', 'First profane card');
@@ -196,13 +198,13 @@ class CardImportTest extends TestCase
 
         $this->assertCount(1, $tags1);
         $this->assertCount(1, $tags2);
-        $this->assertEquals('Profanity', $tags1[0]['name']);
-        $this->assertEquals('Profanity', $tags2[0]['name']);
+        $this->assertEquals('Profanity_multipleCards', $tags1[0]['name']);
+        $this->assertEquals('Profanity_multipleCards', $tags2[0]['name']);
 
         // Verify only one tag exists in database
         $allTags = Tag::getAll();
         $profanityTags = array_filter($allTags, function($tag) {
-            return strcasecmp($tag['name'], 'Profanity') === 0;
+            return strcasecmp($tag['name'], 'Profanity_multipleCards') === 0;
         });
         $this->assertCount(1, $profanityTags);
     }
@@ -236,7 +238,7 @@ class CardImportTest extends TestCase
             $tags = [];
             foreach ($tagColumns as $tag) {
                 $tag = trim($tag);
-                if (!empty($tag)) {
+                if ( ! empty($tag)) {
                     $tags[] = $tag;
                 }
             }
@@ -302,7 +304,7 @@ class CardImportTest extends TestCase
                         }
                     }
 
-                    if (!$tagId) {
+                    if ( ! $tagId) {
                         $tagId = Tag::create($tagName, null, true);
                     }
 
@@ -392,7 +394,7 @@ class CardImportTest extends TestCase
             $tags = [];
             foreach ($tagColumns as $tag) {
                 $tag = trim($tag);
-                if (!empty($tag)) {
+                if ( ! empty($tag)) {
                     $tags[] = $tag;
                 }
             }
@@ -417,7 +419,7 @@ class CardImportTest extends TestCase
                     }
                 }
 
-                if (!$tagId) {
+                if ( ! $tagId) {
                     $tagId = Tag::create($tagName, null, true);
                 }
 
@@ -493,7 +495,7 @@ class CardImportTest extends TestCase
             $tags = [];
             foreach ($tagColumns as $tag) {
                 $tag = trim($tag);
-                if (!empty($tag)) {
+                if ( ! empty($tag)) {
                     $tags[] = $tag;
                 }
             }
@@ -512,7 +514,7 @@ class CardImportTest extends TestCase
                     }
                 }
 
-                if (!$tagId) {
+                if ( ! $tagId) {
                     $tagId = Tag::create($tagName, null, true);
                 }
 

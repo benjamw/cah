@@ -78,30 +78,34 @@ class RoundService
                 }
             }
 
-            // Remove submitted cards from player's hand
+            // Find player index
             $playerIndex = array_search($playerId, array_column($playerData['players'], 'id'));
-            if ($playerIndex !== false) {
-                $playerData['players'][$playerIndex]['hand'] = array_values(
-                    array_filter(
-                        $playerData['players'][$playerIndex]['hand'],
-                        fn($cardId) => !in_array($cardId, $cardIds, true)
-                    )
-                );
-
-                // Draw replacement cards immediately
-                $whitePile = $game['draw_pile']['white'] ?? [];
-                $cardsNeeded = count($cardIds);
-                $result = CardService::drawWhiteCards($whitePile, $cardsNeeded);
-                
-                // Add new cards to player's hand
-                $playerData['players'][$playerIndex]['hand'] = array_merge(
-                    $playerData['players'][$playerIndex]['hand'],
-                    $result['cards']
-                );
-                
-                // Update the white pile in the draw pile
-                $game['draw_pile']['white'] = $result['remaining_pile'];
+            if ($playerIndex === false) {
+                throw new PlayerNotFoundException($playerId);
             }
+
+            // Draw replacement cards FIRST (before removing from hand)
+            // This prevents player losing cards if draw fails
+            $whitePile = $game['draw_pile']['white'] ?? [];
+            $cardsNeeded = count($cardIds);
+            $result = CardService::drawWhiteCards($whitePile, $cardsNeeded);
+            
+            // Now remove submitted cards from player's hand
+            $playerData['players'][$playerIndex]['hand'] = array_values(
+                array_filter(
+                    $playerData['players'][$playerIndex]['hand'],
+                    fn($cardId): bool => ! in_array($cardId, $cardIds, true)
+                )
+            );
+            
+            // Add new cards to player's hand
+            $playerData['players'][$playerIndex]['hand'] = array_merge(
+                $playerData['players'][$playerIndex]['hand'],
+                $result['cards']
+            );
+            
+            // Update the white pile in the draw pile
+            $game['draw_pile']['white'] = $result['remaining_pile'];
 
             $playerData['submissions'][] = [
                 'player_id' => $playerId,

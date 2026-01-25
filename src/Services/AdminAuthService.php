@@ -30,7 +30,7 @@ class AdminAuthService
         }
         
         // Verify password
-        if ( ! password_verify($password, $adminPasswordHash)) {
+        if ( ! password_verify($password, (string) $adminPasswordHash)) {
             return null;
         }
         

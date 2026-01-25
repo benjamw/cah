@@ -335,4 +335,49 @@ class Tag
 
         return Database::fetchAll($sql, [$cardId]);
     }
+
+    /**
+     * Get tags for multiple cards (batch fetch to avoid N+1 queries)
+     *
+     * @param array<int> $cardIds Array of card IDs
+     * @return array<int, array> Associative array mapping card_id => array of tags
+     */
+    public static function getCardTagsForMultipleCards(array $cardIds): array
+    {
+        if (empty($cardIds)) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($cardIds), '?'));
+        $sql = "
+            SELECT ct.card_id, t.*
+            FROM tags t
+            INNER JOIN cards_to_tags ct ON t.tag_id = ct.tag_id
+            WHERE ct.card_id IN ({$placeholders})
+            ORDER BY ct.card_id, t.name ASC
+        ";
+
+        $results = Database::fetchAll($sql, $cardIds);
+
+        // Group tags by card_id
+        $tagsByCardId = [];
+        foreach ($results as $row) {
+            $cardId = (int) $row['card_id'];
+            if ( ! isset($tagsByCardId[$cardId])) {
+                $tagsByCardId[$cardId] = [];
+            }
+            // Remove card_id from the tag data
+            unset($row['card_id']);
+            $tagsByCardId[$cardId][] = $row;
+        }
+
+        // Ensure all requested card IDs have an entry (even if empty)
+        foreach ($cardIds as $cardId) {
+            if ( ! isset($tagsByCardId[$cardId])) {
+                $tagsByCardId[$cardId] = [];
+            }
+        }
+
+        return $tagsByCardId;
+    }
 }

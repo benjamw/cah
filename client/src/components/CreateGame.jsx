@@ -101,7 +101,7 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
   const invertTagSelection = () => {
     setSelectedTags((prev) => {
       const allTagIds = tags.map((tag) => tag.tag_id);
-      return allTagIds.filter((id) => !prev.includes(id));
+      return allTagIds.filter((id) => ! prev.includes(id));
     });
   };
 

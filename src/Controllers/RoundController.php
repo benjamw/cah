@@ -114,7 +114,7 @@ class RoundController
             return JsonResponse::success($response, [
                 'game_state' => $gameState,
                 'game_over' => false,
-                'needs_czar_selection' => !$gameState['order_locked'],
+                'needs_czar_selection' => ! $gameState['order_locked'],
             ]);
 
         } catch (GameNotFoundException $e) {
@@ -141,7 +141,7 @@ class RoundController
             $playerId = $request->getAttribute('player_id');
 
             $data = $request->getParsedBody();
-            if (!isset($data['next_czar_id'])) {
+            if ( ! isset($data['next_czar_id'])) {
                 throw new ValidationException('next_czar_id is required');
             }
 
@@ -163,9 +163,7 @@ class RoundController
                 'order_locked' => $orderLocked,
             ]);
 
-        } catch (GameNotFoundException $e) {
-            return JsonResponse::notFound($response, $e->getMessage());
-        } catch (PlayerNotFoundException $e) {
+        } catch (GameNotFoundException|PlayerNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
         } catch (UnauthorizedException $e) {
             return JsonResponse::error($response, $e->getMessage(), 403);

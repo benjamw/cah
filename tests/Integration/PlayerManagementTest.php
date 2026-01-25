@@ -105,8 +105,7 @@ class PlayerManagementTest extends TestCase
     public function testCzarRotationFollowsPlayerOrder(): void
     {
         // Test that player order is established and locked correctly
-        // In real gameplay, setNextCzar is called after each round by the current czar
-        // This test simulates multiple rounds to establish player order
+        // Simulate the full round flow: start game -> round 1 -> round 2 -> round 3
         $createResult = GameService::createGame('Creator', [TEST_TAG_ID]);
         $gameId = $createResult['game_id'];
         $creatorId = $createResult['player_id'];
@@ -117,34 +116,29 @@ class PlayerManagementTest extends TestCase
         $gameState = GameService::startGame($gameId, $creatorId);
         $allPlayerIds = [$creatorId, $player2['player_id'], $player3['player_id']];
 
-        $currentCzarId = $gameState['current_czar_id'];
-
-        // Find the other two players
-        $otherPlayers = array_filter($allPlayerIds, fn($id) => $id !== $currentCzarId);
+        // Round 1: First czar selects next
+        $czar1 = $gameState['current_czar_id'];
+        $otherPlayers = array_filter($allPlayerIds, fn($id) => $id !== $czar1);
         $otherPlayers = array_values($otherPlayers);
+        
+        $result = GameService::setNextCzar($gameId, $czar1, $otherPlayers[0]);
+        $this->assertContains($czar1, $result['player_order']);
+        $this->assertCount(2, $result['player_order']);
+        $this->assertFalse($result['order_locked'], 'Order should not be locked after round 1');
 
-        // Current czar selects next czar
-        $result = GameService::setNextCzar($gameId, $currentCzarId, $otherPlayers[0]);
-        $this->assertContains($currentCzarId, $result['player_order']);
-        $this->assertContains($otherPlayers[0], $result['player_order']);
-        $this->assertFalse($result['order_locked'], 'Order should not be locked with only 2 players selected');
-
-        // Use skipCzar to advance to next czar (simulating round advancement)
-        $result = GameService::skipCzar($gameId, $creatorId);
-        $currentCzarId = $result['current_czar_id'];
-
-        // New czar selects next czar (this should lock the order)
-        $nextCzarId = null;
-        foreach ($allPlayerIds as $playerId) {
-            if ($playerId !== $currentCzarId && !in_array($playerId, $result['player_order'])) {
-                $nextCzarId = $playerId;
-                break;
-            }
-        }
-
-        $result = GameService::setNextCzar($gameId, $currentCzarId, $nextCzarId);
+        // Round 2: Second czar selects next
+        $czar2 = $otherPlayers[0];
+        $result = GameService::setNextCzar($gameId, $czar2, $otherPlayers[1]);
         $this->assertCount(3, $result['player_order']);
-        $this->assertTrue($result['order_locked'], 'Order should be locked after all 3 players selected');
+        $this->assertFalse($result['order_locked'], 'Order should not be locked after round 2');
+
+        // Round 3: Third czar selects first czar (completes the circle)
+        $czar3 = $otherPlayers[1];
+        $result = GameService::setNextCzar($gameId, $czar3, $czar1);
+        
+        // Now the order should be locked because we've completed the circle
+        $this->assertTrue($result['order_locked'], 'Order should be locked after completing the circle');
+        $this->assertCount(3, $result['player_order']);
     }
 
     public function testFindPlayer(): void
@@ -230,7 +224,7 @@ class PlayerManagementTest extends TestCase
 
         // Try to remove a player (would leave only 2 players, below minimum of 3)
         $this->expectException(ValidationException::class);
-        $this->expectExceptionMessage('game requires at least 3 players');
+        $this->expectExceptionMessage('would leave fewer than');
 
         GameService::removePlayer($gameId, $creatorId, $player2['player_id']);
     }
@@ -263,7 +257,7 @@ class PlayerManagementTest extends TestCase
 
         // Non-czar players submit cards
         foreach ($gameState['players'] as $player) {
-            if ($player['id'] !== $czarId && !empty($player['hand'])) {
+            if ($player['id'] !== $czarId && ! empty($player['hand'])) {
                 $cardsToSubmit = $this->getCardIds(array_slice($player['hand'], 0, $requiredCards));
                 RoundService::submitCards($gameId, $player['id'], $cardsToSubmit);
             }
@@ -323,7 +317,7 @@ class PlayerManagementTest extends TestCase
 
         // Non-czar players submit cards
         foreach ($players as $player) {
-            if ($player['id'] !== $czarId && !empty($player['hand'])) {
+            if ($player['id'] !== $czarId && ! empty($player['hand'])) {
                 $cardsToSubmit = $this->getCardIds(array_slice($player['hand'], 0, $requiredCards));
                 RoundService::submitCards($gameId, $player['id'], $cardsToSubmit);
             }

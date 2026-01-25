@@ -31,7 +31,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
   
   // Also check localStorage for persistent tracking across refreshes
   const storageKey = `submitted_cards_${gameData.gameId}_${gameState.current_round}`;
-  const hasSubmittedLocally = !!localStorage.getItem(storageKey);
+  const hasSubmittedLocally = !! localStorage.getItem(storageKey);
   
   const hasSubmitted = hasSubmittedInAPI || hasSubmittedLocally;
   
@@ -40,7 +40,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
 
   // Check if there are skipped players and current player is host
   const hasSkippedPlayers = gameState.skipped_players && gameState.skipped_players.ids.length > 0;
-  const shouldShowSkippedModal = hasSkippedPlayers && gameData.isCreator && !showSkippedPlayerModal;
+  const shouldShowSkippedModal = hasSkippedPlayers && gameData.isCreator && ! showSkippedPlayerModal;
 
   useEffect(() => {
     if (shouldShowSkippedModal) {
@@ -69,7 +69,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
   // Filter out submitted cards from the hand
   const allWhiteCards = currentPlayer?.hand || [];
   const whiteCards = hasSubmitted 
-    ? allWhiteCards.filter(card => !submittedCardIds.includes(card.card_id))
+    ? allWhiteCards.filter(card => ! submittedCardIds.includes(card.card_id))
     : allWhiteCards;
     
   const blanksNeeded = blackCard?.choices || 1;
@@ -113,14 +113,14 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
   const handleRemovePlayer = async (playerId) => {
     if (playerId === gameData.playerId) return; // Can't remove self
 
-    if (!window.confirm('Are you sure you want to remove this player?')) {
+    if ( ! window.confirm('Are you sure you want to remove this player?')) {
       return;
     }
 
     setRemoving(playerId);
     try {
       const response = await removePlayer(gameData.gameId, playerId);
-      if (!response.success) {
+      if ( ! response.success) {
         console.error('Failed to remove player:', response);
       }
       // Game state will update via polling
@@ -172,7 +172,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
     setPlacingPlayer(true);
     try {
       const response = await placeSkippedPlayer(gameData.gameId, skippedPlayerId, beforePlayerId);
-      if (!response.success) {
+      if ( ! response.success) {
         console.error('Failed to place skipped player:', response);
         showToast('Failed to place player in order');
       } else {
@@ -320,7 +320,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
 }
 
 function HostTransferModal({ players, currentPlayerId, onTransfer, onCancel, transferring }) {
-  const otherPlayers = players.filter(p => p.id !== currentPlayerId && !p.is_rando);
+  const otherPlayers = players.filter(p => p.id !== currentPlayerId && ! p.is_rando);
 
   return (
     <div className="modal-overlay">
@@ -360,7 +360,7 @@ function PlayerManagement({ players, gameData, onRemovePlayer, removing }) {
     <div className="player-management">
       <button 
         className="btn btn-secondary toggle-players-btn"
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => setExpanded( ! expanded)}
       >
         {expanded ? 'Hide' : 'Manage'} Players ({players.length})
       </button>
@@ -389,7 +389,7 @@ function PlayerManagement({ players, gameData, onRemovePlayer, removing }) {
 }
 
 function formatCardText(text) {
-  if (!text) return '';
+  if ( ! text) return '';
 
   // Protect sequences of 3+ underscores (blanks) by replacing them temporarily
   // Using vertical tab character (U+000B) which won't appear in cards or be processed by markdown
@@ -416,7 +416,7 @@ function SkippedPlayerModal({ skippedPlayers, players, playerOrder, onPlacePlaye
   const [currentSkippedIndex, setCurrentSkippedIndex] = useState(0);
   const [selectedBeforePlayer, setSelectedBeforePlayer] = useState('');
 
-  if (!skippedPlayers || skippedPlayers.ids.length === 0) {
+  if ( ! skippedPlayers || skippedPlayers.ids.length === 0) {
     return null;
   }
 
@@ -426,10 +426,10 @@ function SkippedPlayerModal({ skippedPlayers, players, playerOrder, onPlacePlaye
   // Get players in the current order
   const orderedPlayers = playerOrder
     .map(id => players.find(p => p.id === id))
-    .filter(p => p && !p.is_rando);
+    .filter(p => p && ! p.is_rando);
 
   const handlePlace = () => {
-    if (!selectedBeforePlayer) return;
+    if ( ! selectedBeforePlayer) return;
     
     onPlacePlayer(currentSkippedId, selectedBeforePlayer);
     
@@ -471,7 +471,7 @@ function SkippedPlayerModal({ skippedPlayers, players, playerOrder, onPlacePlaye
           <button 
             className="btn btn-primary" 
             onClick={handlePlace}
-            disabled={!selectedBeforePlayer || placing}
+            disabled={ ! selectedBeforePlayer || placing}
           >
             {placing ? 'Placing...' : 'Place Player'}
           </button>

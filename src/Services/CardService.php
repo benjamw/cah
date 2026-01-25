@@ -17,20 +17,6 @@ use CAH\Exceptions\InsufficientCardsException;
  */
 class CardService
 {
-    private static ?array $gameConfig = null;
-
-    /**
-     * Get game configuration
-     *
-     * @return array<string, mixed>
-     */
-    private static function getConfig(): array
-    {
-        if (self::$gameConfig === null) {
-            self::$gameConfig = require __DIR__ . '/../../config/game.php';
-        }
-        return self::$gameConfig;
-    }
     /**
      * Build a shuffled draw pile from selected tags
      *
@@ -191,7 +177,7 @@ class CardService
      */
     public static function isDrawPileLow(array $whitePile, ?int $threshold = null): bool
     {
-        $threshold ??= self::getConfig()['draw_pile_warning_threshold'];
+        $threshold ??= ConfigService::getGameValue('draw_pile_warning_threshold', 10);
         return count($whitePile) < $threshold;
     }
 
@@ -204,7 +190,7 @@ class CardService
      */
     public static function getDrawPileWarning(array $whitePile, ?int $threshold = null): ?string
     {
-        $threshold ??= self::getConfig()['draw_pile_warning_threshold'];
+        $threshold ??= ConfigService::getGameValue('draw_pile_warning_threshold', 10);
         $count = count($whitePile);
 
         if ($count < $threshold) {

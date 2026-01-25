@@ -400,7 +400,7 @@ async function handleSaveCard() {
             body: JSON.stringify({ text, type, active })
         });
 
-        if (!data.success) {
+        if ( ! data.success) {
             alert('Failed to update card');
             return;
         }
@@ -412,8 +412,8 @@ async function handleSaveCard() {
         const originalTagIds = JSON.parse(tagsSelect.dataset.originalTags || '[]');
 
         // Determine which tags to add and remove
-        const tagsToAdd = selectedTagIds.filter(id => !originalTagIds.includes(id));
-        const tagsToRemove = originalTagIds.filter(id => !selectedTagIds.includes(id));
+        const tagsToAdd = selectedTagIds.filter(id => ! originalTagIds.includes(id));
+        const tagsToRemove = originalTagIds.filter(id => ! selectedTagIds.includes(id));
 
         // Add new tags
         for (const tagId of tagsToAdd) {
@@ -450,7 +450,7 @@ async function handleSaveCard() {
 }
 
 async function deleteCard(cardId) {
-    if (!confirm('Are you sure you want to delete this card?')) {
+    if ( ! confirm('Are you sure you want to delete this card?')) {
         return;
     }
 
@@ -492,7 +492,7 @@ function updateImportFormatInfo() {
 
 async function handleImportCards() {
     const file = csvFileInput.files[0];
-    if (!file) {
+    if ( ! file) {
         importStatus.textContent = 'Please select a file';
         importStatus.className = 'status-message error';
         return;
@@ -579,7 +579,7 @@ function renderTags(tags) {
             </div>
             <div class="item-actions">
                 <button class="btn btn-small btn-primary" onclick="editTag(${tag.tag_id}, '${tag.name.replace(/'/g, "\\'")}', '${(tag.description || '').replace(/'/g, "\\'")}', ${tag.active})">Edit</button>
-                <button class="btn btn-small btn-secondary" onclick="toggleTag(${tag.tag_id}, ${!tag.active})">
+                <button class="btn btn-small btn-secondary" onclick="toggleTag(${tag.tag_id}, ${ ! tag.active})">
                     ${tag.active ? 'Deactivate' : 'Activate'}
                 </button>
                 <button class="btn btn-small btn-danger" onclick="deleteTag(${tag.tag_id})">Delete</button>
@@ -654,7 +654,7 @@ async function toggleTag(tagId, active) {
 }
 
 async function deleteTag(tagId) {
-    if (!confirm('Are you sure you want to delete this tag?')) {
+    if ( ! confirm('Are you sure you want to delete this tag?')) {
         return;
     }
 
@@ -726,7 +726,7 @@ function renderGames(games) {
 }
 
 async function deleteGame(gameId) {
-    if (!confirm('Are you sure you want to delete this game?')) {
+    if ( ! confirm('Are you sure you want to delete this game?')) {
         return;
     }
 
@@ -797,7 +797,7 @@ async function loadTagAssignment(tagId) {
 
     // Load all cards with a high limit
     const response = await apiRequest('/api/admin/cards/list?limit=500');
-    if (!response.success) {
+    if ( ! response.success) {
         cardsContainer.innerHTML = '<div class="error-message">Failed to load cards</div>';
         return;
     }

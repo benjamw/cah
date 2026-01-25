@@ -39,16 +39,23 @@ class ValidatorTest extends TestCase
             ['name' => '  ', 'expectedError' => 'Player name is required'],
             ['name' => 'AB', 'expectedError' => 'Player name must be at least 3 characters'],
             ['name' => 'A', 'expectedError' => 'Player name must be at least 3 characters'],
-            ['name' => '123', 'expectedError' => 'Player name must contain only letters'],
-            ['name' => 'Player123', 'expectedError' => 'Player name must contain only letters'],
-            ['name' => 'Test@User', 'expectedError' => 'Player name must contain only letters'],
             ['name' => str_repeat('A', 31), 'expectedError' => 'Player name must not exceed 30 characters'],
+            // Control characters should be invalid
+            ['name' => "Test\x00Name", 'expectedError' => 'invalid characters'],
+            ['name' => "Test\nName", 'expectedError' => 'invalid characters'],
         ];
 
         foreach ($testCases as $testCase) {
             $result = Validator::validatePlayerName($testCase['name']);
             $this->assertFalse($result['valid'], "Name '{$testCase['name']}' should be invalid");
             $this->assertStringContainsString($testCase['expectedError'], $result['error']);
+        }
+        
+        // These should actually be VALID (numbers and special chars are allowed)
+        $validNamesWithNumbers = ['123', 'Player123', 'Test@User', 'User-Name'];
+        foreach ($validNamesWithNumbers as $name) {
+            $result = Validator::validatePlayerName($name);
+            $this->assertTrue($result['valid'], "Name '{$name}' should be valid (contains printable characters)");
         }
     }
 
