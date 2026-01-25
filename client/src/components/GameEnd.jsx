@@ -62,7 +62,7 @@ function GameEnd({ gameState, onLeaveGame }) {
           Leave Game
         </button>
         <p className="info-message">
-          Thanks for playing! Click "Leave Game" to start a new game.
+          Thanks for playing! Click &quot;Leave Game&quot; to start a new game.
         </p>
       </div>
     </div>

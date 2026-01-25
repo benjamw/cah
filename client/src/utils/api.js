@@ -1,17 +1,5 @@
 const API_BASE = '/api';
 
-// Helper to get auth cookie
-function getAuthCookie() {
-  const cookies = document.cookie.split(';');
-  for (let cookie of cookies) {
-    const [name, value] = cookie.trim().split('=');
-    if (name === 'PHPSESSID') {
-      return value;
-    }
-  }
-  return null;
-}
-
 // Helper for API requests
 async function apiRequest(endpoint, options = {}) {
   const defaultOptions = {

@@ -15,19 +15,13 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
   const minSwipeDistance = 50;
   
   // Get czar name from the top level (already provided by API)
-  const czarName = gameState.current_czar_name || 'Unknown';
+  // Kept for potential future use in czar-specific UI features
+  // const czarName = gameState.current_czar_name || 'Unknown';
   
   // Calculate how many players should submit (all players except czar)
   const totalPlayers = gameState.players?.length || 0;
   const expectedSubmissions = totalPlayers - 1; // Everyone except the czar
   const allSubmitted = submissions.length >= expectedSubmissions && submissions.length > 0;
-
-  console.log('CzarView - gameState:', gameState);
-  console.log('CzarView - blackCard:', blackCard);
-  console.log('CzarView - whiteCards:', whiteCards);
-  console.log('CzarView - submissions:', submissions);
-  console.log('CzarView - czarName:', czarName);
-  console.log('CzarView - expected submissions:', expectedSubmissions, 'received:', submissions.length);
 
   const onTouchStart = (e) => {
     setTouchEnd(null);

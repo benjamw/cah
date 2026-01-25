@@ -22,6 +22,7 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
     // Remove bidirectional text override characters (U+202A-U+202E)
     // Remove line/paragraph separators (U+2028-U+2029)
     // Remove byte order mark (U+FEFF)
+    // eslint-disable-next-line no-control-regex
     value = value.replace(/[\x00-\x1F\x7F-\x9F\u200B-\u200F\u202A-\u202E\u2028\u2029\uFEFF]/g, '');
     
     setPlayerName(value);

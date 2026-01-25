@@ -12,6 +12,8 @@ function App() {
   const [playerName, setPlayerName] = useState(''); // Shared name between join and create
 
   useEffect(() => {
+    let mounted = true;
+    
     // Check if user has an active game in storage
     const stored = getStoredGameData();
     
@@ -19,6 +21,7 @@ function App() {
       // Verify the game is still valid
       getGameState()
         .then((state) => {
+          if (!mounted) return;
           if (state.success) {
             setGameData(stored);
             setView('game');
@@ -26,17 +29,23 @@ function App() {
             // Session lost - clear data and show join screen
             clearGameData();
           }
+          setLoading(false);
         })
         .catch(() => {
+          if (!mounted) return;
           // Session lost or network error - clear data and show join screen
           clearGameData();
-        })
-        .finally(() => {
           setLoading(false);
         });
     } else {
+      // No stored game, mark as done loading
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false);
     }
+    
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const handleGameJoined = (data) => {

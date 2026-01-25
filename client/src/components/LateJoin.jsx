@@ -47,7 +47,7 @@ function LateJoin({ gameId, playerName, playerNames, onGameJoined, onBack }) {
       <h1>Game Already Started</h1>
       <p className="late-join-info">
         The game has already started, but you can still join!
-        Select two players who are sitting next to each other - you'll be placed between them.
+        Select two players who are sitting next to each other - you&apos;ll be placed between them.
       </p>
 
       <div className="join-info-box">
@@ -104,7 +104,7 @@ function LateJoin({ gameId, playerName, playerNames, onGameJoined, onBack }) {
             <div className="seat you-seat">YOU</div>
             <div className="seat">{adjacentPlayer2 || '?'}</div>
           </div>
-          <p className="seat-hint">You'll sit between these two players</p>
+          <p className="seat-hint">You&apos;ll sit between these two players</p>
         </div>
 
         {error && <div className="error-message">{error}</div>}

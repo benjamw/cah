@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 
 function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -44,10 +44,11 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled }) 
     }
   };
 
-  useEffect(() => {
-    // Reset to first card when cards change
+  // Reset to first card when cards array changes
+  const cardsLength = cards.length;
+  if (currentIndex >= cardsLength && cardsLength > 0) {
     setCurrentIndex(0);
-  }, [cards.length]);
+  }
 
   if ( ! cards || cards.length === 0) {
     return (

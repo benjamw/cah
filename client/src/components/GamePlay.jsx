@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getGameState, startGame } from '../utils/api';
 import WaitingRoom from './WaitingRoom';
 import PlayingGame from './PlayingGame';
@@ -16,9 +16,7 @@ function GamePlay({ gameData, onLeaveGame }) {
   const hostTransferAlertedRef = useRef(false); // Track if host transfer alert was shown
   const toastTimeoutRef = useRef(null);
 
-  console.log('GamePlay gameData:', gameData);
-
-  const showToast = (message) => {
+  const showToast = useCallback((message) => {
     if (toastTimeoutRef.current) {
       clearTimeout(toastTimeoutRef.current);
     }
@@ -26,23 +24,18 @@ function GamePlay({ gameData, onLeaveGame }) {
     toastTimeoutRef.current = setTimeout(() => {
       setToastMessage('');
     }, 4000);
-  };
+  }, []);
 
-  const fetchGameState = async () => {
+  const fetchGameState = useCallback(async () => {
     try {
       const response = await getGameState(lastModifiedRef.current);
       
-      console.log('Game state response:', response);
-      
       // Handle 304 Not Modified
       if (response.notModified) {
-        console.log('304 Not Modified - no changes');
         return;
       }
 
       if (response.success && response.data) {
-        console.log('Raw data:', response.data);
-        
         // Transform the API response structure
         const transformedState = {
           ...response.data.player_data,
@@ -58,7 +51,6 @@ function GamePlay({ gameData, onLeaveGame }) {
         );
         
         if ( ! playerStillInGame && ! removedRef.current) {
-          console.log('Player has been removed from the game');
           removedRef.current = true; // Prevent multiple alerts
           
           // Stop polling
@@ -77,7 +69,6 @@ function GamePlay({ gameData, onLeaveGame }) {
         );
         
         if (currentPlayer && currentPlayer.is_creator && ! isCreator && ! hostTransferAlertedRef.current) {
-          console.log('Player became the new host');
           hostTransferAlertedRef.current = true; // Prevent multiple alerts
           setIsCreator(true);
           showToast('You are now the game host!');
@@ -89,14 +80,12 @@ function GamePlay({ gameData, onLeaveGame }) {
           showToast(`Player order almost complete! ${names} ${transformedState.skipped_players.names.length === 1 ? 'was' : 'were'} skipped.`);
         }
         
-        console.log('Transformed game state:', transformedState);
         setGameState(transformedState);
         setError('');
         
         // Update last modified timestamp if provided
         if (response.lastModified) {
           lastModifiedRef.current = response.lastModified;
-          console.log('Updated lastModified:', response.lastModified);
         }
       } else {
         console.error('Game state error:', response);
@@ -120,7 +109,7 @@ function GamePlay({ gameData, onLeaveGame }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [gameData.playerId, isCreator, onLeaveGame, showToast]);
 
   useEffect(() => {
     // Initial fetch
@@ -134,7 +123,7 @@ function GamePlay({ gameData, onLeaveGame }) {
         clearInterval(pollIntervalRef.current);
       }
     };
-  }, []); // Empty dependency array - only run once
+  }, [fetchGameState]); // Add fetchGameState to dependencies
 
   const handleStartGame = async () => {
     setLoading(true);
@@ -189,8 +178,6 @@ function GamePlay({ gameData, onLeaveGame }) {
   // Find the host player name
   const hostPlayer = gameState?.players?.find(p => p.is_creator);
   const hostName = hostPlayer?.name || 'Host';
-
-  console.log('Game state check:', { state: gameState?.state, isWaiting, isPlaying, isFinished });
 
   return (
     <div className="game-play">

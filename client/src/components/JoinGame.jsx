@@ -17,6 +17,7 @@ function JoinGame({ onGameJoined, onSwitchToCreate, playerName, setPlayerName })
     // Remove bidirectional text override characters (U+202A-U+202E)
     // Remove line/paragraph separators (U+2028-U+2029)
     // Remove byte order mark (U+FEFF)
+    // eslint-disable-next-line no-control-regex
     value = value.replace(/[\x00-\x1F\x7F-\x9F\u200B-\u200F\u202A-\u202E\u2028\u2029\uFEFF]/g, '');
     
     setPlayerName(value);
@@ -29,7 +30,6 @@ function JoinGame({ onGameJoined, onSwitchToCreate, playerName, setPlayerName })
 
     try {
       const response = await joinGame(playerName, gameId);
-      console.log('Join game response:', response);
       
       if (response.success) {
         onGameJoined({
@@ -49,7 +49,6 @@ function JoinGame({ onGameJoined, onSwitchToCreate, playerName, setPlayerName })
         } else {
           // Extract error message from response
           const errorMsg = response.message || response.error || 'Failed to join game';
-          console.log('Setting error:', errorMsg);
           setError(errorMsg);
         }
       }

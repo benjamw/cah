@@ -10,8 +10,6 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
   const [showHostTransfer, setShowHostTransfer] = useState(false);
   const [transferring, setTransferring] = useState(false);
 
-  console.log('WaitingRoom props:', { gameState, gameData, players, settings });
-
   const handleRemovePlayer = async (playerId) => {
     if ( ! gameData.isCreator || playerId === gameData.playerId) return;
 

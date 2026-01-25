@@ -13,9 +13,6 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
   const [showSkippedPlayerModal, setShowSkippedPlayerModal] = useState(false);
   const [placingPlayer, setPlacingPlayer] = useState(false);
   
-  console.log('PlayingGame - gameState:', gameState);
-  console.log('PlayingGame - gameData:', gameData);
-  
   const currentPlayer = gameState.players?.find(
     (p) => p.id === gameData.playerId
   );
@@ -73,14 +70,6 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
     : allWhiteCards;
     
   const blanksNeeded = blackCard?.choices || 1;
-
-  console.log('Current player:', currentPlayer);
-  console.log('Is czar:', isCzar);
-  console.log('Black card:', blackCard);
-  console.log('All white cards:', allWhiteCards);
-  console.log('Filtered white cards:', whiteCards);
-  console.log('Submitted card IDs:', submittedCardIds);
-  console.log('Czar name:', czarName);
 
   // Calculate if cards were added to hand
   const cardsInHand = whiteCards.length;

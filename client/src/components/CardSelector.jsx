@@ -23,14 +23,10 @@ function CardSelector({
   useEffect(() => {
     const storageKey = `submitted_cards_${gameData.gameId}_${gameState.current_round}`;
     const stored = localStorage.getItem(storageKey);
-    console.log('CardSelector - hasSubmitted:', hasSubmitted);
-    console.log('CardSelector - stored cards:', stored);
-    console.log('CardSelector - storage key:', storageKey);
     
     if (stored) {
       try {
         const parsedCards = JSON.parse(stored);
-        console.log('CardSelector - parsed cards:', parsedCards);
         setSubmittedCardIds(parsedCards);
       } catch (e) {
         console.error('Failed to parse submitted cards:', e);
@@ -57,7 +53,6 @@ function CardSelector({
         const storageKey = `submitted_cards_${gameData.gameId}_${gameState.current_round}`;
         localStorage.setItem(storageKey, JSON.stringify(submittedCardsData));
         setSubmittedCardIds(submittedCardsData);
-        console.log('Cards submitted, stored:', submittedCardsData);
         onCardsSubmitted();
       } else {
         setError(response.message || 'Failed to submit cards');
