@@ -20,7 +20,6 @@ class TagController
             $tags = Tag::getAllActiveWithCounts();
 
             return JsonResponse::success($response, ['tags' => $tags]);
-
         } catch (\Exception $e) {
             return JsonResponse::error($response, $e->getMessage(), 500);
         }

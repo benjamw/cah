@@ -16,4 +16,3 @@ class JsonEncodingException extends RuntimeException
         parent::__construct($message, $code, $previous);
     }
 }
-

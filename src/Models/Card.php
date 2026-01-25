@@ -200,7 +200,7 @@ class Card
      */
     /**
      * List cards with filtering, pagination, and total count
-     * 
+     *
      * This method encapsulates the complex query logic for the admin card list
      *
      * @param string|null $cardType Filter by card type ('white' or 'black'), null for all
@@ -285,7 +285,7 @@ class Card
         $countSql .= " WHERE " . implode(' AND ', $countConditions);
 
         $countResult = Database::fetchOne($countSql, $countParams);
-        $total = (int) ($countResult['total'] ?? 0);
+        $total = (int) ( $countResult['total'] ?? 0 );
 
         return [
             'cards' => $cards,

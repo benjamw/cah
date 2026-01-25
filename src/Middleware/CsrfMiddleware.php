@@ -36,7 +36,7 @@ class CsrfMiddleware implements MiddlewareInterface
 
         // Only check CSRF for state-changing methods
         $requiresCsrf = in_array($method, ['POST', 'PUT', 'PATCH', 'DELETE'], true);
-        
+
         // Skip if method doesn't require CSRF or path is exempt
         if ( ! $requiresCsrf || in_array($path, $this->exemptPaths, true)) {
             return $handler->handle($request);
@@ -44,10 +44,10 @@ class CsrfMiddleware implements MiddlewareInterface
 
         // Get token from header or body
         $token = $request->getHeaderLine('X-CSRF-Token');
-        
+
         if (empty($token)) {
             $body = $request->getParsedBody();
-            $token = is_array($body) ? ($body['csrf_token'] ?? null) : null;
+            $token = is_array($body) ? ( $body['csrf_token'] ?? null ) : null;
         }
 
         // Validate token

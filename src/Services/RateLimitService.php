@@ -53,7 +53,7 @@ class RateLimitService
 
             // Check if window has expired
             $firstAttempt = strtotime((string) $record['first_attempt']);
-            $windowExpiry = $firstAttempt + ($windowMinutes * GameDefaults::SECONDS_PER_MINUTE);
+            $windowExpiry = $firstAttempt + ( $windowMinutes * GameDefaults::SECONDS_PER_MINUTE );
 
             if (time() > $windowExpiry) {
                 // Window expired, reset and allow

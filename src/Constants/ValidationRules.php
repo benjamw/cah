@@ -17,9 +17,8 @@ class ValidationRules
 
     // Game code validation
     public const GAME_CODE_LENGTH = 4;
-    
+
     // Card choices validation
     public const DEFAULT_CARD_CHOICES = 1;
     public const MIN_UNDERSCORE_PATTERN_LENGTH = 2;
 }
-

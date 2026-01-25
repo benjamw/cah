@@ -28,7 +28,7 @@ class PlayerController
 
             $data = $request->getParsedBody() ?? [];
 
-            $validator = (new Validator())
+            $validator = ( new Validator() )
                 ->required($data['target_player_id'] ?? null, 'target_player_id');
 
             if ($validator->fails()) {
@@ -42,7 +42,6 @@ class PlayerController
             );
 
             return JsonResponse::success($response, ['game_state' => $gameState]);
-
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
         } catch (UnauthorizedException $e) {
@@ -68,7 +67,7 @@ class PlayerController
 
             $data = $request->getParsedBody() ?? [];
 
-            $validator = (new Validator())
+            $validator = ( new Validator() )
                 ->required($data['new_host_id'] ?? null, 'new_host_id');
 
             if ($validator->fails()) {
@@ -85,7 +84,6 @@ class PlayerController
             );
 
             return JsonResponse::success($response, ['game_state' => $gameState]);
-
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
         } catch (UnauthorizedException $e) {
@@ -112,7 +110,6 @@ class PlayerController
             $gameState = GameService::leaveGame($gameId, $playerId);
 
             return JsonResponse::success($response, ['game_state' => $gameState]);
-
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
         } catch (UnauthorizedException $e) {

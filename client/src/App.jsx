@@ -21,7 +21,7 @@ function App() {
       // Verify the game is still valid
       getGameState()
         .then((state) => {
-          if (!mounted) return;
+          if ( ! mounted) return;
           if (state.success) {
             setGameData(stored);
             setView('game');
@@ -32,7 +32,7 @@ function App() {
           setLoading(false);
         })
         .catch(() => {
-          if (!mounted) return;
+          if ( ! mounted) return;
           // Session lost or network error - clear data and show join screen
           clearGameData();
           setLoading(false);

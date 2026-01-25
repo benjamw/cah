@@ -212,11 +212,21 @@ class Validator
         }
 
         if (mb_strlen($sanitized) < ValidationRules::PLAYER_NAME_MIN_LENGTH) {
-            return ['valid' => false, 'name' => $sanitized, 'error' => 'Player name must be at least ' . ValidationRules::PLAYER_NAME_MIN_LENGTH . ' characters'];
+            return [
+                'valid' => false,
+                'name' => $sanitized,
+                'error' => 'Player name must be at least ' .
+                    ValidationRules::PLAYER_NAME_MIN_LENGTH . ' characters'
+            ];
         }
 
         if (mb_strlen($sanitized) > ValidationRules::PLAYER_NAME_MAX_LENGTH) {
-            return ['valid' => false, 'name' => $sanitized, 'error' => 'Player name must not exceed ' . ValidationRules::PLAYER_NAME_MAX_LENGTH . ' characters'];
+            return [
+                'valid' => false,
+                'name' => $sanitized,
+                'error' => 'Player name must not exceed ' .
+                    ValidationRules::PLAYER_NAME_MAX_LENGTH . ' characters'
+            ];
         }
 
         // Block dangerous characters:
@@ -246,7 +256,7 @@ class Validator
 
         $normalized = [];
         foreach ($cardIds as $cardId) {
-            if (is_array($cardId) || ( ! is_int($cardId) && ! ctype_digit((string) $cardId))) {
+            if (is_array($cardId) || ( ! is_int($cardId) && ! ctype_digit((string) $cardId) )) {
                 return ['valid' => false, 'card_ids' => [], 'error' => 'All card IDs must be integers'];
             }
 
@@ -276,7 +286,12 @@ class Validator
         }
 
         if (strlen($normalized) !== ValidationRules::GAME_CODE_LENGTH) {
-            return ['valid' => false, 'code' => $normalized, 'error' => 'Game code must be exactly ' . ValidationRules::GAME_CODE_LENGTH . ' characters'];
+            return [
+                'valid' => false,
+                'code' => $normalized,
+                'error' => 'Game code must be exactly ' .
+                    ValidationRules::GAME_CODE_LENGTH . ' characters'
+            ];
         }
 
         // Allow only alphanumeric characters

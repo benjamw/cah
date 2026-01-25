@@ -11,7 +11,24 @@
     <exclude-pattern>*/vendor/*</exclude-pattern>
 
     <!-- Use PSR-12 as base standard -->
-    <rule ref="PSR12"/>
+    <rule ref="PSR12">
+        <!-- Allow spaces after opening parenthesis with ! operator (user preference for "( !" style) -->
+        <exclude name="PSR12.ControlStructures.ControlStructureSpacing.SpacingAfterOpenBrace"/>
+        <exclude name="Generic.Formatting.SpaceAfterNot"/>
+    </rule>
+    
+    <!-- Allow user's preferred spacing style: ( ! instead of (!-->
+    <rule ref="Squiz.WhiteSpace.OperatorSpacing">
+        <properties>
+            <property name="ignoreNewlines" value="true"/>
+        </properties>
+    </rule>
+    <rule ref="Generic.WhiteSpace.ArbitraryParenthesesSpacing">
+        <properties>
+            <property name="spacing" value="1"/>
+            <property name="ignoreNewlines" value="true"/>
+        </properties>
+    </rule>
 
     <!-- Additional rules -->
     <rule ref="Generic.Arrays.DisallowLongArraySyntax"/>

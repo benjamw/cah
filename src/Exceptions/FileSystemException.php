@@ -12,4 +12,3 @@ use Exception;
 class FileSystemException extends Exception
 {
 }
-

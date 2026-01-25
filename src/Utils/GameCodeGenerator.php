@@ -38,7 +38,10 @@ class GameCodeGenerator
             $attempts++;
         }
 
-        throw new GameCodeGenerationException('Unable to generate unique game code after ' . GameDefaults::MAX_GAME_CODE_GENERATION_ATTEMPTS . ' attempts');
+        throw new GameCodeGenerationException(
+            'Unable to generate unique game code after ' .
+            GameDefaults::MAX_GAME_CODE_GENERATION_ATTEMPTS . ' attempts'
+        );
     }
 
     /**

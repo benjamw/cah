@@ -16,4 +16,3 @@ class RateLimitAction
     public const FAILED_GAME_CODE = 'failed_game_code';
     public const ADMIN_LOGIN = 'admin_login';
 }
-

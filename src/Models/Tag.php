@@ -119,7 +119,7 @@ class Tag
             $result = Database::fetchOne($sql, [$tagId]);
         }
 
-        return (int) ($result['count'] ?? 0);
+        return (int) ( $result['count'] ?? 0 );
     }
 
     /**
@@ -296,7 +296,7 @@ class Tag
         $countParams = array_merge([$tagId], $cardIds);
         $result = Database::fetchOne($countSql, $countParams);
 
-        return (int) ($result['count'] ?? 0);
+        return (int) ( $result['count'] ?? 0 );
     }
 
     /**

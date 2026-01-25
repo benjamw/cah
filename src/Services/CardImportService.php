@@ -199,7 +199,7 @@ class CardImportService
         $warnings = [];
         $index = 0;
 
-        while (($data = fgetcsv($handle)) !== false) {
+        while (( $data = fgetcsv($handle) ) !== false) {
             if ($index === 0) {
                 // Skip header row
                 $index++;

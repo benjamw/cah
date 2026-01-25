@@ -35,7 +35,6 @@ class AdminGameController
                 'game_id' => $gameId,
                 'deleted' => $affected > 0,
             ]);
-
         } catch (\Exception $e) {
             return JsonResponse::error($response, $e->getMessage(), 500);
         }
@@ -114,7 +113,7 @@ class AdminGameController
             }
 
             $countResult = \CAH\Database\Database::fetchOne($countSql, $countParams);
-            $total = (int) ($countResult['total'] ?? 0);
+            $total = (int) ( $countResult['total'] ?? 0 );
 
             return JsonResponse::success($response, [
                 'games' => $games,
@@ -122,7 +121,6 @@ class AdminGameController
                 'limit' => $limit,
                 'offset' => $offset,
             ]);
-
         } catch (\Exception $e) {
             return JsonResponse::error($response, $e->getMessage(), 500);
         }

@@ -21,7 +21,7 @@ class CardController
         try {
             $data = $request->getParsedBody() ?? [];
 
-            $validator = (new Validator())
+            $validator = ( new Validator() )
                 ->required($data['card_ids'] ?? null, 'card_ids')
                 ->array($data['card_ids'] ?? null, 'card_ids', 1);
 
@@ -37,7 +37,6 @@ class CardController
             $cards = Card::getByIds($cardValidation['card_ids']);
 
             return JsonResponse::success($response, ['cards' => $cards]);
-
         } catch (ValidationException $e) {
             return JsonResponse::validationError($response, $e->getErrors(), $e->getMessage());
         } catch (\Exception $e) {

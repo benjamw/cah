@@ -14,4 +14,3 @@ enum CardType: string
     case WHITE = 'white';
     case BLACK = 'black';
 }
-

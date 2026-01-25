@@ -16,4 +16,3 @@ class GameCodeGenerationException extends RuntimeException
         parent::__construct($message, $code, $previous);
     }
 }
-

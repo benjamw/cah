@@ -15,4 +15,3 @@ enum GameState: string
     case PLAYING = 'playing';
     case FINISHED = 'finished';
 }
-

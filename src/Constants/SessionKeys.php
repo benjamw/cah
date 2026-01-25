@@ -14,4 +14,3 @@ class SessionKeys
     public const PLAYER_ID = 'player_id';
     public const GAME_ID = 'game_id';
 }
-

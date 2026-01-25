@@ -289,7 +289,7 @@ class Game
         ";
         $result = Database::fetchOne($sql);
 
-        return (int) ($result['count'] ?? 0);
+        return (int) ( $result['count'] ?? 0 );
     }
 
     /**
@@ -371,7 +371,7 @@ class Game
         $size = strlen($json);
         $thresholdKB = 100; // 100KB threshold
 
-        if ($size > ($thresholdKB * 1024)) {
+        if ($size > ( $thresholdKB * 1024 )) {
             $sizeKB = round($size / 1024, 2);
             \CAH\Utils\Logger::warning("Large JSON detected in game {$fieldName}", [
                 'game_id' => $gameId,

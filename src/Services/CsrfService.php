@@ -6,7 +6,7 @@ namespace CAH\Services;
 
 /**
  * CSRF Protection Service
- * 
+ *
  * Generates and validates CSRF tokens for session-based authentication
  */
 class CsrfService
@@ -24,7 +24,7 @@ class CsrfService
 
         $token = bin2hex(random_bytes(32));
         $_SESSION['csrf_token'] = $token;
-        
+
         return $token;
     }
 
@@ -55,7 +55,7 @@ class CsrfService
         }
 
         $sessionToken = self::getToken();
-        
+
         if ($sessionToken === null) {
             return false;
         }

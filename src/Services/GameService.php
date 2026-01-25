@@ -314,13 +314,13 @@ class GameService
 
             // Calculate total cards needed
             $nonRandoPlayerCount = count($playerData['players']);
-            
+
             // Check if enough white cards to deal initial hands
             $cardsNeededForHands = $nonRandoPlayerCount * $handSize;
             if (count($whitePile) < $cardsNeededForHands) {
                 throw new InsufficientCardsException('white', $cardsNeededForHands, count($whitePile));
             }
-            
+
             // Check if at least one black card available
             if (empty($blackPile)) {
                 throw new InsufficientCardsException('black', 1, 0);
@@ -609,13 +609,13 @@ class GameService
             $playerData['players'],
             fn($p): bool => empty($p['is_rando'])
         );
-        
+
         if (count($eligiblePlayers) < $minPlayers && $playerData['state'] !== GameState::FINISHED->value) {
             // End the game due to too few players
             $playerData['state'] = GameState::FINISHED->value;
-            $playerData['finished_at'] = (new \DateTime())->format('Y-m-d H:i:s');
+            $playerData['finished_at'] = ( new \DateTime() )->format('Y-m-d H:i:s');
             $playerData['end_reason'] = GameEndReason::TOO_FEW_PLAYERS->value;
-            
+
             // Find player with highest score as winner
             $highestScore = -1;
             $winnerId = null;
@@ -679,7 +679,7 @@ class GameService
         if ($index1 !== false && $index2 !== false) {
             $orderCount = count($playerOrder);
             $insertIndex = self::findAdjacentInsertIndex($index1, $index2, $orderCount);
-            
+
             if ($insertIndex !== null) {
                 array_splice($playerOrder, $insertIndex, 0, [$newPlayerId]);
             } else {
@@ -711,8 +711,10 @@ class GameService
         }
 
         // Check if they wrap around (first and last positions)
-        if (($index1 === 0 && $index2 === $orderCount - 1) ||
-            ($index2 === 0 && $index1 === $orderCount - 1)) {
+        if (
+            ( $index1 === 0 && $index2 === $orderCount - 1 ) ||
+            ( $index2 === 0 && $index1 === $orderCount - 1 )
+        ) {
             return $orderCount;
         }
 
@@ -740,18 +742,18 @@ class GameService
         if ($playerData['order_locked'] && ! empty($playerData['player_order'])) {
             // Get list of current player IDs (excluding Rando)
             $currentPlayerIds = array_map(fn($p) => $p['id'], $eligiblePlayers);
-            
+
             // Filter player_order to only include players still in game (and exclude Rando)
             $eligibleOrder = array_filter(
                 $playerData['player_order'],
-                fn($id): bool => in_array($id, $currentPlayerIds, true) && $id !== ($playerData['rando_id'] ?? null)
+                fn($id): bool => in_array($id, $currentPlayerIds, true) && $id !== ( $playerData['rando_id'] ?? null )
             );
             $eligibleOrder = array_values($eligibleOrder);
 
             if ( ! empty($eligibleOrder)) {
                 $currentIndex = array_search($playerData['current_czar_id'], $eligibleOrder);
                 if ($currentIndex !== false) {
-                    $nextIndex = ($currentIndex + 1) % count($eligibleOrder);
+                    $nextIndex = ( $currentIndex + 1 ) % count($eligibleOrder);
                     return $eligibleOrder[$nextIndex];
                 }
                 // If current czar not found in order (shouldn't happen but handle it), return first
@@ -853,9 +855,9 @@ class GameService
                         fn($p) => $p['id'],
                         array_filter($playerData['players'], fn($p): bool => empty($p['is_rando']))
                     );
-                    
+
                     $skippedPlayers = array_diff($eligiblePlayerIds, $playerData['player_order']);
-                    
+
                     if ( ! empty($skippedPlayers)) {
                         // Store skipped players info - order NOT locked yet, waiting for placement
                         $skippedNames = [];
@@ -1191,7 +1193,7 @@ class GameService
         if ($isCzar && isset($playerData['submissions'])) {
             $expectedSubmissions = count($playerData['players']) - 1; // Exclude czar
             $actualSubmissions = count($playerData['submissions']);
-            
+
             // Only show submissions if all players have submitted
             if ($actualSubmissions < $expectedSubmissions) {
                 // Keep the array length but hide the content
@@ -1339,7 +1341,7 @@ class GameService
 
             // Update is_creator flags AFTER removal
             foreach ($playerData['players'] as &$player) {
-                $player['is_creator'] = ($player['id'] === $newHostId);
+                $player['is_creator'] = ( $player['id'] === $newHostId );
             }
             unset($player); // Break the reference
 
@@ -1375,7 +1377,7 @@ class GameService
             // Allow creator to leave if they're the last player or if there's only one player left
             $isCreator = $playerData['creator_id'] === $playerId;
             $playerCount = count($playerData['players']);
-            
+
             // Only block creator from leaving if there are OTHER players who could become host
             if ($isCreator && $playerCount > 1) {
                 throw new UnauthorizedException('Game creator must transfer host before leaving');
@@ -1386,7 +1388,7 @@ class GameService
 
             // Remove player from players array and player order
             array_splice($playerData['players'], $playerIndex, 1);
-            
+
             // Remove from player_order if present
             if ( ! empty($playerData['player_order'])) {
                 $playerData['player_order'] = array_values(array_filter(
@@ -1425,7 +1427,7 @@ class GameService
                 $playerData['submissions'],
                 fn($sub): bool => $sub['player_id'] !== $playerId
             ));
-            
+
             // Check if too few players remain and end game if needed
             $playerData = self::checkAndHandleGameEnd($playerData);
 

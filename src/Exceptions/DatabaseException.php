@@ -16,4 +16,3 @@ class DatabaseException extends RuntimeException
         parent::__construct($message, $code, $previous);
     }
 }
-

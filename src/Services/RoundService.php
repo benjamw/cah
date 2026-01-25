@@ -89,7 +89,7 @@ class RoundService
             $whitePile = $game['draw_pile']['white'] ?? [];
             $cardsNeeded = count($cardIds);
             $result = CardService::drawWhiteCards($whitePile, $cardsNeeded);
-            
+
             // Now remove submitted cards from player's hand
             $playerData['players'][$playerIndex]['hand'] = array_values(
                 array_filter(
@@ -97,13 +97,13 @@ class RoundService
                     fn($cardId): bool => ! in_array($cardId, $cardIds, true)
                 )
             );
-            
+
             // Add new cards to player's hand
             $playerData['players'][$playerIndex]['hand'] = array_merge(
                 $playerData['players'][$playerIndex]['hand'],
                 $result['cards']
             );
-            
+
             // Update the white pile in the draw pile
             $game['draw_pile']['white'] = $result['remaining_pile'];
 
@@ -172,7 +172,7 @@ class RoundService
                 'winner_id' => $winningPlayerId,
                 'winning_cards' => $winningSubmission['cards'],
                 'all_submissions' => $playerData['submissions'],
-                'timestamp' => (new \DateTime())->format('Y-m-d H:i:s'),
+                'timestamp' => ( new \DateTime() )->format('Y-m-d H:i:s'),
             ];
 
             Game::appendRoundHistory($gameId, $roundData);
@@ -278,7 +278,7 @@ class RoundService
 
                 $playerData['state'] = GameState::FINISHED->value;
                 $playerData['winner_id'] = $winnerId;
-                $playerData['finished_at'] = (new \DateTime())->format('Y-m-d H:i:s');
+                $playerData['finished_at'] = ( new \DateTime() )->format('Y-m-d H:i:s');
                 $playerData['end_reason'] = GameEndReason::NO_BLACK_CARDS_LEFT->value;
 
                 Game::update($gameId, [
@@ -383,7 +383,7 @@ class RoundService
 
             $playerData['state'] = GameState::FINISHED->value;
             $playerData['winner_id'] = $winnerId;
-            $playerData['finished_at'] = (new \DateTime())->format('Y-m-d H:i:s');
+            $playerData['finished_at'] = ( new \DateTime() )->format('Y-m-d H:i:s');
             $playerData['end_reason'] = GameEndReason::MAX_SCORE_REACHED->value;
 
             Game::updatePlayerData($gameId, $playerData);

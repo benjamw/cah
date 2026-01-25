@@ -6,7 +6,7 @@ namespace CAH\Services;
 
 /**
  * Configuration Service
- * 
+ *
  * Centralized configuration management with lazy loading and caching
  */
 class ConfigService

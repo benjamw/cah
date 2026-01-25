@@ -26,7 +26,7 @@ class AdminTagController
         try {
             $data = $request->getParsedBody() ?? [];
 
-            $validator = (new Validator())
+            $validator = ( new Validator() )
                 ->required($data['name'] ?? null, 'name');
 
             if ($validator->fails()) {
@@ -43,7 +43,6 @@ class AdminTagController
                 'tag_id' => $tagId,
                 'name' => $data['name'],
             ], null, 201);
-
         } catch (ValidationException $e) {
             return JsonResponse::validationError($response, $e->getErrors(), $e->getMessage());
         } catch (\Exception $e) {
@@ -82,7 +81,6 @@ class AdminTagController
                 'tag_id' => $tagId,
                 'updated' => $affected > 0,
             ]);
-
         } catch (\Exception $e) {
             return JsonResponse::error($response, $e->getMessage(), 500);
         }
@@ -107,7 +105,6 @@ class AdminTagController
                 'tag_id' => $tagId,
                 'deleted' => $affected > 0,
             ]);
-
         } catch (\Exception $e) {
             return JsonResponse::error($response, $e->getMessage(), 500);
         }

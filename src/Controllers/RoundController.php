@@ -31,7 +31,7 @@ class RoundController
 
             $data = $request->getParsedBody() ?? [];
 
-            $validator = (new Validator())
+            $validator = ( new Validator() )
                 ->required($data['card_ids'] ?? null, 'card_ids')
                 ->array($data['card_ids'] ?? null, 'card_ids', 1);
 
@@ -51,7 +51,6 @@ class RoundController
             );
 
             return JsonResponse::success($response, ['game_state' => $gameState]);
-
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
         } catch (UnauthorizedException $e) {
@@ -77,7 +76,7 @@ class RoundController
 
             $data = $request->getParsedBody() ?? [];
 
-            $validator = (new Validator())
+            $validator = ( new Validator() )
                 ->required($data['winner_id'] ?? null, 'winner_id');
 
             if ($validator->fails()) {
@@ -105,7 +104,7 @@ class RoundController
             if ($gameState['order_locked']) {
                 // Automatically determine next czar from the updated player data
                 $nextCzarId = GameService::getNextCzar($gameState);
-                
+
                 $gameState = GameService::setNextCzar($gameId, $playerId, $nextCzarId);
 
                 $gameState = RoundService::advanceToNextRound($gameId);
@@ -116,7 +115,6 @@ class RoundController
                 'game_over' => false,
                 'needs_czar_selection' => ! $gameState['order_locked'],
             ]);
-
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
         } catch (UnauthorizedException $e) {
@@ -162,8 +160,7 @@ class RoundController
                 'skipped_players' => $skippedPlayers,
                 'order_locked' => $orderLocked,
             ]);
-
-        } catch (GameNotFoundException|PlayerNotFoundException $e) {
+        } catch (GameNotFoundException | PlayerNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
         } catch (UnauthorizedException $e) {
             return JsonResponse::error($response, $e->getMessage(), 403);

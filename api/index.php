@@ -110,7 +110,7 @@ $app->get('/api/health', function (Request $request, Response $response) {
     $healthData = [
         'success' => true,
         'message' => 'Cards API Hub is running',
-        'timestamp' => (new DateTime())->format('Y-m-d H:i:s'),
+        'timestamp' => ( new DateTime() )->format('Y-m-d H:i:s'),
         'database' => 'unknown',
     ];
 

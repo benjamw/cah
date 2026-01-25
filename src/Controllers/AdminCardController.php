@@ -41,7 +41,7 @@ class AdminCardController
                 }
             }
 
-            $active = isset($queryParams['active']) ? (bool) ((int) $queryParams['active']) : true;
+            $active = isset($queryParams['active']) ? (bool) ( (int) $queryParams['active'] ) : true;
             $limit = isset($queryParams['limit']) ? (int) $queryParams['limit'] : 100;
             $offset = isset($queryParams['offset']) ? (int) $queryParams['offset'] : 0;
 
@@ -67,7 +67,7 @@ class AdminCardController
             $cardIds = array_column($cards, 'card_id');
             $cardIds = array_map(intval(...), $cardIds);
             $tagsByCardId = Tag::getCardTagsForMultipleCards($cardIds);
-            
+
             // Attach tags to each card
             foreach ($cards as &$card) {
                 $cardId = (int) $card['card_id'];
@@ -80,7 +80,6 @@ class AdminCardController
                 'limit' => $limit,
                 'offset' => $offset,
             ]);
-
         } catch (ValidationException $e) {
             return JsonResponse::validationError($response, $e->getErrors(), $e->getMessage());
         } catch (\Exception $e) {
@@ -120,7 +119,6 @@ class AdminCardController
             $result = CardImportService::importFromCsv($csvContent, $cardType);
 
             return JsonResponse::success($response, $result);
-
         } catch (ValidationException $e) {
             return JsonResponse::validationError($response, $e->getErrors(), $e->getMessage());
         } catch (\Exception $e) {
@@ -162,7 +160,6 @@ class AdminCardController
                 'card_id' => $cardId,
                 'updated' => $affected > 0,
             ]);
-
         } catch (\Exception $e) {
             return JsonResponse::error($response, $e->getMessage(), 500);
         }
@@ -187,7 +184,6 @@ class AdminCardController
                 'card_id' => $cardId,
                 'deleted' => $affected > 0,
             ]);
-
         } catch (\Exception $e) {
             return JsonResponse::error($response, $e->getMessage(), 500);
         }

@@ -26,7 +26,7 @@ class GameController
         try {
             $data = $request->getParsedBody() ?? [];
 
-            $validator = (new Validator())
+            $validator = ( new Validator() )
                 ->required($data['player_name'] ?? null, 'player_name')
                 ->required($data['tag_ids'] ?? null, 'tag_ids')
                 ->array($data['tag_ids'] ?? null, 'tag_ids', 1);
@@ -52,7 +52,6 @@ class GameController
                 'player_name' => $result['player_name'],
                 'csrf_token' => $csrfToken,
             ], null, 201);
-
         } catch (ValidationException $e) {
             return JsonResponse::validationError($response, $e->getErrors(), $e->getMessage());
         } catch (GameException $e) {
@@ -72,7 +71,7 @@ class GameController
         try {
             $data = $request->getParsedBody() ?? [];
 
-            $validator = (new Validator())
+            $validator = ( new Validator() )
                 ->required($data['game_id'] ?? null, 'game_id')
                 ->required($data['player_name'] ?? null, 'player_name');
 
@@ -107,7 +106,6 @@ class GameController
                 'game_state' => $result['game_state'],
                 'csrf_token' => $csrfToken,
             ]);
-
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
         } catch (ValidationException $e) {
@@ -132,7 +130,6 @@ class GameController
             $gameState = GameService::startGame($gameId, $playerId);
 
             return JsonResponse::success($response, ['game_state' => $gameState]);
-
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
         } catch (UnauthorizedException $e) {
@@ -164,7 +161,7 @@ class GameController
             if ($ifModifiedSince) {
                 $updatedAtTimestamp = strtotime((string) $game['updated_at']);
                 $ifModifiedSinceTimestamp = strtotime($ifModifiedSince);
-                
+
                 // If the game hasn't been modified since the client's last request, return 304
                 if ($updatedAtTimestamp <= $ifModifiedSinceTimestamp) {
                     return $response->withStatus(304); // Not Modified
@@ -192,7 +189,6 @@ class GameController
                 'created_at' => $game['created_at'],
                 'updated_at' => $game['updated_at'],
             ]);
-
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
         } catch (\Exception $e) {
@@ -213,7 +209,6 @@ class GameController
             $gameState = GameService::skipCzar($gameId, $playerId);
 
             return JsonResponse::success($response, ['game_state' => $gameState]);
-
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
         } catch (UnauthorizedException $e) {
@@ -235,7 +230,7 @@ class GameController
         try {
             $data = $request->getParsedBody() ?? [];
 
-            $validator = (new Validator())
+            $validator = ( new Validator() )
                 ->required($data['game_id'] ?? null, 'game_id')
                 ->required($data['player_name'] ?? null, 'player_name')
                 ->required($data['adjacent_player_1'] ?? null, 'adjacent_player_1')
@@ -261,7 +256,6 @@ class GameController
                 'game_state' => $result['game_state'],
                 'csrf_token' => $csrfToken,
             ]);
-
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
         } catch (ValidationException $e) {
@@ -286,7 +280,6 @@ class GameController
             $result = GameService::reshuffleDiscardPile($gameId, $playerId);
 
             return JsonResponse::success($response, $result);
-
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
         } catch (UnauthorizedException $e) {
@@ -323,8 +316,7 @@ class GameController
             );
 
             return JsonResponse::success($response, ['game_state' => $gameState]);
-
-        } catch (GameNotFoundException|PlayerNotFoundException $e) {
+        } catch (GameNotFoundException | PlayerNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
         } catch (UnauthorizedException $e) {
             return JsonResponse::error($response, $e->getMessage(), 403);
@@ -354,7 +346,6 @@ class GameController
             $game['player_data'] = GameService::hydrateCards($game['player_data']);
 
             return JsonResponse::success($response, ['game' => $game]);
-
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
         } catch (\Exception $e) {
