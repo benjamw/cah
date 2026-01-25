@@ -2,19 +2,24 @@ import { useState } from 'react';
 import { joinGame } from '../utils/api';
 import LateJoin from './LateJoin';
 
-function JoinGame({ onGameJoined, onSwitchToCreate }) {
-  const [name, setName] = useState('');
+function JoinGame({ onGameJoined, onSwitchToCreate, playerName, setPlayerName }) {
   const [gameId, setGameId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [lateJoinData, setLateJoinData] = useState(null);
 
-  // Filter out dangerous characters that could be used for XSS
+  // Filter out dangerous characters that could be used for attacks or cause display issues
   const handleNameChange = (e) => {
-    const value = e.target.value;
-    // Allow all visible ASCII except: < > & " \ / ; | ` { }
-    const filtered = value.replace(/[<>&"\\\/;|`{}]/g, '');
-    setName(filtered);
+    let value = e.target.value;
+    
+    // Remove control characters (0x00-0x1F, 0x7F-0x9F)
+    // Remove zero-width and invisible characters (U+200B-U+200F)
+    // Remove bidirectional text override characters (U+202A-U+202E)
+    // Remove line/paragraph separators (U+2028-U+2029)
+    // Remove byte order mark (U+FEFF)
+    value = value.replace(/[\x00-\x1F\x7F-\x9F\u200B-\u200F\u202A-\u202E\u2028\u2029\uFEFF]/g, '');
+    
+    setPlayerName(value);
   };
 
   const handleSubmit = async (e) => {
@@ -23,14 +28,14 @@ function JoinGame({ onGameJoined, onSwitchToCreate }) {
     setLoading(true);
 
     try {
-      const response = await joinGame(name, gameId);
+      const response = await joinGame(playerName, gameId);
       console.log('Join game response:', response);
       
       if (response.success) {
         onGameJoined({
           gameId: response.data.game_id || gameId,
           playerId: response.data.player_id,
-          playerName: name,
+          playerName: playerName,
           isCreator: false,
         });
       } else {
@@ -38,14 +43,18 @@ function JoinGame({ onGameJoined, onSwitchToCreate }) {
         if (response.data && response.data.game_started && response.data.player_names) {
           setLateJoinData({
             gameId: gameId,
-            playerName: name,
+            playerName: playerName,
             playerNames: response.data.player_names,
           });
         } else {
-          setError(response.message || 'Failed to join game');
+          // Extract error message from response
+          const errorMsg = response.message || response.error || 'Failed to join game';
+          console.log('Setting error:', errorMsg);
+          setError(errorMsg);
         }
       }
     } catch (err) {
+      console.error('Join game error:', err);
       setError(err.message || 'Failed to join game');
     } finally {
       setLoading(false);
@@ -67,15 +76,15 @@ function JoinGame({ onGameJoined, onSwitchToCreate }) {
 
   return (
     <div className="join-game">
-      <h1>Cards Against Humanity</h1>
-      
+      <h1>Cards API Hub</h1>
+      <h6>An online version of Cards Against Humanity</h6>
       <form onSubmit={handleSubmit} className="game-form">
         <div className="form-group">
           <label htmlFor="name">Your Name</label>
           <input
             type="text"
             id="name"
-            value={name}
+            value={playerName}
             onChange={handleNameChange}
             placeholder="Enter your name"
             required

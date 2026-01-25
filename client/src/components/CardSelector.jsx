@@ -151,8 +151,7 @@ function CardSelector({
                   >
                     <div className="card-order-number-mini">{index + 1}</div>
                     <div className="selected-card-text-mini">
-                      {card.value.substring(0, 40)}
-                      {card.value.length > 40 ? '...' : ''}
+                      {card.value}
                     </div>
                     <button
                       className="remove-card-btn-mini"

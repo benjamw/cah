@@ -165,12 +165,20 @@ class GameController
             $playerData = GameService::hydrateCards($game['player_data']);
             $playerData = GameService::filterHands($playerData, $request->getAttributes()['player_id']);
 
+            // Calculate deck sizes
+            $whiteCardsRemaining = count($game['draw_pile']['white'] ?? []);
+            $blackCardsRemaining = count($game['draw_pile']['black'] ?? []);
+
             // Add Last-Modified header
             $response = $response->withHeader('Last-Modified', gmdate('D, d M Y H:i:s', strtotime($game['updated_at'])) . ' GMT');
 
             return JsonResponse::success($response, [
                 'game_id' => $game['game_id'],
                 'player_data' => $playerData,
+                'deck_counts' => [
+                    'white_cards' => $whiteCardsRemaining,
+                    'black_cards' => $blackCardsRemaining,
+                ],
                 'created_at' => $game['created_at'],
                 'updated_at' => $game['updated_at'],
             ]);
@@ -279,6 +287,45 @@ class GameController
     }
 
     /**
+     * Place a skipped player in the player order (creator only)
+     */
+    public function placeSkippedPlayer(Request $request, Response $response): Response
+    {
+        try {
+            // Get authenticated session data from request attributes (set by AuthMiddleware)
+            $gameId = $request->getAttribute('game_id');
+            $playerId = $request->getAttribute('player_id');
+
+            $data = $request->getParsedBody();
+            if (!isset($data['skipped_player_id']) || !isset($data['before_player_id'])) {
+                throw new ValidationException('skipped_player_id and before_player_id are required');
+            }
+
+            $gameState = GameService::placeSkippedPlayer(
+                $gameId,
+                $playerId,
+                $data['skipped_player_id'],
+                $data['before_player_id']
+            );
+
+            return JsonResponse::success($response, ['game_state' => $gameState]);
+
+        } catch (GameNotFoundException $e) {
+            return JsonResponse::notFound($response, $e->getMessage());
+        } catch (PlayerNotFoundException $e) {
+            return JsonResponse::notFound($response, $e->getMessage());
+        } catch (UnauthorizedException $e) {
+            return JsonResponse::error($response, $e->getMessage(), 403);
+        } catch (ValidationException $e) {
+            return JsonResponse::validationError($response, $e->getErrors(), $e->getMessage());
+        } catch (GameException $e) {
+            return JsonResponse::error($response, $e->getMessage(), $e->getCode() ?: 400);
+        } catch (\Exception $e) {
+            return JsonResponse::error($response, $e->getMessage(), 500);
+        }
+    }
+
+    /**
      * View game details (public endpoint)
      */
     public function viewGame(Request $request, Response $response, array $args): Response
@@ -291,10 +338,10 @@ class GameController
                 return JsonResponse::notFound($response, 'Game not found');
             }
 
-            // Hydrate the game state with card details
-            $gameState = GameService::hydrateGameState($game);
+            // Hydrate the player_data with card details
+            $game['player_data'] = GameService::hydrateCards($game['player_data']);
 
-            return JsonResponse::success($response, ['game' => $gameState]);
+            return JsonResponse::success($response, ['game' => $game]);
 
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());

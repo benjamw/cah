@@ -9,6 +9,7 @@ function App() {
   const [gameData, setGameData] = useState(null);
   const [view, setView] = useState('join'); // 'join', 'create', 'game'
   const [loading, setLoading] = useState(true);
+  const [playerName, setPlayerName] = useState(''); // Shared name between join and create
 
   useEffect(() => {
     // Check if user has an active game in storage
@@ -74,12 +75,16 @@ function App() {
         <JoinGame
           onGameJoined={handleGameJoined}
           onSwitchToCreate={() => setView('create')}
+          playerName={playerName}
+          setPlayerName={setPlayerName}
         />
       )}
       {view === 'create' && (
         <CreateGame
           onGameCreated={handleGameCreated}
           onSwitchToJoin={() => setView('join')}
+          playerName={playerName}
+          setPlayerName={setPlayerName}
         />
       )}
       {view === 'game' && gameData && (

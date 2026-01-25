@@ -449,10 +449,10 @@ class GameService
                 throw new ValidationException('Cannot remove yourself from the game');
             }
 
-            // Check minimum player count
+            // Check minimum player count - must have more than minimum to remove
             $minPlayers = $playerData['settings']['min_players'] ?? 3;
             if (count($playerData['players']) <= $minPlayers) {
-                throw new ValidationException("Cannot remove player: game requires at least {$minPlayers} players");
+                throw new ValidationException("Cannot remove player: would leave fewer than {$minPlayers} players");
             }
 
             $playerIndex = null;
@@ -541,6 +541,33 @@ class GameService
                 $playerData['current_czar_id'] = self::getNextCzar($playerData);
             }
 
+            // Check if too few players remain (need at least 3 to play)
+            $minPlayers = 3;
+            $eligiblePlayers = array_filter(
+                $playerData['players'],
+                fn($p): bool => empty($p['is_rando'])
+            );
+            
+            if (count($eligiblePlayers) < $minPlayers && $playerData['state'] !== GameState::FINISHED->value) {
+                // End the game due to too few players
+                $playerData['state'] = GameState::FINISHED->value;
+                $playerData['finished_at'] = (new \DateTime())->format('Y-m-d H:i:s');
+                $playerData['end_reason'] = GameEndReason::TOO_FEW_PLAYERS->value;
+                
+                // Find player with highest score as winner
+                $highestScore = -1;
+                $winnerId = null;
+                foreach ($playerData['players'] as $player) {
+                    if ($player['score'] > $highestScore) {
+                        $highestScore = $player['score'];
+                        $winnerId = $player['id'];
+                    }
+                }
+                if ($winnerId !== null) {
+                    $playerData['winner_id'] = $winnerId;
+                }
+            }
+
             Game::update($gameId, [
                 'draw_pile' => ['white' => $whitePile, 'black' => $blackPile],
                 'player_data' => $playerData,
@@ -548,7 +575,7 @@ class GameService
 
             // Re-fetch the game and hydrate before returning
             $updatedGame = Game::find($gameId);
-            return self::hydrateGameState($updatedGame)['player_data'];
+            return self::hydrateCards($updatedGame['player_data']);
         });
     }
 
@@ -571,10 +598,13 @@ class GameService
         }
 
         if ($playerData['order_locked'] && ! empty($playerData['player_order'])) {
-            // Filter player_order to exclude Rando
+            // Get list of current player IDs (excluding Rando)
+            $currentPlayerIds = array_map(fn($p) => $p['id'], $eligiblePlayers);
+            
+            // Filter player_order to only include players still in game (and exclude Rando)
             $eligibleOrder = array_filter(
                 $playerData['player_order'],
-                fn($id): bool => $id !== ($playerData['rando_id'] ?? null)
+                fn($id): bool => in_array($id, $currentPlayerIds, true) && $id !== ($playerData['rando_id'] ?? null)
             );
             $eligibleOrder = array_values($eligibleOrder);
 
@@ -584,9 +614,12 @@ class GameService
                     $nextIndex = ($currentIndex + 1) % count($eligibleOrder);
                     return $eligibleOrder[$nextIndex];
                 }
+                // If current czar not found in order (shouldn't happen but handle it), return first
+                return $eligibleOrder[0];
             }
         }
 
+        // Fallback: return first eligible player
         $eligiblePlayers = array_values($eligiblePlayers);
         return $eligiblePlayers[0]['id'];
     }
@@ -668,23 +701,106 @@ class GameService
             $playerData['current_czar_name'] = $nextCzarPlayer['name'];
 
             if ( ! $playerData['order_locked']) {
+                // Add current czar to order if not already there
                 if ( ! in_array($currentCzarId, $playerData['player_order'], true)) {
                     $playerData['player_order'][] = $currentCzarId;
                 }
 
-                if ( ! in_array($nextCzarId, $playerData['player_order'], true)) {
+                // Check if the next czar completes the circle (loops back to first)
+                if (!empty($playerData['player_order']) && $nextCzarId === $playerData['player_order'][0]) {
+                    // Check if anyone was skipped
+                    $eligiblePlayerIds = array_map(
+                        fn($p) => $p['id'],
+                        array_filter($playerData['players'], fn($p): bool => empty($p['is_rando']))
+                    );
+                    
+                    $skippedPlayers = array_diff($eligiblePlayerIds, $playerData['player_order']);
+                    
+                    if (!empty($skippedPlayers)) {
+                        // Store skipped players info - order NOT locked yet, waiting for placement
+                        $skippedNames = [];
+                        foreach ($playerData['players'] as $player) {
+                            if (in_array($player['id'], $skippedPlayers, true)) {
+                                $skippedNames[] = $player['name'];
+                            }
+                        }
+                        $playerData['skipped_players'] = [
+                            'ids' => array_values($skippedPlayers),
+                            'names' => $skippedNames,
+                        ];
+                        // Order will be locked after skipped players are placed
+                    } else {
+                        // No skipped players - lock the order
+                        $playerData['order_locked'] = true;
+                    }
+                } elseif ( ! in_array($nextCzarId, $playerData['player_order'], true)) {
+                    // Add next czar to order
                     $playerData['player_order'][] = $nextCzarId;
                 }
+            }
 
-                // Count eligible players (exclude Rando)
-                $eligibleCount = count(array_filter(
-                    $playerData['players'],
-                    fn($p): bool => empty($p['is_rando'])
-                ));
+            Game::updatePlayerData($gameId, $playerData);
 
-                if (count($playerData['player_order']) === $eligibleCount) {
-                    $playerData['order_locked'] = true;
-                }
+            return $playerData;
+        });
+    }
+
+    /**
+     * Place a skipped player in the player order
+     *
+     * @param string $gameId Game code
+     * @param string $creatorId Creator's player ID (only creator can do this)
+     * @param string $skippedPlayerId Skipped player's ID
+     * @param string $beforePlayerId Player ID to insert before
+     * @return array Updated game state
+     */
+    public static function placeSkippedPlayer(
+        string $gameId,
+        string $creatorId,
+        string $skippedPlayerId,
+        string $beforePlayerId
+    ): array {
+        return LockService::withGameLock($gameId, function () use ($gameId, $creatorId, $skippedPlayerId, $beforePlayerId) {
+            $game = Game::find($gameId);
+
+            if ( ! $game) {
+                throw new GameNotFoundException($gameId);
+            }
+
+            $playerData = $game['player_data'];
+
+            if ($playerData['creator_id'] !== $creatorId) {
+                throw new UnauthorizedException('Only the game creator can place skipped players');
+            }
+
+            if (empty($playerData['skipped_players'])) {
+                throw new ValidationException('No skipped players to place');
+            }
+
+            if (!in_array($skippedPlayerId, $playerData['skipped_players']['ids'], true)) {
+                throw new ValidationException('Player is not in the skipped list');
+            }
+
+            // Find the insertion point
+            $insertIndex = array_search($beforePlayerId, $playerData['player_order'], true);
+            if ($insertIndex === false) {
+                throw new PlayerNotFoundException($beforePlayerId);
+            }
+
+            // Insert the skipped player before the specified player
+            array_splice($playerData['player_order'], $insertIndex, 0, [$skippedPlayerId]);
+
+            // Remove from skipped list
+            $skippedIndex = array_search($skippedPlayerId, $playerData['skipped_players']['ids'], true);
+            if ($skippedIndex !== false) {
+                array_splice($playerData['skipped_players']['ids'], $skippedIndex, 1);
+                array_splice($playerData['skipped_players']['names'], $skippedIndex, 1);
+            }
+
+            // If no more skipped players, lock the order and clean up
+            if (empty($playerData['skipped_players']['ids'])) {
+                $playerData['order_locked'] = true;
+                unset($playerData['skipped_players']);
             }
 
             Game::updatePlayerData($gameId, $playerData);
@@ -979,6 +1095,9 @@ class GameService
                     fn() => ['submitted' => true],
                     $playerData['submissions']
                 );
+            } else {
+                // All players have submitted - shuffle submissions for anonymity
+                shuffle($playerData['submissions']);
             }
         }
 
@@ -1231,6 +1350,33 @@ class GameService
                     $playerData['submissions'],
                     fn($sub): bool => $sub['player_id'] !== $playerId
                 ));
+                
+                // Check if too few players remain (need at least 3 to play)
+                $minPlayers = 3;
+                $eligiblePlayers = array_filter(
+                    $playerData['players'],
+                    fn($p): bool => empty($p['is_rando'])
+                );
+                
+                if (count($eligiblePlayers) < $minPlayers && $playerData['state'] !== GameState::FINISHED->value) {
+                    // End the game due to too few players
+                    $playerData['state'] = GameState::FINISHED->value;
+                    $playerData['finished_at'] = (new \DateTime())->format('Y-m-d H:i:s');
+                    $playerData['end_reason'] = GameEndReason::TOO_FEW_PLAYERS->value;
+                    
+                    // Find player with highest score as winner
+                    $highestScore = -1;
+                    $winnerId = null;
+                    foreach ($playerData['players'] as $p) {
+                        if ($p['score'] > $highestScore) {
+                            $highestScore = $p['score'];
+                            $winnerId = $p['id'];
+                        }
+                    }
+                    if ($winnerId !== null) {
+                        $playerData['winner_id'] = $winnerId;
+                    }
+                }
             }
 
             Game::updatePlayerData($gameId, $playerData);

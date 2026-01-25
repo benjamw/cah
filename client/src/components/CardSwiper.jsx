@@ -24,11 +24,11 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled }) 
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
 
-    if (isLeftSwipe && currentIndex < cards.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
+    if (isLeftSwipe) {
+      setCurrentIndex((prev) => (prev + 1) % cards.length);
     }
-    if (isRightSwipe && currentIndex > 0) {
-      setCurrentIndex((prev) => prev - 1);
+    if (isRightSwipe) {
+      setCurrentIndex((prev) => (prev - 1 + cards.length) % cards.length);
     }
   };
 

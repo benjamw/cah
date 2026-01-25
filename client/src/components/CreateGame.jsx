@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createGame, getTags } from '../utils/api';
 
-function CreateGame({ onGameCreated, onSwitchToJoin }) {
-  const [name, setName] = useState('');
+function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }) {
   const [maxPlayers, setMaxPlayers] = useState(20);
   const [maxScore, setMaxScore] = useState(8);
   const [handSize, setHandSize] = useState(10);
@@ -10,19 +9,27 @@ function CreateGame({ onGameCreated, onSwitchToJoin }) {
   const [allowLateJoin, setAllowLateJoin] = useState(true);
   const [tags, setTags] = useState([]);
   const [selectedTags, setSelectedTags] = useState([]);
+  const [tagsLoading, setTagsLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Filter out dangerous characters that could be used for XSS
+  // Filter out dangerous characters that could be used for attacks or cause display issues
   const handleNameChange = (e) => {
-    const value = e.target.value;
-    // Allow all visible ASCII except: < > & " \ / ; | ` { }
-    const filtered = value.replace(/[<>&"\\\/;|`{}]/g, '');
-    setName(filtered);
+    let value = e.target.value;
+    
+    // Remove control characters (0x00-0x1F, 0x7F-0x9F)
+    // Remove zero-width and invisible characters (U+200B-U+200F)
+    // Remove bidirectional text override characters (U+202A-U+202E)
+    // Remove line/paragraph separators (U+2028-U+2029)
+    // Remove byte order mark (U+FEFF)
+    value = value.replace(/[\x00-\x1F\x7F-\x9F\u200B-\u200F\u202A-\u202E\u2028\u2029\uFEFF]/g, '');
+    
+    setPlayerName(value);
   };
 
   useEffect(() => {
     // Load available tags
+    setTagsLoading(true);
     getTags()
       .then((response) => {
         if (response.success && response.data && response.data.tags) {
@@ -34,6 +41,9 @@ function CreateGame({ onGameCreated, onSwitchToJoin }) {
       })
       .catch((err) => {
         console.error('Failed to load tags:', err);
+      })
+      .finally(() => {
+        setTagsLoading(false);
       });
   }, []);
 
@@ -44,7 +54,7 @@ function CreateGame({ onGameCreated, onSwitchToJoin }) {
 
     try {
       const response = await createGame({
-        player_name: name,
+        player_name: playerName,
         tag_ids: selectedTags.length > 0 ? selectedTags : null,
         settings: {
           max_players: maxPlayers,
@@ -59,7 +69,7 @@ function CreateGame({ onGameCreated, onSwitchToJoin }) {
         onGameCreated({
           gameId: response.data.game_id,
           playerId: response.data.player_id,
-          playerName: name,
+          playerName: playerName,
           isCreator: true,
         });
       } else {
@@ -105,7 +115,7 @@ function CreateGame({ onGameCreated, onSwitchToJoin }) {
           <input
             type="text"
             id="name"
-            value={name}
+            value={playerName}
             onChange={handleNameChange}
             placeholder="Enter your name"
             required
@@ -180,9 +190,17 @@ function CreateGame({ onGameCreated, onSwitchToJoin }) {
           </label>
         </div>
 
-        {tags.length > 0 && (
+        {tagsLoading ? (
           <div className="form-group">
-            <label>Card Packs</label>
+            <label>Card Tags</label>
+            <div className="loading">Loading tags...</div>
+          </div>
+        ) : tags.length > 0 ? (
+          <div className="form-group">
+            <label>Card Tags</label>
+            <small className="form-hint">
+              Select the tags to filter which cards are used in the game
+            </small>
             <div className="tag-controls">
               <button
                 type="button"
@@ -227,11 +245,8 @@ function CreateGame({ onGameCreated, onSwitchToJoin }) {
                 </button>
               ))}
             </div>
-            <small className="form-hint">
-              Select which card packs to include in the game
-            </small>
           </div>
-        )}
+        ) : null}
 
         {error && <div className="error-message">{error}</div>}
 

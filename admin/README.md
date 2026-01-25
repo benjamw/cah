@@ -1,6 +1,6 @@
 # CAH Admin Panel
 
-A simple, clean admin interface for managing the Cards Against Humanity game.
+A simple, clean admin interface for managing the Cards API Hub game.
 
 ## Features
 

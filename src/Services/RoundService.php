@@ -389,31 +389,6 @@ class RoundService
     }
 
     /**
-     * Get all submissions with player names (for czar to review)
-     *
-     * @param array $playerData Game player data
-     * @return array Submissions with player names (shuffled for anonymity)
-     */
-    public static function getShuffledSubmissions(array $playerData): array
-    {
-        $submissions = [];
-
-        foreach ($playerData['submissions'] as $submission) {
-            $player = GameService::findPlayer($playerData, $submission['player_id']);
-
-            $submissions[] = [
-                'player_id' => $submission['player_id'],
-                'player_name' => $player ? $player['name'] : 'Unknown',
-                'cards' => $submission['cards'],
-            ];
-        }
-
-        shuffle($submissions);
-
-        return $submissions;
-    }
-
-    /**
      * Check if all non-czar players have submitted
      *
      * @param array $playerData Game player data

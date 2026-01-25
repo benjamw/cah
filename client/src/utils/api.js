@@ -129,6 +129,17 @@ export async function pickWinner(gameId, winningPlayerId) {
   });
 }
 
+// Set next czar
+export async function setNextCzar(gameId, nextCzarId) {
+  return apiRequest('/round/set-next-czar', {
+    method: 'POST',
+    body: JSON.stringify({
+      game_id: gameId,
+      next_czar_id: nextCzarId,
+    }),
+  });
+}
+
 // Get tags
 export async function getTags() {
   return apiRequest('/tags/list', {
@@ -165,6 +176,18 @@ export async function leaveGame(gameId) {
     method: 'POST',
     body: JSON.stringify({
       game_id: gameId,
+    }),
+  });
+}
+
+// Place skipped player (creator only)
+export async function placeSkippedPlayer(gameId, skippedPlayerId, beforePlayerId) {
+  return apiRequest('/game/place-skipped-player', {
+    method: 'POST',
+    body: JSON.stringify({
+      game_id: gameId,
+      skipped_player_id: skippedPlayerId,
+      before_player_id: beforePlayerId,
     }),
   });
 }

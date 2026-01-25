@@ -1,13 +1,15 @@
 import { useState } from 'react';
-import { pickWinner } from '../utils/api';
+import { pickWinner, setNextCzar } from '../utils/api';
 import CardSwiper from './CardSwiper';
 
-function CzarView({ gameState, gameData, blackCard, whiteCards }) {
+function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
   const [currentSubmissionIndex, setCurrentSubmissionIndex] = useState(0);
   const [selecting, setSelecting] = useState(false);
   const [error, setError] = useState('');
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
+  const [showCzarSelection, setShowCzarSelection] = useState(false);
+  const [settingCzar, setSettingCzar] = useState(false);
 
   const submissions = gameState.submissions || [];
   const minSwipeDistance = 50;
@@ -67,6 +69,10 @@ function CzarView({ gameState, gameData, blackCard, whiteCards }) {
       if (!response.success) {
         setError(response.message || 'Failed to advance round');
       } else {
+        // Check if we need to select next czar
+        if (response.data.needs_czar_selection) {
+          setShowCzarSelection(true);
+        }
         // Reset for next round
         setCurrentSubmissionIndex(0);
       }
@@ -74,6 +80,29 @@ function CzarView({ gameState, gameData, blackCard, whiteCards }) {
       setError(err.message || 'Failed to advance round');
     } finally {
       setSelecting(false);
+    }
+  };
+
+  const handleSelectNextCzar = async (nextCzarId) => {
+    setSettingCzar(true);
+    setError('');
+
+    try {
+      const response = await setNextCzar(gameData.gameId, nextCzarId);
+      if (!response.success) {
+        setError(response.message || 'Failed to set next czar');
+      } else {
+        setShowCzarSelection(false);
+        
+        // Check if order was locked (without skipped players - those are handled separately)
+        if (response.data.order_locked && !response.data.skipped_players) {
+          showToast('Player order locked! The czar will now rotate automatically.');
+        }
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to set next czar');
+    } finally {
+      setSettingCzar(false);
     }
   };
 
@@ -130,7 +159,7 @@ function CzarView({ gameState, gameData, blackCard, whiteCards }) {
     <div className="czar-view">
       <div className="czar-badge">
         <span className="crown-icon">👑</span>
-        <span>You are the Card Czar ({czarName})</span>
+        <span>You are the Card Czar</span>
       </div>
 
       {!allSubmitted && (
@@ -225,6 +254,16 @@ function CzarView({ gameState, gameData, blackCard, whiteCards }) {
           </div>
         </>
       )}
+
+      {showCzarSelection && (
+        <CzarSelectionModal
+          players={gameState.players || []}
+          currentCzarId={gameState.current_czar_id}
+          onSelectCzar={handleSelectNextCzar}
+          onCancel={() => setShowCzarSelection(false)}
+          selecting={settingCzar}
+        />
+      )}
     </div>
   );
 }
@@ -251,6 +290,38 @@ function formatCardText(text) {
   formatted = formatted.replace(new RegExp(blankPlaceholder, 'g'), '_____');
 
   return formatted;
+}
+
+function CzarSelectionModal({ players, currentCzarId, onSelectCzar, onCancel, selecting }) {
+  // Filter out current czar and Rando
+  const eligiblePlayers = players.filter(p => p.id !== currentCzarId && !p.is_rando);
+
+  return (
+    <div className="modal-overlay" onClick={onCancel}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <h2>Select Next Card Czar</h2>
+        <p>Choose the player to your <strong>left</strong> (clockwise around the table):</p>
+        
+        <div className="czar-selection-list">
+          {eligiblePlayers.map((player) => (
+            <button
+              key={player.id}
+              className="czar-selection-item btn btn-primary"
+              onClick={() => onSelectCzar(player.id)}
+              disabled={selecting}
+            >
+              {player.name}
+              {player.is_creator && <span className="badge">Host</span>}
+            </button>
+          ))}
+        </div>
+        
+        {eligiblePlayers.length === 0 && (
+          <p className="no-players">No eligible players available</p>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default CzarView;

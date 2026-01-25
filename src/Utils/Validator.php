@@ -219,9 +219,13 @@ class Validator
             return ['valid' => false, 'name' => $sanitized, 'error' => 'Player name must not exceed ' . ValidationRules::PLAYER_NAME_MAX_LENGTH . ' characters'];
         }
 
-        // Allow letters, numbers, spaces, and safe special characters
-        // Excludes: < > & " \ / ; | ` { } to prevent XSS
-        if ( ! preg_match('/^[\p{L}\p{N}\s\'\-\.\,\!\?\(\)\[\]\+\=\_\@\#\$\%\*\^\~]+$/u', $sanitized)) {
+        // Block dangerous characters:
+        // - Control characters (0x00-0x1F, 0x7F-0x9F)
+        // - Zero-width and invisible characters (U+200B-U+200F)
+        // - Bidirectional text override characters (U+202A-U+202E)
+        // - Line/Paragraph separators (U+2028-U+2029)
+        // - Byte Order Mark (U+FEFF)
+        if (preg_match('/[\x00-\x1F\x7F-\x9F\x{200B}-\x{200F}\x{202A}-\x{202E}\x{2028}\x{2029}\x{FEFF}]/u', $sanitized)) {
             return ['valid' => false, 'name' => $sanitized, 'error' => 'Player name contains invalid characters'];
         }
 

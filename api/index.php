@@ -145,11 +145,13 @@ $app->post('/api/game/join-late', [GameController::class, 'joinLate']);
 $app->post('/api/game/start', [GameController::class, 'start'])->add(new AuthMiddleware());
 $app->post('/api/game/skip-czar', [GameController::class, 'skipCzar'])->add(new AuthMiddleware());
 $app->post('/api/game/reshuffle', [GameController::class, 'reshuffleDiscardPile'])->add(new AuthMiddleware());
+$app->post('/api/game/place-skipped-player', [GameController::class, 'placeSkippedPlayer'])->add(new AuthMiddleware());
 $app->get('/api/game/state', [GameController::class, 'getState'])->add(new AuthMiddleware());
 
 // Round routes - Protected (auth required)
 $app->post('/api/round/submit', [RoundController::class, 'submit'])->add(new AuthMiddleware());
 $app->post('/api/round/pick-winner', [RoundController::class, 'pickWinner'])->add(new AuthMiddleware());
+$app->post('/api/round/set-next-czar', [RoundController::class, 'setNextCzar'])->add(new AuthMiddleware());
 
 // Player routes - Protected (auth required)
 $app->post('/api/player/remove', [PlayerController::class, 'remove'])->add(new AuthMiddleware());
