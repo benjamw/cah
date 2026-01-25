@@ -1,0 +1,11 @@
+parameters:
+    level: 6
+    paths:
+        - src
+        - api
+    excludePaths:
+        - src/Database/migrations
+    scanDirectories:
+        - vendor
+    ignoreErrors:
+        # Add specific ignores here if needed
