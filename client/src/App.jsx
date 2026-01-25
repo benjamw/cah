@@ -14,25 +14,21 @@ function App() {
   useEffect(() => {
     // Check if user has an active game in storage
     const stored = getStoredGameData();
-    console.log('Stored game data on app load:', stored);
     
     if (stored && stored.gameId && stored.playerId) {
       // Verify the game is still valid
       getGameState()
         .then((state) => {
-          console.log('Game state check on load:', state);
           if (state.success) {
             setGameData(stored);
             setView('game');
           } else {
             // Session lost - clear data and show join screen
-            console.log('Session lost, clearing game data');
             clearGameData();
           }
         })
-        .catch((err) => {
+        .catch(() => {
           // Session lost or network error - clear data and show join screen
-          console.log('Failed to verify game state:', err);
           clearGameData();
         })
         .finally(() => {
