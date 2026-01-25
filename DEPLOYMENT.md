@@ -1,4 +1,4 @@
-# Deployment Guide - Cards Against Humanity Game
+# Deployment Guide - Cards API Hub Game
 
 ## Requirements
 

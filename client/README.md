@@ -1,6 +1,6 @@
-# Cards Against Humanity - Client
+# Cards API Hub - Client
 
-This is the mobile-first React front-end for the Cards Against Humanity game.
+This is the mobile-first React front-end for the Cards API Hub game.
 
 ## Features
 
