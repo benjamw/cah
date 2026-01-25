@@ -41,7 +41,7 @@ class AdminCardController
                 }
             }
 
-            $active = isset($queryParams['active']) ? (int) $queryParams['active'] : 1;
+            $active = isset($queryParams['active']) ? (bool) ((int) $queryParams['active']) : true;
             $limit = isset($queryParams['limit']) ? (int) $queryParams['limit'] : 100;
             $offset = isset($queryParams['offset']) ? (int) $queryParams['offset'] : 0;
 

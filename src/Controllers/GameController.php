@@ -10,6 +10,7 @@ use CAH\Services\GameService;
 use CAH\Models\Game;
 use CAH\Exceptions\GameException;
 use CAH\Exceptions\GameNotFoundException;
+use CAH\Exceptions\PlayerNotFoundException;
 use CAH\Exceptions\ValidationException;
 use CAH\Exceptions\UnauthorizedException;
 use CAH\Utils\Response as JsonResponse;

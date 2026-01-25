@@ -164,7 +164,7 @@ class GameService
             }
         }
 
-        if ($gameId === null) {
+        if ($gameId === '') {
             throw new GameCodeGenerationException('Unable to generate unique game code after ' . $maxAttempts . ' attempts');
         }
 
@@ -313,12 +313,7 @@ class GameService
             $handSize = $playerData['settings']['hand_size'];
 
             // Calculate total cards needed
-            // EXPLAIN 
             $nonRandoPlayerCount = count($playerData['players']);
-            if ($playerData['settings']['rando_enabled']) {
-                $nonRandoPlayerCount++; // Add Rando to count, but Rando doesn't get cards
-                $nonRandoPlayerCount--; // Actually, Rando never has a hand, so don't count
-            }
             
             // Check if enough white cards to deal initial hands
             $cardsNeededForHands = $nonRandoPlayerCount * $handSize;

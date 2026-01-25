@@ -244,10 +244,8 @@ class Card
         $conditions[] = "c.active = ?";
         $params[] = $active;
 
-        // Add WHERE clause
-        if ( ! empty($conditions)) {
-            $sql .= " WHERE " . implode(' AND ', $conditions);
-        }
+        // Add WHERE clause (conditions array will always have at least one item)
+        $sql .= " WHERE " . implode(' AND ', $conditions);
 
         // Add ordering and pagination
         $sql .= " ORDER BY c.card_id ASC";
@@ -283,9 +281,8 @@ class Card
         $countConditions[] = "c.active = ?";
         $countParams[] = $active;
 
-        if ( ! empty($countConditions)) {
-            $countSql .= " WHERE " . implode(' AND ', $countConditions);
-        }
+        // Add WHERE clause (countConditions array will always have at least one item)
+        $countSql .= " WHERE " . implode(' AND ', $countConditions);
 
         $countResult = Database::fetchOne($countSql, $countParams);
         $total = (int) ($countResult['total'] ?? 0);
