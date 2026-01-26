@@ -50,6 +50,12 @@ class RoundController
                 $cardValidation['card_ids']
             );
 
+            // Hydrate card IDs with full card data
+            $gameState = GameService::hydrateCards($gameState);
+            
+            // Filter out other players' hands
+            $gameState = GameService::filterHands($gameState, $playerId);
+
             return JsonResponse::success($response, ['game_state' => $gameState]);
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
@@ -93,6 +99,12 @@ class RoundController
             if ($winner) {
                 $gameState = RoundService::endGame($gameId, $winner['id']);
 
+                // Hydrate card IDs with full card data
+                $gameState = GameService::hydrateCards($gameState);
+                
+                // Filter out other players' hands
+                $gameState = GameService::filterHands($gameState, $playerId);
+
                 return JsonResponse::success($response, [
                     'game_state' => $gameState,
                     'game_over' => true,
@@ -109,6 +121,12 @@ class RoundController
 
                 $gameState = RoundService::advanceToNextRound($gameId);
             }
+
+            // Hydrate card IDs with full card data
+            $gameState = GameService::hydrateCards($gameState);
+            
+            // Filter out other players' hands
+            $gameState = GameService::filterHands($gameState, $playerId);
 
             return JsonResponse::success($response, [
                 'game_state' => $gameState,
@@ -154,6 +172,12 @@ class RoundController
 
             // Advance to next round
             $gameState = RoundService::advanceToNextRound($gameId);
+
+            // Hydrate card IDs with full card data
+            $gameState = GameService::hydrateCards($gameState);
+            
+            // Filter out other players' hands
+            $gameState = GameService::filterHands($gameState, $playerId);
 
             return JsonResponse::success($response, [
                 'game_state' => $gameState,

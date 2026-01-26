@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCircleXmark, faCircleCheck } from '@fortawesome/free-solid-svg-icons';
 import { submitCards } from '../utils/api';
 
 function CardSelector({
@@ -87,11 +89,27 @@ function CardSelector({
   };
 
   if (hasSubmitted) {
+    // Check if all submissions are in (exclude czar and paused players)
+    const activePlayers = gameState.players?.filter(p => 
+      p.id !== gameState.current_czar_id && !p.is_paused
+    ) || [];
+    const submissionCount = gameState.submissions?.length || 0;
+    const expectedSubmissions = activePlayers.length;
+    const allSubmitted = submissionCount >= expectedSubmissions;
+    
+    // Get czar name for display
+    const czarName = gameState.current_czar_name || 'the czar';
+    
     return (
       <div className="card-selector">
         <div className="submission-status">
-          <div className="status-icon">✓</div>
-          <p>Cards submitted! Waiting for other players...</p>
+          <div className="status-icon"><FontAwesomeIcon icon={faCircleCheck} /></div>
+          <p>
+            {allSubmitted 
+              ? `All cards submitted! Waiting for ${czarName} to pick a winner...`
+              : "Cards submitted! Waiting for other players..."
+            }
+          </p>
         </div>
         
         {submittedCardIds.length > 0 && (
@@ -153,7 +171,7 @@ function CardSelector({
                       onClick={() => handleRemoveCard(cardId)}
                       aria-label="Remove card"
                     >
-                      ×
+                      <FontAwesomeIcon icon={faCircleXmark} />
                     </button>
                   </div>
                 );

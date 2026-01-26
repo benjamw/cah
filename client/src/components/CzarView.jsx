@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { pickWinner, setNextCzar } from '../utils/api';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faTrophy } from '@fortawesome/free-solid-svg-icons';
+import { pickWinner, setNextCzar, forceEarlyReview } from '../utils/api';
 import CardSwiper from './CardSwiper';
 
 function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
@@ -18,10 +20,56 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
   // Kept for potential future use in czar-specific UI features
   // const czarName = gameState.current_czar_name || 'Unknown';
   
-  // Calculate how many players should submit (all players except czar)
-  const totalPlayers = gameState.players?.length || 0;
-  const expectedSubmissions = totalPlayers - 1; // Everyone except the czar
+  // Calculate how many players should submit (exclude czar and paused players)
+  const activePlayers = gameState.players?.filter(p => 
+    p.id !== gameState.current_czar_id && !p.is_paused
+  ) || [];
+  const expectedSubmissions = activePlayers.length;
   const allSubmitted = submissions.length >= expectedSubmissions && submissions.length > 0;
+  const forcedReview = gameState.forced_early_review === true;
+  const canForceReview = submissions.length > 0 && !allSubmitted && !forcedReview;
+  const canSkipRound = submissions.length === 0 && expectedSubmissions > 0;
+
+  const handleForceReview = async () => {
+    if (!window.confirm(`Only ${submissions.length} out of ${expectedSubmissions} players have submitted. Review anyway?`)) {
+      return;
+    }
+    
+    try {
+      const response = await forceEarlyReview(gameData.gameId);
+      if (!response.success) {
+        if (showToast) {
+          showToast(response.message || 'Failed to force early review');
+        }
+      }
+      // Don't set local state - wait for next poll to get updated game state
+    } catch (err) {
+      console.error('Error forcing early review:', err);
+      if (showToast) {
+        showToast('Error forcing early review');
+      }
+    }
+  };
+
+  const handleSkipRound = async () => {
+    if (!window.confirm('No submissions received. Skip to next round without a winner?')) {
+      return;
+    }
+    
+    setSettingCzar(true);
+    setError('');
+    
+    try {
+      const response = await setNextCzar(gameData.gameId);
+      if (!response.success) {
+        setError(response.message || 'Failed to advance round');
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to advance round');
+    } finally {
+      setSettingCzar(false);
+    }
+  };
 
   const onTouchStart = (e) => {
     setTouchEnd(null);
@@ -48,7 +96,8 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
   };
 
   const handlePickWinner = async () => {
-    if ( ! allSubmitted) return;
+    // Allow picking winner if all submitted OR forced early review
+    if (!allSubmitted && !forcedReview) return;
 
     const currentSubmission = submissions[currentSubmissionIndex];
     
@@ -171,13 +220,30 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
         </div>
       )}
 
-      { ! allSubmitted ? (
+      { ! allSubmitted && !forcedReview ? (
         <>
           <div className="waiting-for-submissions">
             <p>Waiting for players to submit their cards...</p>
             <div className="submission-progress">
               {submissions.length} / {expectedSubmissions} submitted
             </div>
+            {canForceReview && (
+              <button 
+                className="btn-skip-czar btn-review-anyway"
+                onClick={handleForceReview}
+              >
+                Review Anyway
+              </button>
+            )}
+            {canSkipRound && (
+              <button 
+                className="btn-skip-czar btn-review-anyway"
+                onClick={handleSkipRound}
+                disabled={settingCzar}
+              >
+                {settingCzar ? 'Skipping...' : 'Skip Round'}
+              </button>
+            )}
           </div>
 
           <div className="card-section">
@@ -200,41 +266,49 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
           >
             <h3>Review Submissions</h3>
 
-            <div className="card card-black card-submission">
-              {renderCardWithBlanks(
-                blackCard.value,
-                submissions[currentSubmissionIndex].cards.map((c) => c.value)
-              )}
-            </div>
+            {submissions.length > 0 && submissions[currentSubmissionIndex] ? (
+              <>
+                <div className="card card-black card-submission">
+                  {renderCardWithBlanks(
+                    blackCard.value,
+                    submissions[currentSubmissionIndex].cards.map((c) => c.value)
+                  )}
+                </div>
 
-            {submissions.length > 1 && (
-              <div className="card-dots">
-                {submissions.map((_, index) => (
-                  <button
-                    key={index}
-                    className={`dot ${
-                      index === currentSubmissionIndex ? 'active' : ''
-                    }`}
-                    onClick={() => setCurrentSubmissionIndex(index)}
-                    aria-label={`Go to submission ${index + 1}`}
-                  />
-                ))}
+                {submissions.length > 1 && (
+                  <div className="card-dots">
+                    {submissions.map((_, index) => (
+                      <button
+                        key={index}
+                        className={`dot ${
+                          index === currentSubmissionIndex ? 'active' : ''
+                        }`}
+                        onClick={() => setCurrentSubmissionIndex(index)}
+                        aria-label={`Go to submission ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                <div className="submission-counter">
+                  {currentSubmissionIndex + 1} / {submissions.length}
+                </div>
+
+                {error && <div className="error-message">{error}</div>}
+
+                <button
+                  className="btn btn-primary pick-winner-btn"
+                  onClick={handlePickWinner}
+                  disabled={selecting}
+                >
+                  <FontAwesomeIcon icon={faTrophy} /> {selecting ? 'Selecting...' : 'This is the Winner!'}
+                </button>
+              </>
+            ) : (
+              <div className="card card-empty">
+                No submissions available to review
               </div>
             )}
-
-            <div className="submission-counter">
-              {currentSubmissionIndex + 1} / {submissions.length}
-            </div>
-
-            {error && <div className="error-message">{error}</div>}
-
-            <button
-              className="btn btn-primary pick-winner-btn"
-              onClick={handlePickWinner}
-              disabled={selecting}
-            >
-              Pick This as Winner
-            </button>
           </div>
 
           <div className="card-section">

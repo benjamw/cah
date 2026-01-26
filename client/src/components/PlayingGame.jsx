@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPause, faPlay, faRobot, faCircleXmark, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
 import CardSwiper from './CardSwiper';
 import CardSelector from './CardSelector';
 import CzarView from './CzarView';
-import { removePlayer, transferHost, leaveGame, placeSkippedPlayer } from '../utils/api';
+import { removePlayer, transferHost, leaveGame, placeSkippedPlayer, voteSkipCzar, togglePlayerPause, refreshHand } from '../utils/api';
 
 function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
   const [selectedCards, setSelectedCards] = useState([]);
@@ -12,6 +14,9 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
   const [transferring, setTransferring] = useState(false);
   const [showSkippedPlayerModal, setShowSkippedPlayerModal] = useState(false);
   const [placingPlayer, setPlacingPlayer] = useState(false);
+  const [votingToSkip, setVotingToSkip] = useState(false);
+  const [pausing, setPausing] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   
   const currentPlayer = gameState.players?.find(
     (p) => p.id === gameData.playerId
@@ -120,6 +125,135 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
     }
   };
 
+  const handlePlaceSkippedPlayer = async (skippedPlayerId, beforePlayerId) => {
+    setPlacingPlayer(true);
+    try {
+      const response = await placeSkippedPlayer(gameData.gameId, skippedPlayerId, beforePlayerId);
+      if (response.success) {
+        // Close modal if no more skipped players
+        if ( ! response.data.game_state?.skipped_players || response.data.game_state.skipped_players.ids.length === 0) {
+          setShowSkippedPlayerModal(false);
+          if (showToast) {
+            showToast('All players have been placed in the rotation!');
+          }
+        }
+      } else {
+        console.error('Failed to place skipped player:', response);
+        if (showToast) {
+          showToast('Failed to place player. Please try again.');
+        }
+      }
+    } catch (err) {
+      console.error('Error placing skipped player:', err);
+      if (showToast) {
+        showToast('Error placing player. Please try again.');
+      }
+    } finally {
+      setPlacingPlayer(false);
+    }
+  };
+
+  const handleVoteSkipCzar = async () => {
+    if ( ! window.confirm('Vote to skip the current czar?\n\nTwo players must vote to skip. The round will reset and move to the next czar.')) {
+      return;
+    }
+    
+    setVotingToSkip(true);
+    try {
+      const response = await voteSkipCzar(gameData.gameId);
+      if ( ! response.success) {
+        console.error('Failed to vote skip czar:', response);
+        if (showToast) {
+          showToast(response.message || 'Failed to vote');
+        }
+      }
+      // State will update via polling
+    } catch (err) {
+      console.error('Error voting to skip czar:', err);
+      if (showToast) {
+        showToast('Error voting to skip czar');
+      }
+    } finally {
+      setVotingToSkip(false);
+    }
+  };
+
+  const handleTogglePause = async (targetPlayerId) => {
+    // Only show confirmation if it's the host pausing another player (not themselves)
+    if (targetPlayerId !== gameData.playerId) {
+      const player = gameState.players?.find(p => p.id === targetPlayerId);
+      const isPaused = player?.is_paused;
+      const action = isPaused ? 'unpause' : 'pause';
+      
+      if ( ! window.confirm(`${action === 'pause' ? 'Pause' : 'Unpause'} ${player?.name}?`)) {
+        return;
+      }
+    }
+    
+    setPausing(targetPlayerId);
+    try {
+      const response = await togglePlayerPause(gameData.gameId, targetPlayerId);
+      if ( ! response.success) {
+        console.error('Failed to toggle pause:', response);
+        if (showToast) {
+          showToast(response.message || 'Failed to pause/unpause player');
+        }
+      }
+      // State will update via polling
+    } catch (err) {
+      console.error('Error toggling pause:', err);
+      if (showToast) {
+        showToast('Error pausing/unpausing player');
+      }
+    } finally {
+      setPausing(null);
+    }
+  };
+
+  const handlePauseMyself = async () => {
+    const isPaused = currentPlayer?.is_paused;
+    
+    if ( ! isPaused) {
+      if ( ! window.confirm('Pause your game?\n\nYou will be skipped as czar and your submissions will not be required. You can return and unpause at any time.')) {
+        return;
+      }
+    } else {
+      if ( ! window.confirm('Unpause and rejoin the game?')) {
+        return;
+      }
+    }
+    
+    await handleTogglePause(gameData.playerId);
+  };
+
+  const handleRefreshHand = async () => {
+    if ( ! window.confirm('You wish to refresh your hand? This will give you all new cards.')) {
+      return;
+    }
+    
+    setRefreshing(true);
+    try {
+      const response = await refreshHand(gameData.gameId);
+      if ( ! response.success) {
+        console.error('Failed to refresh hand:', response);
+        if (showToast) {
+          showToast(response.message || 'Failed to refresh hand');
+        }
+      } else {
+        // Clear selected cards
+        setSelectedCards([]);
+      }
+      // State will update via polling
+    } catch (err) {
+      console.error('Error refreshing hand:', err);
+      if (showToast) {
+        showToast('Error refreshing hand');
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const handleLeaveClick = async () => {
     if (currentPlayer?.is_creator) {
       // Creator with other players - confirm first, then show transfer modal
@@ -157,64 +291,74 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
     }
   };
 
-  const handlePlaceSkippedPlayer = async (skippedPlayerId, beforePlayerId) => {
-    setPlacingPlayer(true);
-    try {
-      const response = await placeSkippedPlayer(gameData.gameId, skippedPlayerId, beforePlayerId);
-      if ( ! response.success) {
-        console.error('Failed to place skipped player:', response);
-        showToast('Failed to place player in order');
-      } else {
-        // Check if all players are now placed
-        const updatedState = response.data.game_state;
-        if (updatedState.order_locked) {
-          showToast('Player order is now complete and locked!');
-          setShowSkippedPlayerModal(false);
-        }
-        // State will update via polling
-      }
-    } catch (err) {
-      console.error('Error placing skipped player:', err);
-      showToast('Error placing player in order');
-    } finally {
-      setPlacingPlayer(false);
-    }
-  };
-
   // Show czar view if player is czar
   if (isCzar) {
     return (
       <>
-        <CzarView
-          gameState={gameState}
-          gameData={gameData}
-          blackCard={blackCard}
-          whiteCards={allWhiteCards}
-          showToast={showToast}
+        <div className={`game-content ${currentPlayer?.is_paused ? 'paused-overlay' : ''}`}>
+          <CzarView
+            gameState={gameState}
+            gameData={gameData}
+            blackCard={blackCard}
+            whiteCards={allWhiteCards}
+            showToast={showToast}
+          />
+        <Scoreboard 
+          players={gameState.players || []} 
+          currentPlayerId={gameData.playerId}
         />
         {currentPlayer?.is_creator && (
           <PlayerManagement
             players={gameState.players || []}
             gameData={gameData}
             onRemovePlayer={handleRemovePlayer}
+            onTogglePause={handleTogglePause}
             removing={removing}
+            pausing={pausing}
           />
         )}
-        <div className="leave-game-section">
-          <button 
-            className="btn btn-danger"
-            onClick={handleLeaveClick}
-          >
-            Leave Game
-          </button>
         </div>
-        {showHostTransfer && (
+        
+        {currentPlayer?.is_paused && (
+          <div className="paused-message">
+            <h2><FontAwesomeIcon icon={faPause} /> Game Paused</h2>
+            <p>You are currently paused.</p>
+            <p>Unpause to continue playing. Scroll down for Unpause button</p>
+          </div>
+        )}
+        
+      <div className="leave-game-section">
+        <button
+          className={`btn ${currentPlayer?.is_paused ? 'btn-success' : 'btn-warning'}`}
+          onClick={handlePauseMyself}
+          disabled={pausing === gameData.playerId}
+        >
+          {currentPlayer?.is_paused ? <><FontAwesomeIcon icon={faPlay} /> Resume Game</> : <><FontAwesomeIcon icon={faPause} /> Pause Game</>}
+        </button>
+        <button 
+          className="btn btn-danger"
+          onClick={handleLeaveClick}
+        >
+          <FontAwesomeIcon icon={faRightFromBracket} /> Leave Game
+        </button>
+      </div>
+      {showHostTransfer && (
           <HostTransferModal
             players={gameState.players || []}
             currentPlayerId={gameData.playerId}
             onTransfer={handleTransferAndLeave}
             onCancel={() => setShowHostTransfer(false)}
             transferring={transferring}
+          />
+        )}
+        {showSkippedPlayerModal && hasSkippedPlayers && (
+          <SkippedPlayerModal
+            skippedPlayers={gameState.skipped_players}
+            players={gameState.players || []}
+            playerOrder={gameState.player_order || []}
+            onPlacePlayer={handlePlaceSkippedPlayer}
+            onCancel={() => setShowSkippedPlayerModal(false)}
+            placing={placingPlayer}
           />
         )}
       </>
@@ -224,63 +368,98 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
   // Show regular player view
   return (
     <div className="playing-game">
-      {cardsAdded > 0 && (
-        <div className="notification-banner">
-          {cardsAdded} card{cardsAdded > 1 ? 's have' : ' has'} been added to your hand. Choose {blanksNeeded}.
-        </div>
-      )}
+      <div className={`game-content ${currentPlayer?.is_paused ? 'paused-overlay' : ''}`}>
+        {cardsAdded > 0 && (
+          <div className="notification-banner">
+            {cardsAdded} card{cardsAdded > 1 ? 's have' : ' has'} been added to your hand. Choose {blanksNeeded}.
+          </div>
+        )}
 
-      <CardSelector
-        selectedCards={selectedCards}
-        whiteCards={allWhiteCards}
-        onCardSelect={handleCardSelect}
-        onCardReorder={handleCardReorder}
-        blanksNeeded={blanksNeeded}
-        hasSubmitted={hasSubmitted}
-        gameState={gameState}
-        gameData={gameData}
-        onCardsSubmitted={() => setSelectedCards([])}
-      />
-
-      <div className="card-section">
-        <CardSwiper
-          cards={whiteCards}
+        <CardSelector
           selectedCards={selectedCards}
+          whiteCards={allWhiteCards}
           onCardSelect={handleCardSelect}
-          cardType="white"
-          disabled={hasSubmitted}
+          onCardReorder={handleCardReorder}
+          blanksNeeded={blanksNeeded}
+          hasSubmitted={hasSubmitted}
+          gameState={gameState}
+          gameData={gameData}
+          onCardsSubmitted={() => setSelectedCards([])}
         />
-      </div>
 
-      <div className="card-section black-card-section">
-        <h3>Card Czar: {czarName}</h3>
-        {blackCard ? (
-          <div className="card card-black">
-            <div className="card-content" dangerouslySetInnerHTML={{ __html: formatCardText(blackCard.value) }} />
-            {blanksNeeded > 1 && (
-              <div className="card-pick">Pick {blanksNeeded}</div>
+        <div className="card-section">
+          <CardSwiper
+            cards={whiteCards}
+            selectedCards={selectedCards}
+            onCardSelect={handleCardSelect}
+            cardType="white"
+            disabled={hasSubmitted}
+            onRefreshHand={handleRefreshHand}
+            refreshing={refreshing}
+          />
+        </div>
+
+        <div className="card-section black-card-section">
+          <div className="black-card-header">
+            <h3>Card Czar: {czarName}</h3>
+            { ! isCzar && (
+              <SkipCzarButton 
+                voteCount={gameState.skip_czar_votes?.length || 0}
+                hasVoted={gameState.skip_czar_votes?.includes(gameData.playerId) || false}
+                onVote={handleVoteSkipCzar}
+                voting={votingToSkip}
+              />
             )}
           </div>
-        ) : (
-          <div className="card card-empty">No black card available</div>
+          {blackCard ? (
+            <div className="card card-black">
+              <div className="card-content" dangerouslySetInnerHTML={{ __html: formatCardText(blackCard.value) }} />
+              {blanksNeeded > 1 && (
+                <div className="card-pick">Pick {blanksNeeded}</div>
+              )}
+            </div>
+          ) : (
+            <div className="card card-empty">No black card available</div>
+          )}
+        </div>
+
+        <Scoreboard 
+          players={gameState.players || []} 
+          currentPlayerId={gameData.playerId}
+        />
+
+        {currentPlayer?.is_creator && (
+          <PlayerManagement
+            players={gameState.players || []}
+            gameData={gameData}
+            onRemovePlayer={handleRemovePlayer}
+            onTogglePause={handleTogglePause}
+            removing={removing}
+            pausing={pausing}
+          />
         )}
       </div>
-
-      {currentPlayer?.is_creator && (
-        <PlayerManagement
-          players={gameState.players || []}
-          gameData={gameData}
-          onRemovePlayer={handleRemovePlayer}
-          removing={removing}
-        />
+      
+      {currentPlayer?.is_paused && (
+        <div className="paused-message">
+          <h2>⏸️ Game Paused</h2>
+          <p>You are currently paused. Unpause to continue playing.</p>
+        </div>
       )}
 
       <div className="leave-game-section">
         <button 
+          className={`btn ${currentPlayer?.is_paused ? 'btn-success' : 'btn-warning'}`}
+          onClick={handlePauseMyself}
+          disabled={pausing === gameData.playerId}
+        >
+          {currentPlayer?.is_paused ? <><FontAwesomeIcon icon={faPlay} /> Resume Game</> : <><FontAwesomeIcon icon={faPause} /> Pause Game</>}
+        </button>
+        <button 
           className="btn btn-danger"
           onClick={handleLeaveClick}
         >
-          Leave Game
+          <FontAwesomeIcon icon={faRightFromBracket} /> Leave Game
         </button>
       </div>
 
@@ -304,6 +483,53 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
           placing={placingPlayer}
         />
       )}
+    </div>
+  );
+}
+
+function Scoreboard({ players, currentPlayerId }) {
+  // Sort players by score (descending), then alphabetically by name
+  const sortedPlayers = [...players].sort((a, b) => {
+    // First sort by score (highest first)
+    if (b.score !== a.score) {
+      return b.score - a.score;
+    }
+    // If scores are equal, sort alphabetically by name
+    return a.name.localeCompare(b.name);
+  });
+
+  return (
+    <div className="scoreboard">
+      <h3 className="scoreboard-title">Scoreboard</h3>
+      <div className="scoreboard-list">
+        {sortedPlayers.map((player, index) => {
+          const isCurrentPlayer = player.id === currentPlayerId;
+          const isRando = player.is_rando;
+          
+          // Calculate rank based on score (players with same score get same rank)
+          let rank = 1;
+          for (let i = 0; i < index; i++) {
+            if (sortedPlayers[i].score > player.score) {
+              rank++;
+            }
+          }
+          
+          return (
+            <div 
+              key={player.id} 
+              className={`scoreboard-item ${isCurrentPlayer ? 'current-player' : ''}`}
+            >
+              <span className="scoreboard-rank">#{rank}</span>
+              <span className="scoreboard-name">
+                {isRando && <><FontAwesomeIcon icon={faRobot} /> </>}
+                {player.name}
+                {isCurrentPlayer && ' (You)'}
+              </span>
+              <span className="scoreboard-score">{player.score} {player.score === 1 ? 'pt' : 'pts'}</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -342,8 +568,11 @@ function HostTransferModal({ players, currentPlayerId, onTransfer, onCancel, tra
   );
 }
 
-function PlayerManagement({ players, gameData, onRemovePlayer, removing }) {
+function PlayerManagement({ players, gameData, onRemovePlayer, onTogglePause, removing, pausing }) {
   const [expanded, setExpanded] = useState(false);
+  
+  // Filter out Rando for count
+  const nonRandoPlayers = players.filter(p => ! p.is_rando);
 
   return (
     <div className="player-management">
@@ -351,24 +580,42 @@ function PlayerManagement({ players, gameData, onRemovePlayer, removing }) {
         className="btn btn-secondary toggle-players-btn"
         onClick={() => setExpanded( ! expanded)}
       >
-        {expanded ? 'Hide' : 'Manage'} Players ({players.length})
+        {expanded ? 'Hide' : 'Manage'} Players ({nonRandoPlayers.length})
       </button>
 
       {expanded && (
         <div className="players-list-inline">
-          {players.map((player) => (
+          {nonRandoPlayers.map((player) => (
             <div key={player.id} className="player-inline-item">
-              <span className="player-inline-name">{player.name}</span>
-              {player.id !== gameData.playerId && (
-                <button
-                  className="btn-remove-inline"
-                  onClick={() => onRemovePlayer(player.id)}
-                  disabled={removing === player.id}
-                  aria-label="Remove player"
-                >
-                  {removing === player.id ? '...' : '×'}
-                </button>
-              )}
+              <span className={`player-inline-name ${player.is_paused ? 'paused' : ''}`}>
+                {player.is_paused && <><FontAwesomeIcon icon={faPause} /> </>}
+                {player.name}
+                {player.id === gameData.playerId && ' (You)'}
+              </span>
+              <div className="player-actions">
+                {/* Only show pause button for other players, not yourself */}
+                {player.id !== gameData.playerId && (
+                  <button
+                    className={`btn-pause-inline ${player.is_paused ? 'unpausing' : ''}`}
+                    onClick={() => onTogglePause(player.id)}
+                    disabled={pausing === player.id}
+                    aria-label={player.is_paused ? 'Unpause player' : 'Pause player'}
+                    title={player.is_paused ? 'Unpause player' : 'Pause player'}
+                  >
+                    {pausing === player.id ? '...' : <FontAwesomeIcon icon={player.is_paused ? faPlay : faPause} />}
+                  </button>
+                )}
+                {player.id !== gameData.playerId && (
+                  <button
+                    className="btn-remove-inline"
+                    onClick={() => onRemovePlayer(player.id)}
+                    disabled={removing === player.id}
+                    aria-label="Remove player"
+                  >
+                    {removing === player.id ? '...' : <FontAwesomeIcon icon={faCircleXmark} />}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -474,6 +721,21 @@ function SkippedPlayerModal({ skippedPlayers, players, playerOrder, onPlacePlaye
         </div>
       </div>
     </div>
+  );
+}
+
+function SkipCzarButton({ voteCount, hasVoted, onVote, voting }) {
+  const votesNeeded = 2;
+  
+  return (
+    <button
+      className={`btn-skip-czar ${hasVoted ? 'voted' : ''}`}
+      onClick={onVote}
+      disabled={voting}
+      title={`${voteCount}/${votesNeeded} votes to skip`}
+    >
+      {hasVoted ? '✓ ' : ''}Skip Current Czar {voteCount > 0 ? `(${voteCount}/${votesNeeded})` : ''}
+    </button>
   );
 }
 

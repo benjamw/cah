@@ -160,6 +160,8 @@ class RoundService
             foreach ($playerData['players'] as &$player) {
                 if ($player['id'] === $winningPlayerId) {
                     $player['score']++;
+                    // Add toast notification for round winner
+                    GameService::addToast($playerData, "{$player['name']} won the round!", 'trophy');
                     break;
                 }
             }
@@ -311,6 +313,9 @@ class RoundService
             $playerData['current_black_card'] = $newBlackCard;
             $playerData['current_round']++;
             $playerData['submissions'] = [];
+            
+            // Clear forced early review flag for new round
+            unset($playerData['forced_early_review']);
 
             // Auto-submit for Rando if enabled
             if ($playerData['settings']['rando_enabled'] && ! empty($playerData['rando_id'])) {

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCircleXmark } from '@fortawesome/free-solid-svg-icons';
 import { removePlayer, transferHost, leaveGame } from '../utils/api';
 
 function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
@@ -116,7 +118,7 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
                     disabled={removing === player.id}
                     aria-label="Remove player"
                   >
-                    {removing === player.id ? '...' : '×'}
+                    {removing === player.id ? '...' : <FontAwesomeIcon icon={faCircleXmark} />}
                   </button>
                 )}
               </li>

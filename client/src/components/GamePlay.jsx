@@ -1,8 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faXmark, faTrophy, faPause, faPlay, faForward, faArrowsRotate } from '@fortawesome/free-solid-svg-icons';
 import { getGameState, startGame } from '../utils/api';
+import { getSeenToasts, saveSeenToasts } from '../utils/storage';
 import WaitingRoom from './WaitingRoom';
 import PlayingGame from './PlayingGame';
 import GameEnd from './GameEnd';
+
+// Map icon names from backend to FontAwesome icons
+const iconMap = {
+  trophy: faTrophy,
+  pause: faPause,
+  play: faPlay,
+  skip: faForward,
+  refresh: faArrowsRotate,
+};
 
 function GamePlay({ gameData, onLeaveGame }) {
   const [gameState, setGameState] = useState(null);
@@ -10,20 +22,24 @@ function GamePlay({ gameData, onLeaveGame }) {
   const [error, setError] = useState('');
   const [isCreator, setIsCreator] = useState(gameData.isCreator); // Track if current player is creator
   const [toastMessage, setToastMessage] = useState('');
+  const [toastIcon, setToastIcon] = useState(null);
   const lastModifiedRef = useRef(null);
   const pollIntervalRef = useRef(null);
   const removedRef = useRef(false); // Track if player has been removed
   const hostTransferAlertedRef = useRef(false); // Track if host transfer alert was shown
   const toastTimeoutRef = useRef(null);
+  const seenToastsRef = useRef(getSeenToasts(gameData.gameId)); // Track seen toast IDs
 
-  const showToast = useCallback((message) => {
+  const showToast = useCallback((message, icon = null) => {
     if (toastTimeoutRef.current) {
       clearTimeout(toastTimeoutRef.current);
     }
     setToastMessage(message);
+    setToastIcon(icon);
     toastTimeoutRef.current = setTimeout(() => {
       setToastMessage('');
-    }, 4000);
+      setToastIcon(null);
+    }, 7000); // 7 seconds display time
   }, []);
 
   const fetchGameState = useCallback(async () => {
@@ -74,10 +90,22 @@ function GamePlay({ gameData, onLeaveGame }) {
           showToast('You are now the game host!');
         }
 
-        // Check for skipped players (show toast to everyone)
-        if (transformedState.skipped_players && transformedState.skipped_players.names.length > 0) {
-          const names = transformedState.skipped_players.names.join(', ');
-          showToast(`Player order almost complete! ${names} ${transformedState.skipped_players.names.length === 1 ? 'was' : 'were'} skipped.`);
+        // Handle toasts from backend
+        if (transformedState.toasts && Array.isArray(transformedState.toasts)) {
+          const seenToasts = seenToastsRef.current;
+          const newToasts = transformedState.toasts.filter(toast => !seenToasts.includes(toast.id));
+          
+          if (newToasts.length > 0) {
+            // Show the first new toast (FIFO)
+            const toast = newToasts[0];
+            const icon = toast.icon && iconMap[toast.icon] ? iconMap[toast.icon] : null;
+            showToast(toast.message, icon);
+            
+            // Mark all new toasts as seen
+            const updatedSeenToasts = [...seenToasts, ...newToasts.map(t => t.id)];
+            seenToastsRef.current = updatedSeenToasts;
+            saveSeenToasts(gameData.gameId, updatedSeenToasts);
+          }
         }
         
         setGameState(transformedState);
@@ -147,7 +175,9 @@ function GamePlay({ gameData, onLeaveGame }) {
       <div className="game-play">
         <div className="game-header">
           <div className="host-name">Host</div>
-          <div className="player-name"><strong>{gameData.playerName}</strong></div>
+          <div className="player-name">
+            <strong>{gameData.playerName}</strong>
+          </div>
           <div className="game-code">Game ID: <span className="code">{gameData.gameId}</span></div>
         </div>
         <div className="loading">Loading game...</div>
@@ -160,7 +190,9 @@ function GamePlay({ gameData, onLeaveGame }) {
       <div className="game-play">
         <div className="game-header">
           <div className="host-name">Host</div>
-          <div className="player-name"><strong>{gameData.playerName}</strong></div>
+          <div className="player-name">
+            <strong>{gameData.playerName}</strong>
+          </div>
           <div className="game-code">Game ID: <span className="code">{gameData.gameId}</span></div>
         </div>
         <div className="error-message">{error}</div>
@@ -179,11 +211,28 @@ function GamePlay({ gameData, onLeaveGame }) {
   const hostPlayer = gameState?.players?.find(p => p.is_creator);
   const hostName = hostPlayer?.name || 'Host';
 
+  // Find current player to get their score
+  const currentPlayer = gameState?.players?.find(p => p.id === gameData.playerId);
+
   return (
     <div className="game-play">
       {toastMessage && (
         <div className="toast-notification">
-          {toastMessage}
+          {toastIcon && <FontAwesomeIcon icon={toastIcon} />}
+          <span>{toastMessage}</span>
+          <button 
+            className="toast-close-btn" 
+            onClick={() => {
+              if (toastTimeoutRef.current) {
+                clearTimeout(toastTimeoutRef.current);
+              }
+              setToastMessage('');
+              setToastIcon(null);
+            }}
+            aria-label="Close notification"
+          >
+            <FontAwesomeIcon icon={faXmark} />
+          </button>
         </div>
       )}
       
@@ -195,7 +244,10 @@ function GamePlay({ gameData, onLeaveGame }) {
             `Host: ${hostName}`
           )}
         </div>
-        <div className="player-name"><strong>{gameData.playerName}</strong></div>
+        <div className="player-name">
+          <strong>{gameData.playerName}</strong>
+          {currentPlayer && <span className="player-score"> ({currentPlayer.score} {currentPlayer.score === 1 ? 'pt' : 'pts'})</span>}
+        </div>
         <div className="game-code">Game ID: <span className="code">{gameData.gameId}</span></div>
       </div>
 

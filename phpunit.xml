@@ -9,18 +9,17 @@
          displayDetailsOnTestsThatTriggerDeprecations="true"
          displayDetailsOnTestsThatTriggerNotices="true">
     <testsuites>
-        <testsuite name="Unit">
-            <directory>tests/Unit</directory>
-        </testsuite>
         <testsuite name="Integration">
             <directory>tests/Integration</directory>
         </testsuite>
     </testsuites>
     <php>
-        <env name="DB_HOST" value="localhost"/>
-        <env name="DB_NAME" value="cah_game"/>
-        <env name="DB_USER" value="cah_user"/>
-        <env name="DB_PASS" value="your_password_here"/>
+        <env name="TEST_DB_HOST" value="localhost"/>
+        <env name="TEST_DB_NAME" value="cah_game_test"/>
+        <env name="TEST_DB_USER" value="root"/>
+        <env name="TEST_DB_PASS" value=""/>
+        <env name="APP_DEBUG" value="true"/>
+        <env name="APP_TIMEZONE" value="UTC"/>
     </php>
     <source>
         <include>

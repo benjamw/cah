@@ -401,15 +401,6 @@ class GameService
                 'player_data' => $playerData,
             ]);
 
-            $playerData = GameService::hydrateCards($playerData);
-
-            // filter out the _other_ player's hands and hydrate the current player's hand
-            foreach ($playerData['players'] as & $player) {
-                if ($player['id'] !== $playerId) {
-                    $player['hand'] = [];
-                }
-            }
-
             return $playerData;
         });
     }
@@ -485,9 +476,7 @@ class GameService
                 'player_data' => $playerData,
             ]);
 
-            // Re-fetch the game and hydrate before returning
-            $updatedGame = Game::find($gameId);
-            return self::hydrateCards($updatedGame['player_data']);
+            return $playerData;
         });
     }
 
@@ -729,10 +718,15 @@ class GameService
      */
     public static function getNextCzar(array $playerData): ?string
     {
-        // Filter out Rando from eligible czars
+        // Check if we just finished skipped players and should start from beginning
+        if (isset($playerData['next_czar_after_skip'])) {
+            return $playerData['next_czar_after_skip'];
+        }
+        
+        // Filter out Rando and paused players from eligible czars
         $eligiblePlayers = array_filter(
             $playerData['players'],
-            fn($p): bool => empty($p['is_rando'])
+            fn($p): bool => empty($p['is_rando']) && empty($p['is_paused'])
         );
 
         if (empty($eligiblePlayers)) {
@@ -740,10 +734,10 @@ class GameService
         }
 
         if ($playerData['order_locked'] && ! empty($playerData['player_order'])) {
-            // Get list of current player IDs (excluding Rando)
+            // Get list of current player IDs (excluding Rando and paused players)
             $currentPlayerIds = array_map(fn($p) => $p['id'], $eligiblePlayers);
 
-            // Filter player_order to only include players still in game (and exclude Rando)
+            // Filter player_order to only include players still in game (exclude Rando and paused)
             $eligibleOrder = array_filter(
                 $playerData['player_order'],
                 fn($id): bool => in_array($id, $currentPlayerIds, true) && $id !== ( $playerData['rando_id'] ?? null )
@@ -764,6 +758,287 @@ class GameService
         // Fallback: return first eligible player
         $eligiblePlayers = array_values($eligiblePlayers);
         return $eligiblePlayers[0]['id'];
+    }
+
+    /**
+     * Force early review (czar only) - allows picking winner before all submissions are in
+     *
+     * @param string $gameId Game code
+     * @param string $playerId Player's ID (must be current czar)
+     * @return array Updated game state
+     */
+    public static function forceEarlyReview(string $gameId, string $playerId): array
+    {
+        return LockService::withGameLock($gameId, function () use ($gameId, $playerId) {
+            $game = Game::find($gameId);
+
+            if ( ! $game) {
+                throw new GameNotFoundException($gameId);
+            }
+
+            $playerData = $game['player_data'];
+            
+            // Verify player is the current czar
+            if ($playerData['current_czar_id'] !== $playerId) {
+                throw new ValidationException('Only the czar can force early review');
+            }
+
+            // Find the czar's name
+            $czarName = null;
+            foreach ($playerData['players'] as $player) {
+                if ($player['id'] === $playerId) {
+                    $czarName = $player['name'];
+                    break;
+                }
+            }
+
+            // Set flag to bypass submission count check
+            $playerData['forced_early_review'] = true;
+
+            // Add toast notification
+            self::addToast($playerData, "{$czarName} started reviewing submissions early.", 'skip');
+            
+            Game::updatePlayerData($gameId, $playerData);
+
+            return $playerData;
+        });
+    }
+
+    /**
+     * Refresh player's hand - discard all cards and draw new ones
+     *
+     * @param string $gameId Game code
+     * @param string $playerId Player's ID
+     * @return array Updated game state
+     */
+    public static function refreshPlayerHand(string $gameId, string $playerId): array
+    {
+        return LockService::withGameLock($gameId, function () use ($gameId, $playerId) {
+            $game = Game::find($gameId);
+
+            if ( ! $game) {
+                throw new GameNotFoundException($gameId);
+            }
+
+            $playerData = $game['player_data'];
+            
+            // Find the player
+            $playerIndex = null;
+            $playerName = null;
+            foreach ($playerData['players'] as $index => $player) {
+                if ($player['id'] === $playerId) {
+                    $playerIndex = $index;
+                    $playerName = $player['name'];
+                    break;
+                }
+            }
+
+            if ($playerIndex === null) {
+                throw new PlayerNotFoundException($playerId);
+            }
+
+            // Rando cannot refresh hand
+            if ( ! empty($playerData['players'][$playerIndex]['is_rando'])) {
+                throw new ValidationException('Rando Cardrissian cannot refresh hand');
+            }
+
+            $currentHand = $playerData['players'][$playerIndex]['hand'];
+            $handSize = count($currentHand);
+            
+            if ($handSize === 0) {
+                throw new ValidationException('No cards to refresh');
+            }
+
+            $whitePile = $game['draw_pile']['white'];
+            $discardPile = $game['discard_pile'] ?? [];
+
+            // Add current hand to discard pile
+            $discardPile = array_merge($discardPile, $currentHand);
+            
+            // Draw new cards
+            $result = CardService::drawWhiteCards($whitePile, $handSize);
+            $playerData['players'][$playerIndex]['hand'] = $result['cards'];
+            $whitePile = $result['remaining_pile'];
+
+            // Update game state
+            Game::update($gameId, [
+                'draw_pile' => ['white' => $whitePile, 'black' => $game['draw_pile']['black']],
+                'discard_pile' => $discardPile,
+                'player_data' => $playerData,
+            ]);
+
+            // Add toast notification
+            self::addToast($playerData, "{$playerName} refreshed their hand.", 'refresh');
+            
+            Game::updatePlayerData($gameId, $playerData);
+
+            return $playerData;
+        });
+    }
+
+    /**
+     * Toggle player pause status (creator only)
+     * Paused players: submissions not required, skipped as czar
+     *
+     * @param string $gameId Game code
+     * @param string $creatorId Creator's player ID
+     * @param string $targetPlayerId Player to pause/unpause
+     * @return array Updated game state
+     */
+    public static function togglePlayerPause(string $gameId, string $creatorId, string $targetPlayerId): array
+    {
+        return LockService::withGameLock($gameId, function () use ($gameId, $creatorId, $targetPlayerId) {
+            $game = Game::find($gameId);
+
+            if ( ! $game) {
+                throw new GameNotFoundException($gameId);
+            }
+
+            $playerData = $game['player_data'];
+
+            if ($playerData['creator_id'] !== $creatorId) {
+                throw new UnauthorizedException('Only the game creator can pause players');
+            }
+
+            // Find the target player
+            $targetPlayer = null;
+            $playerIndex = null;
+            foreach ($playerData['players'] as $index => $player) {
+                if ($player['id'] === $targetPlayerId) {
+                    $targetPlayer = $player;
+                    $playerIndex = $index;
+                    break;
+                }
+            }
+
+            if ( ! $targetPlayer) {
+                throw new PlayerNotFoundException($targetPlayerId);
+            }
+
+            // Rando cannot be paused
+            if ( ! empty($targetPlayer['is_rando'])) {
+                throw new ValidationException('Rando Cardrissian cannot be paused');
+            }
+
+            // Toggle pause status
+            $isPaused = ! empty($playerData['players'][$playerIndex]['is_paused']);
+            $playerData['players'][$playerIndex]['is_paused'] = ! $isPaused;
+
+            $playerName = $playerData['players'][$playerIndex]['name'];
+            
+            // If pausing the current czar, skip to next czar
+            if ( ! $isPaused && $targetPlayerId === $playerData['current_czar_id']) {
+                $playerData['current_czar_id'] = self::getNextCzar($playerData);
+                
+                // Update czar name
+                foreach ($playerData['players'] as $player) {
+                    if ($player['id'] === $playerData['current_czar_id']) {
+                        $playerData['current_czar_name'] = $player['name'];
+                        break;
+                    }
+                }
+                
+                // Clear submissions
+                $playerData['submissions'] = [];
+                
+                self::addToast($playerData, "{$playerName} was paused. Moving to next czar.", 'pause');
+            } else {
+                // Add toast notification
+                $status = $isPaused ? 'unpaused' : 'paused';
+                $icon = $isPaused ? 'play' : 'pause';
+                self::addToast($playerData, "{$playerName} has been {$status}.", $icon);
+            }
+
+            Game::updatePlayerData($gameId, $playerData);
+
+            return $playerData;
+        });
+    }
+
+    /**
+     * Vote to skip the current czar (requires 2+ votes)
+     *
+     * @param string $gameId Game code
+     * @param string $voterId Voting player's ID
+     * @return array Updated game state with vote info
+     */
+    public static function voteToSkipCzar(string $gameId, string $voterId): array
+    {
+        return LockService::withGameLock($gameId, function () use ($gameId, $voterId) {
+            $game = Game::find($gameId);
+
+            if ( ! $game) {
+                throw new GameNotFoundException($gameId);
+            }
+
+            $playerData = $game['player_data'];
+
+            // Can't vote to skip yourself
+            if ($playerData['current_czar_id'] === $voterId) {
+                throw new ValidationException('The czar cannot vote to skip themselves');
+            }
+
+            // Verify voter is in the game
+            $voterExists = false;
+            foreach ($playerData['players'] as $player) {
+                if ($player['id'] === $voterId) {
+                    $voterExists = true;
+                    break;
+                }
+            }
+
+            if ( ! $voterExists) {
+                throw new PlayerNotFoundException($voterId);
+            }
+
+            // Initialize skip votes if not present
+            if ( ! isset($playerData['skip_czar_votes'])) {
+                $playerData['skip_czar_votes'] = [];
+            }
+
+            // Add or remove vote (toggle)
+            if (in_array($voterId, $playerData['skip_czar_votes'], true)) {
+                // Remove vote
+                $playerData['skip_czar_votes'] = array_values(array_filter(
+                    $playerData['skip_czar_votes'],
+                    fn($id) => $id !== $voterId
+                ));
+            } else {
+                // Add vote
+                $playerData['skip_czar_votes'][] = $voterId;
+            }
+
+            $voteCount = count($playerData['skip_czar_votes']);
+            $votesNeeded = 2;
+
+            // If enough votes, skip the czar
+            if ($voteCount >= $votesNeeded) {
+                // Get czar name for toast
+                $czarName = $playerData['current_czar_name'] ?? 'The czar';
+                
+                // Skip to next czar
+                $playerData['current_czar_id'] = self::getNextCzar($playerData);
+                
+                // Update czar name
+                foreach ($playerData['players'] as $player) {
+                    if ($player['id'] === $playerData['current_czar_id']) {
+                        $playerData['current_czar_name'] = $player['name'];
+                        break;
+                    }
+                }
+                
+                // Clear submissions and votes
+                $playerData['submissions'] = [];
+                $playerData['skip_czar_votes'] = [];
+                
+                // Add toast notification
+                self::addToast($playerData, "{$czarName} was skipped. Moving to next czar.", 'skip');
+            }
+
+            Game::updatePlayerData($gameId, $playerData);
+
+            return $playerData;
+        });
     }
 
     /**
@@ -841,6 +1116,11 @@ class GameService
             // Update the current czar to the next czar
             $playerData['current_czar_id'] = $nextCzarId;
             $playerData['current_czar_name'] = $nextCzarPlayer['name'];
+            
+            // Clear the next_czar_after_skip flag if it was set
+            if (isset($playerData['next_czar_after_skip'])) {
+                unset($playerData['next_czar_after_skip']);
+            }
 
             if ( ! $playerData['order_locked']) {
                 // Add current czar to order if not already there
@@ -870,6 +1150,12 @@ class GameService
                             'ids' => array_values($skippedPlayers),
                             'names' => $skippedNames,
                         ];
+                        
+                        // Add toast notification for skipped players
+                        $names = implode(', ', $skippedNames);
+                        $verb = count($skippedNames) === 1 ? 'was' : 'were';
+                        self::addToast($playerData, "Player order almost complete! {$names} {$verb} skipped.", '⚠️');
+                        
                         // Order will be locked after skipped players are placed
                     } else {
                         // No skipped players - lock the order
@@ -939,10 +1225,25 @@ class GameService
                 array_splice($playerData['skipped_players']['names'], $skippedIndex, 1);
             }
 
-            // If no more skipped players, lock the order and clean up
+            // Set the skipped player as current czar so they can take their turn immediately
+            $playerData['current_czar_id'] = $skippedPlayerId;
+            
+            // Update current_czar_name for display
+            foreach ($playerData['players'] as $player) {
+                if ($player['id'] === $skippedPlayerId) {
+                    $playerData['current_czar_name'] = $player['name'];
+                    break;
+                }
+            }
+
+            // If no more skipped players, lock the order and set next czar to first in order
             if (empty($playerData['skipped_players']['ids'])) {
                 $playerData['order_locked'] = true;
                 unset($playerData['skipped_players']);
+                
+                // Store that we should start from the beginning of the order after skipped players
+                // This will be used when advancing to next round
+                $playerData['next_czar_after_skip'] = $playerData['player_order'][0] ?? null;
             }
 
             Game::updatePlayerData($gameId, $playerData);
@@ -1188,22 +1489,46 @@ class GameService
             }
         }
 
-        // Hide submissions from czar until all players have submitted
-        $isCzar = $playerData['current_czar_id'] === $playerId;
-        if ($isCzar && isset($playerData['submissions'])) {
-            $expectedSubmissions = count($playerData['players']) - 1; // Exclude czar
+        // Hide submissions from everyone until all players have submitted (or forced early review)
+        if (isset($playerData['submissions'])) {
+            $isCzar = $playerData['current_czar_id'] === $playerId;
+            $forcedReview = !empty($playerData['forced_early_review']);
+            
+            // Count expected submissions (exclude czar, Rando auto-submits, exclude paused players)
+            $activePlayers = array_filter(
+                $playerData['players'],
+                fn($p): bool => $p['id'] !== $playerData['current_czar_id'] && empty($p['is_paused'])
+            );
+            $expectedSubmissions = count($activePlayers);
+            
             $actualSubmissions = count($playerData['submissions']);
 
-            // Only show submissions if all players have submitted
-            if ($actualSubmissions < $expectedSubmissions) {
-                // Keep the array length but hide the content
-                $playerData['submissions'] = array_map(
-                    fn(): array => ['submitted' => true],
-                    $playerData['submissions']
-                );
+            // Only show submissions if all players have submitted OR czar forced early review
+            if ($actualSubmissions < $expectedSubmissions && !$forcedReview) {
+                // For czar: show count but hide content
+                if ($isCzar) {
+                    $playerData['submissions'] = array_map(
+                        fn(): array => ['submitted' => true],
+                        $playerData['submissions']
+                    );
+                } else {
+                    // For non-czar players: send placeholders so they can count submissions
+                    $playerData['submissions'] = array_map(
+                        fn(): array => ['submitted' => true],
+                        $playerData['submissions']
+                    );
+                }
             } else {
-                // All players have submitted - shuffle submissions for anonymity
-                shuffle($playerData['submissions']);
+                // All players have submitted (or forced) - shuffle submissions for anonymity (czar only sees them)
+                if ($isCzar) {
+                    shuffle($playerData['submissions']);
+                } else {
+                    // Non-czar players: send placeholders so they know all submitted
+                    $playerData['submissions'] = array_map(
+                        fn(): array => ['submitted' => true],
+                        $playerData['submissions']
+                    );
+                }
             }
         }
 
@@ -1435,5 +1760,60 @@ class GameService
 
             return $playerData;
         });
+    }
+
+    /**
+     * Add a toast notification to the game state
+     *
+     * @param array $playerData Game player data
+     * @param string $message Toast message
+     * @param string|null $icon Optional emoji/icon
+     * @return array Updated player data
+     */
+    public static function addToast(array &$playerData, string $message, ?string $icon = null): array
+    {
+        if ( ! isset($playerData['toasts'])) {
+            $playerData['toasts'] = [];
+        }
+
+        $toast = [
+            'id' => bin2hex(random_bytes(8)), // Unique ID for tracking
+            'message' => $message,
+            'created_at' => time(),
+        ];
+
+        if ($icon) {
+            $toast['icon'] = $icon;
+        }
+
+        $playerData['toasts'][] = $toast;
+
+        // Clean up old toasts (30 seconds)
+        $playerData = self::cleanExpiredToasts($playerData);
+
+        return $playerData;
+    }
+
+    /**
+     * Remove toasts older than 30 seconds
+     *
+     * @param array $playerData Game player data
+     * @return array Updated player data
+     */
+    public static function cleanExpiredToasts(array $playerData): array
+    {
+        if ( ! isset($playerData['toasts']) || empty($playerData['toasts'])) {
+            return $playerData;
+        }
+
+        $now = time();
+        $maxAge = 30; // seconds
+
+        $playerData['toasts'] = array_values(array_filter(
+            $playerData['toasts'],
+            fn($toast): bool => ($now - $toast['created_at']) < $maxAge
+        ));
+
+        return $playerData;
     }
 }

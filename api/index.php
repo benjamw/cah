@@ -146,6 +146,10 @@ $app->post('/api/game/join-late', [GameController::class, 'joinLate']);
 
 // Game routes - Protected (auth required)
 $app->post('/api/game/start', [GameController::class, 'start'])->add(new AuthMiddleware());
+$app->post('/api/game/refresh-hand', [GameController::class, 'refreshHand'])->add(new AuthMiddleware());
+$app->post('/api/game/force-early-review', [GameController::class, 'forceEarlyReview'])->add(new AuthMiddleware());
+$app->post('/api/game/toggle-player-pause', [GameController::class, 'togglePlayerPause'])->add(new AuthMiddleware());
+$app->post('/api/game/vote-skip-czar', [GameController::class, 'voteSkipCzar'])->add(new AuthMiddleware());
 $app->post('/api/game/skip-czar', [GameController::class, 'skipCzar'])->add(new AuthMiddleware());
 $app->post('/api/game/reshuffle', [GameController::class, 'reshuffleDiscardPile'])->add(new AuthMiddleware());
 $app->post('/api/game/place-skipped-player', [GameController::class, 'placeSkippedPlayer'])->add(new AuthMiddleware());

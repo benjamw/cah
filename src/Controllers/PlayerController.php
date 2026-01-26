@@ -41,6 +41,12 @@ class PlayerController
                 $data['target_player_id']
             );
 
+            // Hydrate card IDs with full card data
+            $gameState = GameService::hydrateCards($gameState);
+            
+            // Filter out other players' hands
+            $gameState = GameService::filterHands($gameState, $playerId);
+
             return JsonResponse::success($response, ['game_state' => $gameState]);
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
@@ -83,6 +89,12 @@ class PlayerController
                 $removeCurrentHost
             );
 
+            // Hydrate card IDs with full card data
+            $gameState = GameService::hydrateCards($gameState);
+            
+            // Filter out other players' hands
+            $gameState = GameService::filterHands($gameState, $playerId);
+
             return JsonResponse::success($response, ['game_state' => $gameState]);
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
@@ -108,6 +120,12 @@ class PlayerController
             $playerId = $request->getAttribute('player_id');
 
             $gameState = GameService::leaveGame($gameId, $playerId);
+
+            // Hydrate card IDs with full card data
+            $gameState = GameService::hydrateCards($gameState);
+            
+            // Filter out other players' hands
+            $gameState = GameService::filterHands($gameState, $playerId);
 
             return JsonResponse::success($response, ['game_state' => $gameState]);
         } catch (GameNotFoundException $e) {

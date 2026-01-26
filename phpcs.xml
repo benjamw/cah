@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <ruleset name="CAH Coding Standard">
-    <description>Coding standard for Cards Against Humanity clone</description>
+    <description>Coding standard for Cards API Hub clone</description>
 
     <!-- What to scan -->
     <file>src</file>

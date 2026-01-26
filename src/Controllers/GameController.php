@@ -129,6 +129,12 @@ class GameController
 
             $gameState = GameService::startGame($gameId, $playerId);
 
+            // Hydrate card IDs with full card data
+            $gameState = GameService::hydrateCards($gameState);
+            
+            // Filter out other players' hands
+            $gameState = GameService::filterHands($gameState, $playerId);
+
             return JsonResponse::success($response, ['game_state' => $gameState]);
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
@@ -168,8 +174,12 @@ class GameController
                 }
             }
 
+            // Clean up expired toasts before hydrating and returning
+            $playerData = $game['player_data'];
+            $playerData = GameService::cleanExpiredToasts($playerData);
+            
             // Hydrate card IDs with full card data
-            $playerData = GameService::hydrateCards($game['player_data']);
+            $playerData = GameService::hydrateCards($playerData);
             $playerData = GameService::filterHands($playerData, $request->getAttributes()['player_id']);
 
             // Calculate deck sizes
@@ -199,6 +209,138 @@ class GameController
     /**
      * Skip current czar (creator only)
      */
+    /**
+     * Force early review (czar only)
+     */
+    public function forceEarlyReview(Request $request, Response $response): Response
+    {
+        try {
+            // Get authenticated session data from request attributes (set by AuthMiddleware)
+            $gameId = $request->getAttribute('game_id');
+            $playerId = $request->getAttribute('player_id');
+
+            $gameState = GameService::forceEarlyReview($gameId, $playerId);
+
+            // Hydrate card IDs with full card data
+            $gameState = GameService::hydrateCards($gameState);
+            
+            // Filter out other players' hands
+            $gameState = GameService::filterHands($gameState, $playerId);
+
+            return JsonResponse::success($response, ['game_state' => $gameState]);
+        } catch (GameNotFoundException | PlayerNotFoundException $e) {
+            return JsonResponse::notFound($response, $e->getMessage());
+        } catch (ValidationException $e) {
+            return JsonResponse::validationError($response, $e->getErrors(), $e->getMessage());
+        } catch (GameException $e) {
+            return JsonResponse::error($response, $e->getMessage(), $e->getCode() ?: 400);
+        } catch (\Exception $e) {
+            return JsonResponse::error($response, $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Refresh player's hand (discard all cards and draw new ones)
+     */
+    public function refreshHand(Request $request, Response $response): Response
+    {
+        try {
+            // Get authenticated session data from request attributes (set by AuthMiddleware)
+            $gameId = $request->getAttribute('game_id');
+            $playerId = $request->getAttribute('player_id');
+
+            $gameState = GameService::refreshPlayerHand($gameId, $playerId);
+
+            // Hydrate card IDs with full card data
+            $gameState = GameService::hydrateCards($gameState);
+            
+            // Filter out other players' hands
+            $gameState = GameService::filterHands($gameState, $playerId);
+
+            return JsonResponse::success($response, ['game_state' => $gameState]);
+        } catch (GameNotFoundException | PlayerNotFoundException $e) {
+            return JsonResponse::notFound($response, $e->getMessage());
+        } catch (ValidationException $e) {
+            return JsonResponse::validationError($response, $e->getErrors(), $e->getMessage());
+        } catch (GameException $e) {
+            return JsonResponse::error($response, $e->getMessage(), $e->getCode() ?: 400);
+        } catch (\Exception $e) {
+            return JsonResponse::error($response, $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Toggle player pause status (creator only)
+     */
+    public function togglePlayerPause(Request $request, Response $response): Response
+    {
+        try {
+            // Get authenticated session data from request attributes (set by AuthMiddleware)
+            $gameId = $request->getAttribute('game_id');
+            $playerId = $request->getAttribute('player_id');
+
+            $data = $request->getParsedBody() ?? [];
+            if ( ! isset($data['target_player_id'])) {
+                throw new ValidationException('target_player_id is required');
+            }
+
+            $gameState = GameService::togglePlayerPause($gameId, $playerId, $data['target_player_id']);
+
+            // Hydrate card IDs with full card data
+            $gameState = GameService::hydrateCards($gameState);
+            
+            // Filter out other players' hands
+            $gameState = GameService::filterHands($gameState, $playerId);
+
+            return JsonResponse::success($response, ['game_state' => $gameState]);
+        } catch (GameNotFoundException | PlayerNotFoundException $e) {
+            return JsonResponse::notFound($response, $e->getMessage());
+        } catch (UnauthorizedException $e) {
+            return JsonResponse::error($response, $e->getMessage(), 403);
+        } catch (ValidationException $e) {
+            return JsonResponse::validationError($response, $e->getErrors(), $e->getMessage());
+        } catch (GameException $e) {
+            return JsonResponse::error($response, $e->getMessage(), $e->getCode() ?: 400);
+        } catch (\Exception $e) {
+            return JsonResponse::error($response, $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Vote to skip the current czar (requires 2+ votes)
+     */
+    public function voteSkipCzar(Request $request, Response $response): Response
+    {
+        try {
+            // Get authenticated session data from request attributes (set by AuthMiddleware)
+            $gameId = $request->getAttribute('game_id');
+            $playerId = $request->getAttribute('player_id');
+
+            $gameState = GameService::voteToSkipCzar($gameId, $playerId);
+
+            // Hydrate card IDs with full card data
+            $gameState = GameService::hydrateCards($gameState);
+            
+            // Filter out other players' hands
+            $gameState = GameService::filterHands($gameState, $playerId);
+
+            return JsonResponse::success($response, ['game_state' => $gameState]);
+        } catch (GameNotFoundException | PlayerNotFoundException $e) {
+            return JsonResponse::notFound($response, $e->getMessage());
+        } catch (UnauthorizedException $e) {
+            return JsonResponse::error($response, $e->getMessage(), 403);
+        } catch (ValidationException $e) {
+            return JsonResponse::validationError($response, $e->getErrors(), $e->getMessage());
+        } catch (GameException $e) {
+            return JsonResponse::error($response, $e->getMessage(), $e->getCode() ?: 400);
+        } catch (\Exception $e) {
+            return JsonResponse::error($response, $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Skip current czar (creator only - legacy endpoint)
+     */
     public function skipCzar(Request $request, Response $response): Response
     {
         try {
@@ -207,6 +349,12 @@ class GameController
             $playerId = $request->getAttribute('player_id');
 
             $gameState = GameService::skipCzar($gameId, $playerId);
+
+            // Hydrate card IDs with full card data
+            $gameState = GameService::hydrateCards($gameState);
+            
+            // Filter out other players' hands
+            $gameState = GameService::filterHands($gameState, $playerId);
 
             return JsonResponse::success($response, ['game_state' => $gameState]);
         } catch (GameNotFoundException $e) {
@@ -314,6 +462,12 @@ class GameController
                 $data['skipped_player_id'],
                 $data['before_player_id']
             );
+
+            // Hydrate card IDs with full card data
+            $gameState = GameService::hydrateCards($gameState);
+            
+            // Filter out other players' hands
+            $gameState = GameService::filterHands($gameState, $playerId);
 
             return JsonResponse::success($response, ['game_state' => $gameState]);
         } catch (GameNotFoundException | PlayerNotFoundException $e) {

@@ -179,3 +179,44 @@ export async function placeSkippedPlayer(gameId, skippedPlayerId, beforePlayerId
     }),
   });
 }
+
+// Vote to skip czar (requires 2+ votes)
+export async function voteSkipCzar(gameId) {
+  return apiRequest('/game/vote-skip-czar', {
+    method: 'POST',
+    body: JSON.stringify({
+      game_id: gameId,
+    }),
+  });
+}
+
+// Toggle player pause status (creator only)
+export async function togglePlayerPause(gameId, targetPlayerId) {
+  return apiRequest('/game/toggle-player-pause', {
+    method: 'POST',
+    body: JSON.stringify({
+      game_id: gameId,
+      target_player_id: targetPlayerId,
+    }),
+  });
+}
+
+// Refresh player's hand
+export async function refreshHand(gameId) {
+  return apiRequest('/game/refresh-hand', {
+    method: 'POST',
+    body: JSON.stringify({
+      game_id: gameId,
+    }),
+  });
+}
+
+// Force early review (czar only)
+export async function forceEarlyReview(gameId) {
+  return apiRequest('/game/force-early-review', {
+    method: 'POST',
+    body: JSON.stringify({
+      game_id: gameId,
+    }),
+  });
+}

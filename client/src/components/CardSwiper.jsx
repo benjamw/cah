@@ -1,6 +1,8 @@
 import { useState, useRef } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faArrowsRotate } from '@fortawesome/free-solid-svg-icons';
 
-function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled }) {
+function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, onRefreshHand, refreshing }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
@@ -85,18 +87,32 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled }) 
         )}
       </div>
 
-      {cards.length > 1 && (
-        <div className="card-dots">
-          {cards.map((_, index) => (
-            <button
-              key={index}
-              className={`dot ${index === currentIndex ? 'active' : ''}`}
-              onClick={() => goToCard(index)}
-              aria-label={`Go to card ${index + 1}`}
-            />
-          ))}
-        </div>
-      )}
+      <div className="card-controls-row">
+        {cards.length > 1 && (
+          <div className="card-dots">
+            {cards.map((_, index) => (
+              <button
+                key={index}
+                className={`dot ${index === currentIndex ? 'active' : ''}`}
+                onClick={() => goToCard(index)}
+                aria-label={`Go to card ${index + 1}`}
+              />
+            ))}
+          </div>
+        )}
+
+        {onRefreshHand && cardType === 'white' && (
+          <button
+            className="btn-refresh-hand"
+            onClick={onRefreshHand}
+            disabled={refreshing}
+            title="Refresh your hand (discard all cards and draw new ones)"
+            aria-label="Refresh hand"
+          >
+            {refreshing ? '...' : <FontAwesomeIcon icon={faArrowsRotate} />}
+          </button>
+        )}
+      </div>
 
       <div className="card-counter">
         {currentIndex + 1} / {cards.length}

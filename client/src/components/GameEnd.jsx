@@ -1,3 +1,6 @@
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faRobot, faCrown } from '@fortawesome/free-solid-svg-icons';
+
 function GameEnd({ gameState, onLeaveGame }) {
   const players = gameState?.players || [];
   const endReason = gameState?.end_reason;
@@ -44,12 +47,12 @@ function GameEnd({ gameState, onLeaveGame }) {
                 <div className="player-info">
                   <div className="player-name-score">
                     <span className="player-name">
+                      {isRando && <><FontAwesomeIcon icon={faRobot} /> </>}
                       {player.name}
-                      {isRando && ' 🤖'}
                     </span>
                     <span className="player-score">{player.score} points</span>
                   </div>
-                  {isWinner && <span className="winner-badge">👑 Winner</span>}
+                  {isWinner && <span className="winner-badge"><FontAwesomeIcon icon={faCrown} /> Winner</span>}
                 </div>
               </div>
             );
