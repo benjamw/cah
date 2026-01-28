@@ -10,6 +10,8 @@ use CAH\Database\Database;
  * Card Model
  *
  * Handles database operations for cards (response and prompt)
+ * Note: Database uses 'response' and 'prompt' types
+ *       UI uses 'white' and 'black' labels externally
  */
 class Card
 {

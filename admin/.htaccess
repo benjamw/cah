@@ -1,6 +1,8 @@
 # Enable rewrite engine
 RewriteEngine On
 
+# Don't rewrite static files
+RewriteCond %{REQUEST_URI} !\.(css|js|json|csv)$
 # Route all requests to index.html (for SPA routing)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

@@ -17,14 +17,14 @@ class CardImportService
     /**
      * Parse a prompt card to determine how many response cards are needed
      *
-     * Counts continuous underscore sections (____) in the card text
+     * Counts continuous underscore sections (____) in the card copy
      *
-     * @param string $cardText Black card text
+     * @param string $cardCopy Black card copy
      * @return int Number of response cards needed (1-3)
      */
-    public static function parsePromptCardChoices(string $cardText): int
+    public static function parsePromptCardChoices(string $cardCopy): int
     {
-        preg_match_all('/_{2,}/', $cardText, $matches);
+        preg_match_all('/_{2,}/', $cardCopy, $matches);
         $underscoreSections = count($matches[0]);
 
         if ($underscoreSections === 0) {
@@ -38,18 +38,18 @@ class CardImportService
      * Import a single card
      *
      * @param string $type 'response' or 'prompt'
-     * @param string $text Card text
+     * @param string $copy Card copy
      * @param int|null $choices For prompt cards, number of response cards needed (auto-parsed if null)
      * @param bool $active Whether card is active
      * @return int|null Card ID or null on failure
      */
-    public static function importCard(string $type, string $text, ?int $choices = null, bool $active = true): ?int
+    public static function importCard(string $type, string $copy, ?int $choices = null, bool $active = true): ?int
     {
         if ($type === 'prompt' && $choices === null) {
             $choices = self::parsePromptCardChoices($text);
         }
 
-        return Card::create($type, $text, $choices, $active);
+        return Card::create($type, $copy, $choices, $active);
     }
 
     /**
@@ -67,17 +67,17 @@ class CardImportService
         foreach ($cards as $index => $cardData) {
             try {
                 $type = $cardData['type'] ?? null;
-                $text = $cardData['text'] ?? null;
+                $copy = $cardData['copy'] ?? null;
                 $choices = $cardData['choices'] ?? null;
                 $active = $cardData['active'] ?? true;
 
-                if ( ! $type || ! $text) {
+                if ( ! $type || ! $copy) {
                     $errors[] = "Card at index {$index}: Missing type or text";
                     $failed++;
                     continue;
                 }
 
-                $cardId = self::importCard($type, $text, $choices, $active);
+                $cardId = self::importCard($type, $copy, $choices, $active);
 
                 if ($cardId) {
                     $imported++;

@@ -1,6 +1,0 @@
-type,text,tags
-response,"A mime having a stroke","example,funny"
-response,"Spontaneous human combustion","example,science"
-response,"The Big Bang","example,science"
-prompt,"What's that smell? _","example"
-prompt,"_ + _ = _","example,math"

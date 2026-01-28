@@ -37,7 +37,8 @@ class AdminAuthService
         // Generate secure random token
         $token = bin2hex(random_bytes(32)); // 64 character hex string
 
-        // Token expires in 24 hours
+        // Token expires in SESSION_LIFETIME hours
+        // TODO: update this to use the config value
         $expiresAt = new \DateTime('+24 hours');
 
         // Store session in database
