@@ -265,6 +265,7 @@ body {
 
 .card-item,
 .tag-item,
+.pack-item,
 .game-item {
     padding: 1.5rem;
     border-bottom: 1px solid var(--border-color);
@@ -276,12 +277,14 @@ body {
 
 .card-item:hover,
 .tag-item:hover,
+.pack-item:hover,
 .game-item:hover {
     background: var(--bg-color);
 }
 
 .card-item:last-child,
 .tag-item:last-child,
+.pack-item:last-child,
 .game-item:last-child {
     border-bottom: none;
 }
@@ -573,6 +576,7 @@ body {
 
     .card-item,
     .tag-item,
+    .pack-item,
     .game-item {
         flex-direction: column;
         align-items: flex-start;

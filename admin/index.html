@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CAH Admin Panel</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/admin/styles.css">
 </head>
 <body>
     <div id="app">
@@ -33,6 +33,7 @@
             <nav class="admin-nav">
                 <button class="nav-btn active" data-section="cards">Cards</button>
                 <button class="nav-btn" data-section="tags">Tags</button>
+                <button class="nav-btn" data-section="packs">Packs</button>
                 <button class="nav-btn" data-section="games">Games</button>
                 <button class="nav-btn" data-section="tag-assignment">Tag Assignment</button>
             </nav>
@@ -106,6 +107,20 @@
 
                     <div id="tags-list" class="data-list">
                         <div class="loading">Loading tags...</div>
+                    </div>
+                </section>
+
+                <!-- Packs Section -->
+                <section id="packs-section" class="content-section">
+                    <div class="section-header">
+                        <h2>Manage Packs</h2>
+                        <div class="actions">
+                            <button id="create-pack-btn" class="btn btn-primary">Create Pack</button>
+                        </div>
+                    </div>
+
+                    <div id="packs-list" class="data-list">
+                        <div class="loading">Loading packs...</div>
                     </div>
                 </section>
 
@@ -198,22 +213,22 @@
                     <div class="form-group">
                         <label for="edit-card-tags">Tags</label>
                         <select id="edit-card-tags" name="tags" multiple size="6">
-                            <option value="">Loading tags...</option>
+                            <!-- Tags will be populated dynamically -->
                         </select>
                         <small>Hold Ctrl (Cmd on Mac) to select multiple tags</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-card-packs">Packs</label>
+                        <select id="edit-card-packs" name="packs" multiple size="6">
+                            <!-- Packs will be populated dynamically -->
+                        </select>
+                        <small>Hold Ctrl (Cmd on Mac) to select multiple packs</small>
                     </div>
                     <div class="form-group">
                         <label>
                             <input type="checkbox" id="edit-card-active" name="active" checked>
                             Active
                         </label>
-                    </div>
-                    <div class="form-group">
-                        <label for="edit-card-tags">Tags</label>
-                        <select id="edit-card-tags" name="tags" multiple size="6">
-                            <!-- Tags will be populated dynamically -->
-                        </select>
-                        <small style="color: #666; font-size: 0.85em; margin-top: 4px; display: block;">Hold Ctrl (Cmd on Mac) to select multiple tags</small>
                     </div>
                 </form>
             </div>
@@ -257,6 +272,47 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <!-- Create/Edit Pack Modal -->
+    <div id="create-pack-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="pack-modal-title">Create Pack</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="create-pack-form">
+                    <input type="hidden" id="pack-id" value="">
+                    <div class="form-group">
+                        <label for="pack-name">Pack Name</label>
+                        <input type="text" id="pack-name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="pack-version">Version (optional)</label>
+                        <input type="text" id="pack-version" name="version">
+                    </div>
+                    <div class="form-group">
+                        <label for="pack-release-date">Release Date (optional)</label>
+                        <input type="datetime-local" id="pack-release-date" name="release_date">
+                    </div>
+                    <div class="form-group">
+                        <label for="pack-data">Additional Data (JSON, optional)</label>
+                        <textarea id="pack-data" name="data" rows="3" placeholder='{"key": "value"}'></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="pack-active" name="active" checked>
+                            Active
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="save-pack-btn" class="btn btn-primary">Save</button>
+                <button class="modal-close btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/admin/app.js"></script>
 </body>
 </html>

@@ -20,6 +20,7 @@ let prevPageBtn, nextPageBtn, pageInfo;
 let importCardsBtn, importModal, uploadCsvBtn, csvFileInput, importStatus, importCardType, importFormatInfo;
 let editCardModal, editCardForm, saveCardBtn;
 let tagsList, createTagBtn, createTagModal, createTagForm, saveTagBtn;
+let packsList, createPackBtn, createPackModal, createPackForm, savePackBtn;
 let gamesList;
 let modalCloseBtns;
 
@@ -61,6 +62,12 @@ function init() {
     createTagModal = document.getElementById('create-tag-modal');
     createTagForm = document.getElementById('create-tag-form');
     saveTagBtn = document.getElementById('save-tag-btn');
+
+    packsList = document.getElementById('packs-list');
+    createPackBtn = document.getElementById('create-pack-btn');
+    createPackModal = document.getElementById('create-pack-modal');
+    createPackForm = document.getElementById('create-pack-form');
+    savePackBtn = document.getElementById('save-pack-btn');
 
     gamesList = document.getElementById('games-list');
 
@@ -135,6 +142,21 @@ function setupEventListeners() {
 
     saveTagBtn.addEventListener('click', handleSaveTag);
 
+    // Packs
+    createPackBtn.addEventListener('click', () => {
+        // Reset form for creating new pack
+        document.getElementById('pack-modal-title').textContent = 'Create Pack';
+        document.getElementById('pack-id').value = '';
+        document.getElementById('pack-name').value = '';
+        document.getElementById('pack-version').value = '';
+        document.getElementById('pack-release-date').value = '';
+        document.getElementById('pack-data').value = '';
+        document.getElementById('pack-active').checked = true;
+        createPackModal.classList.add('active');
+    });
+
+    savePackBtn.addEventListener('click', handleSavePack);
+
     // Cards edit
     saveCardBtn.addEventListener('click', handleSaveCard);
 
@@ -144,6 +166,7 @@ function setupEventListeners() {
             importModal.classList.remove('active');
             editCardModal.classList.remove('active');
             createTagModal.classList.remove('active');
+            createPackModal.classList.remove('active');
         });
     });
 }
@@ -172,6 +195,8 @@ function switchSection(section) {
         loadCards();
     } else if (section === 'tags') {
         loadTags();
+    } else if (section === 'packs') {
+        loadPacks();
     } else if (section === 'games') {
         loadGames();
     } else if (section === 'tag-assignment') {
@@ -354,6 +379,10 @@ async function editCard(card) {
     const tagsSelect = document.getElementById('edit-card-tags');
     tagsSelect.innerHTML = '';
 
+    // Load all packs and populate the multi-select
+    const packsSelect = document.getElementById('edit-card-packs');
+    packsSelect.innerHTML = '';
+
     try {
         // Fetch all available tags
         const tagsData = await apiRequest('/tags/list');
@@ -377,9 +406,31 @@ async function editCard(card) {
         // Store original tag IDs for comparison when saving
         tagsSelect.dataset.originalTags = JSON.stringify(cardTagIds);
 
+        // Fetch all available packs
+        const packsData = await apiRequest('/packs/list-all');
+        const allPacks = packsData.data?.packs || [];
+
+        // Fetch current packs for this card
+        const cardPacksData = await apiRequest(`/admin/cards/${card.card_id}/packs`);
+        const cardPackIds = (cardPacksData.data?.packs || []).map(p => p.pack_id);
+
+        // Populate the packs select with all packs and pre-select current ones
+        allPacks.forEach(pack => {
+            const option = document.createElement('option');
+            option.value = pack.pack_id;
+            option.textContent = pack.name + (pack.version ? ` v${pack.version}` : '');
+            if (cardPackIds.includes(pack.pack_id)) {
+                option.selected = true;
+            }
+            packsSelect.appendChild(option);
+        });
+
+        // Store original pack IDs for comparison when saving
+        packsSelect.dataset.originalPacks = JSON.stringify(cardPackIds);
+
     } catch (error) {
-        console.error('Error loading tags for card:', error);
-        alert('Error loading tags for this card');
+        console.error('Error loading tags/packs for card:', error);
+        alert('Error loading tags/packs for this card');
     }
 
     editCardModal.classList.add('active');
@@ -434,6 +485,38 @@ async function handleSaveCard() {
                 });
             } catch (error) {
                 console.error(`Failed to remove tag ${tagId} from card ${cardId}:`, error);
+            }
+        }
+
+        // Now handle pack changes
+        const packsSelect = document.getElementById('edit-card-packs');
+        const selectedPackOptions = Array.from(packsSelect.selectedOptions);
+        const selectedPackIds = selectedPackOptions.map(opt => parseInt(opt.value));
+        const originalPackIds = JSON.parse(packsSelect.dataset.originalPacks || '[]');
+
+        // Determine which packs to add and remove
+        const packsToAdd = selectedPackIds.filter(id => ! originalPackIds.includes(id));
+        const packsToRemove = originalPackIds.filter(id => ! selectedPackIds.includes(id));
+
+        // Add new packs
+        for (const packId of packsToAdd) {
+            try {
+                await apiRequest(`/admin/cards/${cardId}/packs/${packId}`, {
+                    method: 'POST'
+                });
+            } catch (error) {
+                console.error(`Failed to add pack ${packId} to card ${cardId}:`, error);
+            }
+        }
+
+        // Remove packs
+        for (const packId of packsToRemove) {
+            try {
+                await apiRequest(`/admin/cards/${cardId}/packs/${packId}`, {
+                    method: 'DELETE'
+                });
+            } catch (error) {
+                console.error(`Failed to remove pack ${packId} from card ${cardId}:`, error);
             }
         }
 
@@ -673,6 +756,181 @@ async function deleteTag(tagId) {
     }
 }
 
+// Packs Management
+async function loadPacks() {
+    packsList.innerHTML = '<div class="loading">Loading packs...</div>';
+
+    try {
+        // Use list-all endpoint for admin to see inactive packs too
+        const data = await apiRequest('/packs/list-all');
+
+        if (data.success) {
+            renderPacks(data.data.packs);
+        } else {
+            packsList.innerHTML = '<div class="loading">Failed to load packs</div>';
+        }
+    } catch (error) {
+        packsList.innerHTML = '<div class="loading">Error loading packs</div>';
+    }
+}
+
+function renderPacks(packs) {
+    if (packs.length === 0) {
+        packsList.innerHTML = '<div class="loading">No packs found</div>';
+        return;
+    }
+
+    packsList.innerHTML = packs.map(pack => {
+        const releaseDate = pack.release_date ? new Date(pack.release_date).toLocaleDateString() : 'N/A';
+        // Don't add 'v' prefix if version already starts with 'v'
+        const version = pack.version ? (pack.version.toLowerCase().startsWith('v') ? pack.version : `v${pack.version}`) : '';
+        const isActive = pack.active === 1 || pack.active === '1' || pack.active === true;
+        
+        return `
+            <div class="pack-item" data-id="${pack.pack_id}">
+                <div class="item-info">
+                    <div class="item-title">
+                        <span class="badge badge-${isActive ? 'active' : 'inactive'}">
+                            ${isActive ? 'Active' : 'Inactive'}
+                        </span>
+                        ${pack.name} ${version}
+                    </div>
+                    <div class="item-meta">
+                        Response Cards: ${pack.response_card_count || 0} |
+                        Prompt Cards: ${pack.prompt_card_count || 0} |
+                        Released: ${releaseDate}
+                    </div>
+                </div>
+                <div class="item-actions">
+                    <button class="btn btn-small btn-primary" onclick="editPack(${pack.pack_id}, '${pack.name.replace(/'/g, "\\'")}', '${(pack.version || '').replace(/'/g, "\\'")}', '${pack.release_date || ''}', '${(pack.data || '').replace(/'/g, "\\'")}', ${isActive})">Edit</button>
+                    <button class="btn btn-small btn-secondary" onclick="togglePack(${pack.pack_id}, ${!isActive})">
+                        ${isActive ? 'Deactivate' : 'Activate'}
+                    </button>
+                    <button class="btn btn-small btn-danger" onclick="deletePack(${pack.pack_id})">Delete</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function editPack(packId, name, version, releaseDate, data, active) {
+    document.getElementById('pack-modal-title').textContent = 'Edit Pack';
+    document.getElementById('pack-id').value = packId;
+    document.getElementById('pack-name').value = name;
+    document.getElementById('pack-version').value = version;
+    
+    // Convert MySQL datetime to datetime-local format (YYYY-MM-DDTHH:MM)
+    if (releaseDate && releaseDate !== 'null') {
+        const date = new Date(releaseDate);
+        const localDatetime = date.toISOString().slice(0, 16);
+        document.getElementById('pack-release-date').value = localDatetime;
+    } else {
+        document.getElementById('pack-release-date').value = '';
+    }
+    
+    document.getElementById('pack-data').value = data === 'null' ? '' : data;
+    document.getElementById('pack-active').checked = active;
+    createPackModal.classList.add('active');
+}
+
+async function handleSavePack() {
+    const packId = document.getElementById('pack-id').value;
+    const name = document.getElementById('pack-name').value;
+    const version = document.getElementById('pack-version').value;
+    const releaseDate = document.getElementById('pack-release-date').value;
+    const data = document.getElementById('pack-data').value;
+    const active = document.getElementById('pack-active').checked;
+
+    // Convert datetime-local to MySQL datetime format
+    const mysqlReleaseDate = releaseDate ? releaseDate.replace('T', ' ') + ':00' : null;
+
+    try {
+        savePackBtn.disabled = true;
+
+        let result;
+        if (packId) {
+            // Edit existing pack
+            result = await apiRequest(`/admin/packs/edit/${packId}`, {
+                method: 'PUT',
+                body: JSON.stringify({ name, version, release_date: mysqlReleaseDate, data, active })
+            });
+        } else {
+            // Create new pack
+            result = await apiRequest('/admin/packs/create', {
+                method: 'POST',
+                body: JSON.stringify({ name, version, release_date: mysqlReleaseDate, data, active })
+            });
+        }
+
+        if (result.success) {
+            createPackModal.classList.remove('active');
+            createPackForm.reset();
+            loadPacks();
+        } else {
+            alert(packId ? 'Failed to update pack' : 'Failed to create pack');
+        }
+    } catch (error) {
+        alert(packId ? 'Error updating pack' : 'Error creating pack');
+    } finally {
+        savePackBtn.disabled = false;
+    }
+}
+
+async function togglePack(packId, active) {
+    try {
+        // Show loading state on button
+        const packItem = document.querySelector(`.pack-item[data-id="${packId}"]`);
+        if (packItem) {
+            const buttons = packItem.querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = true);
+        }
+
+        const data = await apiRequest(`/admin/packs/toggle/${packId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ active })
+        });
+
+        if (data.success) {
+            loadPacks();
+        } else {
+            alert('Failed to toggle pack status');
+            // Re-enable buttons on failure
+            if (packItem) {
+                const buttons = packItem.querySelectorAll('button');
+                buttons.forEach(btn => btn.disabled = false);
+            }
+        }
+    } catch (error) {
+        alert('Error toggling pack status');
+        // Re-enable buttons on error
+        const packItem = document.querySelector(`.pack-item[data-id="${packId}"]`);
+        if (packItem) {
+            const buttons = packItem.querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = false);
+        }
+    }
+}
+
+async function deletePack(packId) {
+    if ( ! confirm('Are you sure you want to delete this pack? This will remove all card associations.')) {
+        return;
+    }
+
+    try {
+        const data = await apiRequest(`/admin/packs/delete/${packId}`, {
+            method: 'DELETE'
+        });
+
+        if (data.success) {
+            loadPacks();
+        } else {
+            alert('Failed to delete pack');
+        }
+    } catch (error) {
+        alert('Error deleting pack');
+    }
+}
+
 // Games Management
 async function loadGames() {
     gamesList.innerHTML = '<div class="loading">Loading games...</div>';
@@ -767,18 +1025,28 @@ async function loadTagAssignmentPage() {
     tagSelect.innerHTML = '<option value="">-- Select a tag --</option>';
 
     // Load all tags
-    const response = await apiRequest('/api/admin/tags/list');
-    if (response.success) {
-        response.data.forEach(tag => {
-            const option = document.createElement('option');
-            option.value = tag.tag_id;
-            option.textContent = `${tag.name} (W: ${tag.response_card_count}, B: ${tag.prompt_card_count})`;
-            tagSelect.appendChild(option);
-        });
+    try {
+        const response = await apiRequest('/tags/list');
+        if (response.success && response.data && response.data.tags) {
+            response.data.tags.forEach(tag => {
+                const option = document.createElement('option');
+                option.value = tag.tag_id;
+                option.textContent = `${tag.name} (W: ${tag.response_card_count || 0}, B: ${tag.prompt_card_count || 0})`;
+                tagSelect.appendChild(option);
+            });
+        } else {
+            console.error('Failed to load tags:', response);
+        }
+    } catch (error) {
+        console.error('Error loading tags:', error);
     }
 
+    // Remove old event listeners by cloning the element
+    const newTagSelect = tagSelect.cloneNode(true);
+    tagSelect.parentNode.replaceChild(newTagSelect, tagSelect);
+
     // Add event listener for tag selection
-    tagSelect.addEventListener('change', (e) => {
+    newTagSelect.addEventListener('change', (e) => {
         const tagId = e.target.value;
         if (tagId) {
             loadTagAssignment(parseInt(tagId));
@@ -802,7 +1070,7 @@ async function loadTagAssignment(tagId) {
         return;
     }
 
-    const cards = response.data;
+    const cards = response.data.cards;
     if (cards.length === 0) {
         cardsContainer.innerHTML = '<div class="info-message">No cards found</div>';
         return;
@@ -831,7 +1099,7 @@ async function loadTagAssignment(tagId) {
         // Card text
         const cardText = document.createElement('div');
         cardText.className = 'card-item-text';
-        cardText.textContent = card.text;
+        cardText.textContent = card.copy;
 
         cardItem.appendChild(typeBadge);
         cardItem.appendChild(cardText);
@@ -855,23 +1123,27 @@ async function toggleCardTag(cardId, tagId, cardElement) {
         let response;
         if (hasTag) {
             // Remove tag
-            response = await apiRequest(`/api/admin/cards/${cardId}/tags/${tagId}`, 'DELETE');
+            response = await apiRequest(`/admin/cards/${cardId}/tags/${tagId}`, {
+                method: 'DELETE'
+            });
         } else {
             // Add tag
-            response = await apiRequest(`/api/admin/cards/${cardId}/tags/${tagId}`, 'POST');
+            response = await apiRequest(`/admin/cards/${cardId}/tags/${tagId}`, {
+                method: 'POST'
+            });
         }
 
         if (response.success) {
-            showMessage(hasTag ? 'Tag removed from card' : 'Tag added to card', 'success');
+            // Success - UI already updated
         } else {
             // Revert UI on failure
             cardElement.classList.toggle('highlighted');
-            showMessage(response.message || 'Failed to update card tag', 'error');
+            alert(response.message || 'Failed to update card tag');
         }
     } catch (error) {
         // Revert UI on error
         cardElement.classList.toggle('highlighted');
-        showMessage('Error updating card tag', 'error');
+        alert('Error updating card tag');
     }
 }
 

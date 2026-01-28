@@ -6,6 +6,7 @@ namespace CAH\Controllers;
 
 use CAH\Exceptions\ValidationException;
 use CAH\Models\Card;
+use CAH\Models\Pack;
 use CAH\Models\Tag;
 use CAH\Services\CardImportService;
 use CAH\Utils\Response as JsonResponse;
@@ -262,6 +263,82 @@ class AdminCardController
             ]);
         } catch (\Exception $e) {
             return JsonResponse::error($response, 'Failed to remove tag from card: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get all packs for a specific card
+     */
+    public function getCardPacks(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $cardId = (int) $args['cardId'];
+
+            // Validate card exists
+            $card = Card::getById($cardId);
+            if ( ! $card) {
+                return JsonResponse::notFound($response, 'Card not found');
+            }
+
+            $packs = Pack::getCardPacks($cardId);
+
+            return JsonResponse::success($response, [
+                'packs' => $packs
+            ]);
+        } catch (\Exception $e) {
+            return JsonResponse::error($response, 'Failed to get card packs: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Add a pack to a card
+     */
+    public function addCardPack(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $cardId = (int) $args['cardId'];
+            $packId = (int) $args['packId'];
+
+            // Validate card exists
+            $card = Card::getById($cardId);
+            if ( ! $card) {
+                return JsonResponse::notFound($response, 'Card not found');
+            }
+
+            // Validate pack exists
+            $pack = Pack::find($packId);
+            if ( ! $pack) {
+                return JsonResponse::notFound($response, 'Pack not found');
+            }
+
+            $added = Pack::addToCard($cardId, $packId);
+
+            return JsonResponse::success($response, [
+                'message' => $added ? 'Pack added to card' : 'Pack already assigned to card',
+                'added' => $added
+            ]);
+        } catch (\Exception $e) {
+            return JsonResponse::error($response, 'Failed to add pack to card: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Remove a pack from a card
+     */
+    public function removeCardPack(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $cardId = (int) $args['cardId'];
+            $packId = (int) $args['packId'];
+
+            $removed = Pack::removeFromCard($cardId, $packId);
+
+            return JsonResponse::success($response, [
+                'message' => $removed > 0 ? 'Pack removed from card' : 'Pack was not assigned to card',
+                'removed' => $removed > 0
+            ]);
+        } catch (\Exception $e) {
+            return JsonResponse::error($response, 'Failed to remove pack from card: ' . $e->getMessage());
         }
     }
 }

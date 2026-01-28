@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use CAH\Controllers\AdminController;
 use CAH\Controllers\AdminCardController;
+use CAH\Controllers\AdminPackController;
 use CAH\Controllers\AdminTagController;
 use CAH\Controllers\AdminGameController;
 use CAH\Controllers\CardController;
 use CAH\Controllers\GameController;
+use CAH\Controllers\PackController;
 use CAH\Controllers\PlayerController;
 use CAH\Controllers\RoundController;
 use CAH\Controllers\TagController;
@@ -87,6 +89,9 @@ $app->get('/api', function (Request $request, Response $response) {
             'tags' => [
                 'list' => 'GET /api/tags/list',
             ],
+            'packs' => [
+                'list' => 'GET /api/packs/list',
+            ],
             'admin' => [
                 'login' => 'POST /api/admin/login',
                 'logout' => 'POST /api/admin/logout',
@@ -97,6 +102,9 @@ $app->get('/api', function (Request $request, Response $response) {
                 'tags_create' => 'POST /api/admin/tags/create',
                 'tags_edit' => 'PUT /api/admin/tags/edit/{tagId}',
                 'tags_delete' => 'DELETE /api/admin/tags/delete/{tagId}',
+                'packs_create' => 'POST /api/admin/packs/create',
+                'packs_edit' => 'PUT /api/admin/packs/edit/{packId}',
+                'packs_delete' => 'DELETE /api/admin/packs/delete/{packId}',
                 'games_list' => 'GET /api/admin/games/list',
                 'games_delete' => 'DELETE /api/admin/games/delete/{gameId}',
             ],
@@ -171,6 +179,10 @@ $app->post('/api/cards/get', [CardController::class, 'getByIds'])->add(new AuthM
 // Tag routes
 $app->get('/api/tags/list', [TagController::class, 'list']);
 
+// Pack routes
+$app->get('/api/packs/list', [PackController::class, 'list']);
+$app->get('/api/packs/list-all', [PackController::class, 'listAll']);
+
 // Game view route - Public (no auth required)
 $app->get('/api/games/view/{gameId}', [GameController::class, 'viewGame']);
 
@@ -186,10 +198,17 @@ $app->delete('/api/admin/cards/delete/{cardId}', [AdminCardController::class, 'd
 $app->post('/api/admin/tags/create', [AdminTagController::class, 'createTag'])->add(new AdminAuthMiddleware());
 $app->put('/api/admin/tags/edit/{tagId}', [AdminTagController::class, 'editTag'])->add(new AdminAuthMiddleware());
 $app->delete('/api/admin/tags/delete/{tagId}', [AdminTagController::class, 'deleteTag'])->add(new AdminAuthMiddleware());
+$app->post('/api/admin/packs/create', [AdminPackController::class, 'createPack'])->add(new AdminAuthMiddleware());
+$app->put('/api/admin/packs/edit/{packId}', [AdminPackController::class, 'editPack'])->add(new AdminAuthMiddleware());
+$app->put('/api/admin/packs/toggle/{packId}', [AdminPackController::class, 'togglePack'])->add(new AdminAuthMiddleware());
+$app->delete('/api/admin/packs/delete/{packId}', [AdminPackController::class, 'deletePack'])->add(new AdminAuthMiddleware());
 $app->get('/api/admin/games/list', [AdminGameController::class, 'listGames'])->add(new AdminAuthMiddleware());
 $app->delete('/api/admin/games/delete/{gameId}', [AdminGameController::class, 'deleteGame'])->add(new AdminAuthMiddleware());
 $app->get('/api/admin/cards/{cardId}/tags', [AdminCardController::class, 'getCardTags'])->add(new AdminAuthMiddleware());
 $app->post('/api/admin/cards/{cardId}/tags/{tagId}', [AdminCardController::class, 'addCardTag'])->add(new AdminAuthMiddleware());
 $app->delete('/api/admin/cards/{cardId}/tags/{tagId}', [AdminCardController::class, 'removeCardTag'])->add(new AdminAuthMiddleware());
+$app->get('/api/admin/cards/{cardId}/packs', [AdminCardController::class, 'getCardPacks'])->add(new AdminAuthMiddleware());
+$app->post('/api/admin/cards/{cardId}/packs/{packId}', [AdminCardController::class, 'addCardPack'])->add(new AdminAuthMiddleware());
+$app->delete('/api/admin/cards/{cardId}/packs/{packId}', [AdminCardController::class, 'removeCardPack'])->add(new AdminAuthMiddleware());
 
 $app->run();
