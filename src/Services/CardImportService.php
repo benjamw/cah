@@ -46,7 +46,7 @@ class CardImportService
     public static function importCard(string $type, string $copy, ?int $choices = null, bool $active = true): ?int
     {
         if ($type === 'prompt' && $choices === null) {
-            $choices = self::parsePromptCardChoices($text);
+            $choices = self::parsePromptCardChoices($copy);
         }
 
         return Card::create($type, $copy, $choices, $active);

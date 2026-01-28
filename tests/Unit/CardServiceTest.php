@@ -29,7 +29,7 @@ class CardServiceTest extends TestCase
         $pile = [1, 2, 3];
 
         $this->expectException(InsufficientCardsException::class);
-        $this->expectExceptionMessage('Insufficient white cards');
+        $this->expectExceptionMessage('Insufficient response cards');
 
         CardService::drawResponseCards($pile, 5);
     }
@@ -48,7 +48,7 @@ class CardServiceTest extends TestCase
         $pile = [];
 
         $this->expectException(InsufficientCardsException::class);
-        $this->expectExceptionMessage('Insufficient black cards');
+        $this->expectExceptionMessage('Insufficient prompt cards');
 
         CardService::drawPromptCard($pile);
     }
