@@ -50,7 +50,7 @@ use CAH\Utils\Validator;
  *     player_order: array<string>,
  *     order_locked: bool,
  *     current_czar_id: string|null,
- *     current_black_card: int|null,
+ *     current_prompt_card: int|null,
  *     current_round: int,
  *     submissions: array<array{player_id: string, cards: array<int>}>,
  *     winner_id?: string,
@@ -132,7 +132,7 @@ class GameService
             'player_order' => [],
             'order_locked' => false,
             'current_czar_id' => null,
-            'current_black_card' => null,
+            'current_prompt_card' => null,
             'current_round' => GameDefaults::INITIAL_ROUND,
             'submissions' => [],
             // Note: round_history moved to separate column for performance
@@ -308,22 +308,22 @@ class GameService
                 throw new ValidationException("Need at least {$minPlayers} players to start");
             }
 
-            $whitePile = $game['draw_pile']['white'];
-            $blackPile = $game['draw_pile']['black'];
+            $responsePile = $game['draw_pile']['response'];
+            $promptPile = $game['draw_pile']['prompt'];
             $handSize = $playerData['settings']['hand_size'];
 
             // Calculate total cards needed
             $nonRandoPlayerCount = count($playerData['players']);
 
-            // Check if enough white cards to deal initial hands
+            // Check if enough response cards to deal initial hands
             $cardsNeededForHands = $nonRandoPlayerCount * $handSize;
-            if (count($whitePile) < $cardsNeededForHands) {
-                throw new InsufficientCardsException('white', $cardsNeededForHands, count($whitePile));
+            if (count($responsePile) < $cardsNeededForHands) {
+                throw new InsufficientCardsException('response', $cardsNeededForHands, count($responsePile));
             }
 
-            // Check if at least one black card available
-            if (empty($blackPile)) {
-                throw new InsufficientCardsException('black', 1, 0);
+            // Check if at least one prompt card available
+            if (empty($promptPile)) {
+                throw new InsufficientCardsException('prompt', 1, 0);
             }
 
             // Add Rando Cardrissian if enabled
@@ -346,16 +346,16 @@ class GameService
                 if ( ! empty($player['is_rando'])) {
                     continue;
                 }
-                $result = CardService::drawWhiteCards($whitePile, $handSize);
+                $result = CardService::drawResponseCards($responsePile, $handSize);
                 $player['hand'] = $result['cards'];
-                $whitePile = $result['remaining_pile'];
+                $responsePile = $result['remaining_pile'];
             }
 
-            $blackResult = CardService::drawBlackCard($blackPile);
-            $blackCardId = $blackResult['card'];
-            $blackPile = $blackResult['remaining_pile'];
+            $promptResult = CardService::drawPromptCard($promptPile);
+            $promptCardId = $promptResult['card'];
+            $promptPile = $promptResult['remaining_pile'];
 
-            $choices = CardService::getBlackCardChoices($blackCardId);
+            $choices = CardService::getPromptCardChoices($promptCardId);
             $bonusCards = CardService::calculateBonusCards($choices);
 
             if ($bonusCards > 0) {
@@ -364,7 +364,7 @@ class GameService
                     $playerData['players'],
                     fn($p): bool => empty($p['is_rando'])
                 );
-                $whitePile = CardService::dealBonusCards($nonRandoPlayers, $whitePile, $bonusCards);
+                $responsePile = CardService::dealBonusCards($nonRandoPlayers, $responsePile, $bonusCards);
                 // Update player hands from filtered array
                 foreach ($playerData['players'] as &$player) {
                     if (empty($player['is_rando'])) {
@@ -387,17 +387,17 @@ class GameService
             $playerData['state'] = GameState::PLAYING->value;
             $playerData['current_czar_id'] = $firstCzar;
             $playerData['current_czar_name'] = $eligiblePlayers[$randomIndex]['name'];
-            $playerData['current_black_card'] = $blackCardId;
+            $playerData['current_prompt_card'] = $promptCardId;
             $playerData['current_round'] = GameDefaults::FIRST_ROUND;
             $playerData['submissions'] = [];
 
             // Auto-submit for Rando (draws from pile)
             if ($playerData['settings']['rando_enabled']) {
-                $whitePile = RoundService::submitRandoCards($playerData, $whitePile, $choices);
+                $responsePile = RoundService::submitRandoCards($playerData, $responsePile, $choices);
             }
 
             Game::update($gameId, [
-                'draw_pile' => ['white' => $whitePile, 'black' => $blackPile],
+                'draw_pile' => ['response' => $responsePile, 'prompt' => $promptPile],
                 'player_data' => $playerData,
             ]);
 
@@ -445,21 +445,21 @@ class GameService
                 array_splice($playerData['player_order'], $orderIndex, 1);
             }
 
-            $whitePile = $game['draw_pile']['white'];
-            $blackPile = $game['draw_pile']['black'];
+            $responsePile = $game['draw_pile']['response'];
+            $promptPile = $game['draw_pile']['prompt'];
 
             // Return player's hand to pile
             if ( ! empty($playerHand)) {
-                $whitePile = CardService::returnCardsToPile($whitePile, $playerHand);
+                $responsePile = CardService::returnCardsToPile($responsePile, $playerHand);
             }
 
             // Handle czar removal during active round
             $isCzar = $playerData['current_czar_id'] === $targetPlayerId;
             if (self::shouldResetRound($playerData, $isCzar)) {
-                [$playerData, $whitePile, $blackPile] = self::handleCzarRemovalDuringRound(
+                [$playerData, $responsePile, $promptPile] = self::handleCzarRemovalDuringRound(
                     $playerData,
-                    $whitePile,
-                    $blackPile
+                    $responsePile,
+                    $promptPile
                 );
             }
 
@@ -472,7 +472,7 @@ class GameService
             $playerData = self::checkAndHandleGameEnd($playerData);
 
             Game::update($gameId, [
-                'draw_pile' => ['white' => $whitePile, 'black' => $blackPile],
+                'draw_pile' => ['response' => $responsePile, 'prompt' => $promptPile],
                 'player_data' => $playerData,
             ]);
 
@@ -531,14 +531,14 @@ class GameService
      * Handle czar removal during an active round - reset round state
      *
      * @param array $playerData
-     * @param array $whitePile
-     * @param array $blackPile
-     * @return array [$playerData, $whitePile, $blackPile]
+     * @param array $responsePile
+     * @param array $promptPile
+     *
+     * @return array [$playerData, $responsePile, $promptPile]
      */
     private static function handleCzarRemovalDuringRound(
         array $playerData,
-        array $whitePile,
-        array $blackPile
+        array $responsePile, array $promptPile
     ): array {
         // Return submitted cards to players' hands
         foreach ($playerData['submissions'] as $submission) {
@@ -553,7 +553,7 @@ class GameService
                         $player['hand'] = array_merge($player['hand'], $submittedCards);
                     } else {
                         // Rando's cards go back to pile
-                        $whitePile = CardService::returnCardsToPile($whitePile, $submittedCards);
+                        $responsePile = CardService::returnCardsToPile($responsePile, $submittedCards);
                     }
                     break;
                 }
@@ -563,26 +563,26 @@ class GameService
         // Clear submissions
         $playerData['submissions'] = [];
 
-        // Draw new black card
-        $blackResult = CardService::drawBlackCard($blackPile);
-        $playerData['current_black_card'] = $blackResult['card'];
-        $blackPile = $blackResult['remaining_pile'];
+        // Draw new prompt card
+        $promptResult = CardService::drawPromptCard($promptPile);
+        $playerData['current_prompt_card'] = $promptResult['card'];
+        $promptPile = $promptResult['remaining_pile'];
 
-        // Deal bonus cards if needed for new black card
-        $choices = CardService::getBlackCardChoices($playerData['current_black_card']);
+        // Deal bonus cards if needed for new prompt card
+        $choices = CardService::getPromptCardChoices($playerData['current_prompt_card']);
         $bonusCards = CardService::calculateBonusCards($choices);
 
         if ($bonusCards > 0) {
             foreach ($playerData['players'] as &$player) {
                 if (empty($player['is_rando'])) {
-                    $result = CardService::drawWhiteCards($whitePile, $bonusCards);
+                    $result = CardService::drawResponseCards($responsePile, $bonusCards);
                     $player['hand'] = array_merge($player['hand'], $result['cards']);
-                    $whitePile = $result['remaining_pile'];
+                    $responsePile = $result['remaining_pile'];
                 }
             }
         }
 
-        return [$playerData, $whitePile, $blackPile];
+        return [$playerData, $responsePile, $promptPile];
     }
 
     /**
@@ -849,20 +849,20 @@ class GameService
                 throw new ValidationException('No cards to refresh');
             }
 
-            $whitePile = $game['draw_pile']['white'];
+            $responsePile = $game['draw_pile']['response'];
             $discardPile = $game['discard_pile'] ?? [];
 
             // Add current hand to discard pile
             $discardPile = array_merge($discardPile, $currentHand);
             
             // Draw new cards
-            $result = CardService::drawWhiteCards($whitePile, $handSize);
+            $result = CardService::drawResponseCards($responsePile, $handSize);
             $playerData['players'][$playerIndex]['hand'] = $result['cards'];
-            $whitePile = $result['remaining_pile'];
+            $responsePile = $result['remaining_pile'];
 
             // Update game state
             Game::update($gameId, [
-                'draw_pile' => ['white' => $whitePile, 'black' => $game['draw_pile']['black']],
+                'draw_pile' => ['response' => $responsePile, 'prompt' => $game['draw_pile']['prompt']],
                 'discard_pile' => $discardPile,
                 'player_data' => $playerData,
             ]);
@@ -1302,9 +1302,9 @@ class GameService
 
             $playerId = self::generatePlayerId();
 
-            $whitePile = $game['draw_pile']['white'];
+            $responsePile = $game['draw_pile']['response'];
             $handSize = $playerData['settings']['hand_size'];
-            $result = CardService::drawWhiteCards($whitePile, $handSize);
+            $result = CardService::drawResponseCards($responsePile, $handSize);
 
             $newPlayer = [
                 'id' => $playerId,
@@ -1328,7 +1328,7 @@ class GameService
 
             // Update database
             Game::update($gameId, [
-                'draw_pile' => ['white' => $result['remaining_pile'], 'black' => $game['draw_pile']['black']],
+                'draw_pile' => ['response' => $result['remaining_pile'], 'prompt' => $game['draw_pile']['prompt']],
                 'player_data' => $playerData,
             ]);
 
@@ -1389,7 +1389,7 @@ class GameService
      *
      * Replaces card IDs with full card objects for:
      * - Player hands
-     * - Current black card
+     * - Current prompt card
      * - Submissions
      *
      * @param array $playerData Game player data
@@ -1407,9 +1407,9 @@ class GameService
             }
         }
 
-        // Current black card
-        if ( ! empty($playerData['current_black_card'])) {
-            $cardIds[] = $playerData['current_black_card'];
+        // Current prompt card
+        if ( ! empty($playerData['current_prompt_card'])) {
+            $cardIds[] = $playerData['current_prompt_card'];
         }
 
         // Submissions
@@ -1444,17 +1444,17 @@ class GameService
         foreach ($playerData['players'] as &$player) {
             if ( ! empty($player['hand'])) {
                 $player['hand'] = array_map(
-                    fn($id) => $cardMap[$id] ?? ['card_id' => $id, 'value' => 'Unknown'],
+                    fn($id) => $cardMap[$id] ?? ['card_id' => $id, 'copy' => 'Unknown'],
                     $player['hand']
                 );
             }
         }
 
-        // Hydrate current black card
-        if ( ! empty($playerData['current_black_card'])) {
-            $blackCardId = $playerData['current_black_card'];
-            $playerData['current_black_card'] = $cardMap[$blackCardId]
-                ?? ['card_id' => $blackCardId, 'value' => 'Unknown'];
+        // Hydrate current prompt card
+        if ( ! empty($playerData['current_prompt_card'])) {
+            $promptCardId = $playerData['current_prompt_card'];
+            $playerData['current_prompt_card'] = $cardMap[$promptCardId]
+                ?? ['card_id' => $promptCardId, 'copy' => 'Unknown'];
         }
 
         // Hydrate submissions
@@ -1462,7 +1462,7 @@ class GameService
             foreach ($playerData['submissions'] as &$submission) {
                 if ( ! empty($submission['cards'])) {
                     $submission['cards'] = array_map(
-                        fn($id) => $cardMap[$id] ?? ['card_id' => $id, 'value' => 'Unknown'],
+                        fn($id) => $cardMap[$id] ?? ['card_id' => $id, 'copy' => 'Unknown'],
                         $submission['cards']
                     );
                 }
@@ -1567,11 +1567,11 @@ class GameService
                 throw new ValidationException('Discard pile is empty, nothing to reshuffle');
             }
 
-            // Reshuffle white cards
-            $result = CardService::reshuffleDiscardPile($game['draw_pile']['white'], $discardPile);
+            // Reshuffle response cards
+            $result = CardService::reshuffleDiscardPile($game['draw_pile']['response'], $discardPile);
 
             Game::update($gameId, [
-                'draw_pile' => ['white' => $result['draw_pile'], 'black' => $game['draw_pile']['black']],
+                'draw_pile' => ['response' => $result['draw_pile'], 'prompt' => $game['draw_pile']['prompt']],
                 'discard_pile' => $result['discard_pile'],
             ]);
 
@@ -1729,16 +1729,16 @@ class GameService
                 Game::update($gameId, ['discard_pile' => $discardPile]);
             }
 
-            $whitePile = $game['draw_pile']['white'];
-            $blackPile = $game['draw_pile']['black'];
+            $responsePile = $game['draw_pile']['response'];
+            $promptPile = $game['draw_pile']['prompt'];
 
             // Handle czar removal during active round
             $isCzar = $playerData['current_czar_id'] === $playerId;
             if (self::shouldResetRound($playerData, $isCzar)) {
-                [$playerData, $whitePile, $blackPile] = self::handleCzarRemovalDuringRound(
+                [$playerData, $responsePile, $promptPile] = self::handleCzarRemovalDuringRound(
                     $playerData,
-                    $whitePile,
-                    $blackPile
+                    $responsePile,
+                    $promptPile
                 );
             }
 

@@ -12,7 +12,7 @@ use CAH\Exceptions\InsufficientCardsException;
  *
  * Handles card-related operations including drawing, shuffling, and pile management
  *
- * @phpstan-type DrawPile array{white: array<int>, black: array<int>}
+ * @phpstan-type DrawPile array{response: array<int>, prompt: array<int>}
  * @phpstan-type DrawResult array{cards: array<int>, remaining_pile: array<int>}
  */
 class CardService
@@ -25,71 +25,74 @@ class CardService
      */
     public static function buildDrawPile(array $tagIds): array
     {
-        $whiteCardIds = Card::getActiveCardsByTypeAndTags('white', $tagIds);
-        $blackCardIds = Card::getActiveCardsByTypeAndTags('black', $tagIds);
+        $responseCardIds = Card::getActiveCardsByTypeAndTags('response', $tagIds);
+        $promptCardIds = Card::getActiveCardsByTypeAndTags('prompt', $tagIds);
 
-        shuffle($whiteCardIds);
-        shuffle($blackCardIds);
+        shuffle($responseCardIds);
+        shuffle($promptCardIds);
 
         return [
-            'white' => $whiteCardIds,
-            'black' => $blackCardIds,
+            'response' => $responseCardIds,
+            'prompt' => $promptCardIds,
         ];
     }
 
     /**
-     * Draw cards from the white card pile
+     * Draw cards from the response card pile
      *
-     * @param array $whitePile Array of white card IDs
+     * @param array $responsePile Array of response card IDs
      * @param int $count Number of cards to draw
+     *
      * @return array ['cards' => [...drawn card IDs...], 'remaining_pile' => [...remaining IDs...]]
      * @throws InsufficientCardsException If not enough cards in pile
      */
-    public static function drawWhiteCards(array $whitePile, int $count): array
+    public static function drawResponseCards(array $responsePile, int $count): array
     {
-        $available = count($whitePile);
+        $available = count($responsePile);
         if ($available < $count) {
-            throw new InsufficientCardsException('white', $count, $available);
+            throw new InsufficientCardsException('response', $count, $available);
         }
 
-        $drawn = array_splice($whitePile, 0, $count);
+        $drawn = array_splice($responsePile, 0, $count);
 
         return [
             'cards' => $drawn,
-            'remaining_pile' => $whitePile,
+            'remaining_pile' => $responsePile,
         ];
     }
 
     /**
-     * Draw a single black card from the pile
+     * Draw a single prompt card from the pile
      *
-     * @param array $blackPile Array of black card IDs
+     * @param array $promptPile Array of prompt card IDs
+     *
      * @return array ['card' => card ID, 'remaining_pile' => [...remaining IDs...]]
      * @throws InsufficientCardsException If pile is empty
      */
-    public static function drawBlackCard(array $blackPile): array
+    public static function drawPromptCard(array $promptPile): array
     {
-        if (empty($blackPile)) {
-            throw new InsufficientCardsException('black', 1, 0);
+        if (empty($promptPile)) {
+            throw new InsufficientCardsException('prompt', 1, 0);
         }
 
-        $card = array_shift($blackPile);
+        $card = array_shift($promptPile);
 
         return [
             'card' => $card,
-            'remaining_pile' => $blackPile,
+            'remaining_pile' => $promptPile,
         ];
     }
 
     /**
-     * Get the number of white cards needed for a black card
+     * Get the number of response cards needed for a prompt card
      *
-     * @param int $blackCardId
-     * @return int Number of white cards needed (defaults to 1 if not found)
+     * @param int $promptCardId
+     *
+     * @return int Number of response cards needed (defaults to 1 if not found)
      */
-    public static function getBlackCardChoices(int $blackCardId): int
+    public static function getPromptCardChoices(int $promptCardId): int
     {
-        $card = Card::getById($blackCardId);
+        $card = Card::getById($promptCardId);
 
         if ( ! $card || $card['choices'] === null) {
             return 1; // Default
@@ -99,16 +102,16 @@ class CardService
     }
 
     /**
-     * Calculate how many bonus cards to deal for a black card
+     * Calculate how many bonus cards to deal for a prompt card
      *
-     * For black cards requiring 3+ choices, deal (n-1) extra cards to all players
+     * For prompt cards requiring 3+ choices, deal (n-1) extra cards to all players
      * Examples:
      *   - 1 choice: 0 bonus cards
      *   - 2 choices: 0 bonus cards
      *   - 3 choices: 2 bonus cards
      *   - 4 choices: 3 bonus cards
      *
-     * @param int $choices Number of white cards required
+     * @param int $choices Number of response cards required
      * @return int Number of bonus cards to deal
      */
     public static function calculateBonusCards(int $choices): int
@@ -121,27 +124,28 @@ class CardService
     }
 
     /**
-     * Deal bonus cards to all players for multi-choice black cards
+     * Deal bonus cards to all players for multi-choice prompt cards
      *
      * @param array $players Array of player data (passed by reference)
-     * @param array $whitePile White card draw pile
+     * @param array $responsePile Response card draw pile
      * @param int $bonusCount Number of bonus cards per player
-     * @return array Updated white pile after dealing
+     *
+     * @return array Updated response pile after dealing
      */
-    public static function dealBonusCards(array &$players, array $whitePile, int $bonusCount): array
+    public static function dealBonusCards(array &$players, array $responsePile, int $bonusCount): array
     {
         if ($bonusCount <= 0) {
-            return $whitePile;
+            return $responsePile;
         }
 
         foreach ($players as &$player) {
             // Draw bonus cards and add to player's hand
-            $result = self::drawWhiteCards($whitePile, $bonusCount);
+            $result = self::drawResponseCards($responsePile, $bonusCount);
             $player['hand'] = array_merge($player['hand'], $result['cards']);
-            $whitePile = $result['remaining_pile'];
+            $responsePile = $result['remaining_pile'];
         }
 
-        return $whitePile;
+        return $responsePile;
     }
 
     /**
@@ -171,27 +175,29 @@ class CardService
     /**
      * Check if draw pile is running low
      *
-     * @param array $whitePile White card pile
+     * @param array $responsePile Response card pile
      * @param int|null $threshold Warning threshold (uses config default if null)
+     *
      * @return bool True if pile is low
      */
-    public static function isDrawPileLow(array $whitePile, ?int $threshold = null): bool
+    public static function isDrawPileLow(array $responsePile, ?int $threshold = null): bool
     {
         $threshold ??= ConfigService::getGameValue('draw_pile_warning_threshold', 10);
-        return count($whitePile) < $threshold;
+        return count($responsePile) < $threshold;
     }
 
     /**
      * Get warning message if draw pile is low
      *
-     * @param array $whitePile White card pile
+     * @param array $responsePile Response card pile
      * @param int|null $threshold Warning threshold (uses config default if null)
+     *
      * @return string|null Warning message or null
      */
-    public static function getDrawPileWarning(array $whitePile, ?int $threshold = null): ?string
+    public static function getDrawPileWarning(array $responsePile, ?int $threshold = null): ?string
     {
         $threshold ??= ConfigService::getGameValue('draw_pile_warning_threshold', 10);
-        $count = count($whitePile);
+        $count = count($responsePile);
 
         if ($count < $threshold) {
             return "Only {$count} cards remaining in draw pile!";

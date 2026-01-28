@@ -74,9 +74,9 @@ class RoundServiceTest extends TestCase
             }
         }
 
-        // Get how many cards the black card requires
-        $blackCardId = $this->getCardId($gameState['current_black_card']);
-        $requiredCards = CardService::getBlackCardChoices($blackCardId);
+        // Get how many cards the prompt card requires
+        $promptCardId = $this->getCardId($gameState['current_prompt_card']);
+        $requiredCards = CardService::getPromptCardChoices($promptCardId);
         $cardsToSubmit = $this->getCardIds(array_slice($nonCzarPlayer['hand'], 0, $requiredCards));
         $result = RoundService::submitCards($gameId, $nonCzarPlayer['id'], $cardsToSubmit);
 
@@ -116,8 +116,8 @@ class RoundServiceTest extends TestCase
         }
 
         // Get how many cards are required and submit wrong number
-        $blackCardId = $this->getCardId($gameState['current_black_card']);
-        $requiredCards = CardService::getBlackCardChoices($blackCardId);
+        $promptCardId = $this->getCardId($gameState['current_prompt_card']);
+        $requiredCards = CardService::getPromptCardChoices($promptCardId);
         $wrongNumber = $requiredCards + 1; // Submit one more than required
         $cardsToSubmit = $this->getCardIds(array_slice($nonCzarPlayer['hand'], 0, $wrongNumber));
 
@@ -143,9 +143,9 @@ class RoundServiceTest extends TestCase
             }
         }
 
-        // Get how many cards the black card requires
-        $blackCardId = $this->getCardId($gameState['current_black_card']);
-        $requiredCards = CardService::getBlackCardChoices($blackCardId);
+        // Get how many cards the prompt card requires
+        $promptCardId = $this->getCardId($gameState['current_prompt_card']);
+        $requiredCards = CardService::getPromptCardChoices($promptCardId);
 
         // Try to submit cards not in hand (use correct number of invalid cards)
         $invalidCards = array_fill(0, $requiredCards, 99999);
@@ -172,9 +172,9 @@ class RoundServiceTest extends TestCase
             }
         }
 
-        // Get how many cards the black card requires
-        $blackCardId = $this->getCardId($gameState['current_black_card']);
-        $requiredCards = CardService::getBlackCardChoices($blackCardId);
+        // Get how many cards the prompt card requires
+        $promptCardId = $this->getCardId($gameState['current_prompt_card']);
+        $requiredCards = CardService::getPromptCardChoices($promptCardId);
         $cardsToSubmit = $this->getCardIds(array_slice($nonCzarPlayer['hand'], 0, $requiredCards));
 
         // First submission should succeed
@@ -246,8 +246,8 @@ class RoundServiceTest extends TestCase
         $playerData = $currentGame['player_data'];
 
         $czarId = $playerData['current_czar_id'];
-        $blackCardId = $playerData['current_black_card'];
-        $requiredCards = CardService::getBlackCardChoices($blackCardId);
+        $promptCardId = $playerData['current_prompt_card'];
+        $requiredCards = CardService::getPromptCardChoices($promptCardId);
 
         // Have all non-czar players submit the correct number of cards
         foreach ($playerData['players'] as $player) {
@@ -281,13 +281,13 @@ class RoundServiceTest extends TestCase
             }
         }
 
-        // Empty the black pile to trigger the game-ending condition
+        // Empty the prompt pile to trigger the game-ending condition
         Game::update($gameId, [
-            'draw_pile' => ['white' => $currentGame['draw_pile']['white'], 'black' => []],
+            'draw_pile' => ['response' => $currentGame['draw_pile']['response'], 'prompt' => []],
             'player_data' => $playerData,
         ]);
 
-        // Advance to next round - should trigger game end due to no black cards
+        // Advance to next round - should trigger game end due to no prompt cards
         $result = RoundService::advanceToNextRound($gameId);
 
         // Verify game ended correctly

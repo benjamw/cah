@@ -33,11 +33,11 @@ try {
     ]);
 
     // Create test database
-    $pdo->exec("CREATE DATABASE IF NOT EXISTS cah_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-    echo "Database 'cah_test' created (or already exists)\n";
+    $pdo->exec("CREATE DATABASE IF NOT EXISTS cah_game_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+    echo "Database 'cah_game_test' created (or already exists)\n";
 
     // Switch to test database
-    $pdo->exec("USE cah_test");
+    $pdo->exec("USE cah_game_test");
 
     // Read and execute schema
     $schemaFile = __DIR__ . '/src/Database/migrations/schema.sql';

@@ -52,7 +52,7 @@ Response:
 **GET** `/api/admin/cards/list`
 
 Query Parameters:
-- `type` (optional): Filter by card type (`white` or `black`)
+- `type` (optional): Filter by card type (`response` or `prompt`)
 - `tag_id` (optional): Filter by tag ID
 - `active` (optional): Filter by active status (1 or 0, default: 1)
 - `limit` (optional): Number of cards to return (default: 100, max: 10000, 0 = no limit)
@@ -71,8 +71,8 @@ Response:
     "cards": [
       {
         "card_id": 1,
-        "card_type": "white",
-        "value": "Card text here",
+        "type": "response",
+        "copy": "Card text here",
         "choices": null,
         "active": 1,
         "tags": [
@@ -94,8 +94,8 @@ Response:
 
 Examples:
 ```bash
-# List all white cards
-GET /api/admin/cards/list?type=white
+# List all response cards
+GET /api/admin/cards/list?type=response
 
 # List cards with a specific tag
 GET /api/admin/cards/list?tag_id=1
@@ -112,7 +112,7 @@ GET /api/admin/cards/list?limit=0
 
 ### Import Cards from CSV
 
-**POST** `/api/admin/cards/import?type=white`
+**POST** `/api/admin/cards/import?type=response`
 
 Headers:
 ```
@@ -124,7 +124,7 @@ Form Data:
 - `file`: CSV file with cards (first column is card text, columns 2-11 are tags)
 
 Query Parameters:
-- `type`: `white` or `black`
+- `type`: `response` or `prompt`
 
 Response:
 ```json
@@ -151,8 +151,8 @@ Content-Type: application/json
 Request:
 ```json
 {
-  "value": "Updated card text",
-  "card_type": "white",
+  "copy": "Updated card text",
+  "type": "response",
   "choices": 1,
   "active": true
 }
@@ -297,19 +297,19 @@ Response:
         "game_id": "ABCD",
         "tags": [1, 2, 3],
         "draw_pile": {
-          "white": [1, 2, 3, ...],
-          "black": [101, 102, 103, ...]
+          "response": [1, 2, 3, ...],
+          "prompt": [101, 102, 103, ...]
         },
         "discard_pile": {
-          "white": [],
-          "black": []
+          "response": [],
+          "prompt": []
         },
         "player_data": {
           "state": "playing",
           "creator_id": "player-123",
           "players": [...],
           "current_czar_id": "player-123",
-          "current_black_card": {...},
+          "current_prompt_card": {...},
           "current_round": 3,
           "submissions": [...],
           "settings": {...}

@@ -138,7 +138,7 @@ def process_file(filename):
                 break
 
 # Process both files
-process_file('data/black_cards.csv')
-process_file('data/white_cards.csv')
+process_file('data/prompt_cards.csv')
+process_file('data/response_cards.csv')
 
 print('\nAll files processed!')

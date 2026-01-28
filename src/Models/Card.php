@@ -9,7 +9,7 @@ use CAH\Database\Database;
 /**
  * Card Model
  *
- * Handles database operations for cards (white and black)
+ * Handles database operations for cards (response and prompt)
  */
 class Card
 {
@@ -66,7 +66,7 @@ class Card
      *   - Card with tags [1, 3] -> Excluded (tag 3 not in selection)
      *   - Card with tags [3] -> Excluded (tag 3 not in selection)
      *
-     * @param string $cardType 'white' or 'black'
+     * @param string $cardType 'response' or 'prompt'
      * @param array $tagIds Array of tag IDs to filter by
      * @return array Array of card IDs
      */
@@ -77,7 +77,7 @@ class Card
                 SELECT card_id
                 FROM cards
                 WHERE active = 1
-                    AND card_type = ?
+                    AND type = ?
             ";
             return array_column(Database::fetchAll($sql, [$cardType]), 'card_id');
         }
@@ -91,7 +91,7 @@ class Card
             SELECT DISTINCT c.card_id
             FROM cards c
             WHERE c.active = 1
-                AND c.card_type = ?
+                AND c.type = ?
                 AND c.card_id NOT IN (
                     -- Exclude cards that have any tag NOT in the selected list
                     SELECT DISTINCT ct.card_id
@@ -107,7 +107,7 @@ class Card
     /**
      * Get all active cards by type
      *
-     * @param string $cardType 'white' or 'black'
+     * @param string $cardType 'response' or 'prompt'
      * @return array Array of card data
      */
     public static function getActiveByType(string $cardType): array
@@ -116,7 +116,7 @@ class Card
             SELECT *
             FROM cards
             WHERE active = 1
-                AND card_type = ?
+                AND type = ?
         ";
         return Database::fetchAll($sql, [$cardType]);
     }
@@ -124,20 +124,20 @@ class Card
     /**
      * Create a new card
      *
-     * @param string $cardType 'white' or 'black'
-     * @param string $value Card text (supports markdown)
-     * @param int|null $choices Number of white cards needed (black cards only)
+     * @param string $cardType 'response' or 'prompt'
+     * @param string $copy Card text (supports markdown)
+     * @param int|null $choices Number of response cards needed (prompt cards only)
      * @param bool $active Whether card is active
      * @return int The new card ID
      */
-    public static function create(string $cardType, string $value, ?int $choices = null, bool $active = true): int
+    public static function create(string $cardType, string $copy, ?int $choices = null, bool $active = true): int
     {
         $sql = "
-            INSERT INTO cards (card_type, value, choices, active)
+            INSERT INTO cards (type, copy, choices, active)
             VALUES (?, ?, ?, ?)
         ";
 
-        Database::execute($sql, [$cardType, $value, $choices, $active ? 1 : 0]);
+        Database::execute($sql, [$cardType, $copy, $choices, $active ? 1 : 0]);
 
         return (int) Database::lastInsertId();
     }
@@ -151,7 +151,7 @@ class Card
      */
     public static function update(int $cardId, array $data): int
     {
-        $allowedFields = ['card_type', 'value', 'choices', 'active'];
+        $allowedFields = ['type', 'copy', 'choices', 'active'];
         $fields = [];
         $values = [];
 
@@ -195,7 +195,7 @@ class Card
     /**
      * Get total count of active cards by type
      *
-     * @param string $cardType 'white' or 'black'
+     * @param string $cardType 'response' or 'prompt'
      * @return int
      */
     /**
@@ -203,7 +203,7 @@ class Card
      *
      * This method encapsulates the complex query logic for the admin card list
      *
-     * @param string|null $cardType Filter by card type ('white' or 'black'), null for all
+     * @param string|null $cardType Filter by card type ('response' or 'prompt'), null for all
      * @param int|null $tagId Filter by tag ID, null for no tag filter
      * @param bool $noTags If true, only return cards with no tags
      * @param bool $active Filter by active status
@@ -237,7 +237,7 @@ class Card
 
         // Add filters
         if ($cardType !== null) {
-            $conditions[] = "c.card_type = ?";
+            $conditions[] = "c.type = ?";
             $params[] = $cardType;
         }
 
@@ -274,7 +274,7 @@ class Card
         }
 
         if ($cardType !== null) {
-            $countConditions[] = "c.card_type = ?";
+            $countConditions[] = "c.type = ?";
             $countParams[] = $cardType;
         }
 

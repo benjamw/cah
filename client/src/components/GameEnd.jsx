@@ -14,7 +14,7 @@ function GameEnd({ gameState, onLeaveGame }) {
     switch (endReason) {
       case 'max_score_reached':
         return 'Someone reached the winning score!';
-      case 'no_black_cards_left':
+      case 'no_prompt_cards_left':
         return 'No more black cards left in the deck!';
       case 'too_few_players':
         return 'Too few players remaining to continue.';

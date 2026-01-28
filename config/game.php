@@ -12,11 +12,11 @@ return [
     // Player settings
     'min_players' => 3,
     'max_players' => 20,
-    'hand_size' => 10, // Number of white cards each player holds
+    'hand_size' => 10, // Number of response cards each player holds
 
     // Game settings
     'default_max_score' => 8, // Points needed to win
-    'draw_pile_warning_threshold' => 100, // Warn when white cards remaining drops below this
+    'draw_pile_warning_threshold' => 100, // Warn when response cards remaining drops below this
 
     // Rate limiting
     'rate_limit' => [

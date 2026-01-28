@@ -677,13 +677,13 @@ h3 {
   touch-action: manipulation;
 }
 
-.card-white {
+.card-response {
   background-color: var(--color-white);
   color: var(--color-black);
   border: 2px solid var(--color-gray-medium);
 }
 
-.card-black {
+.card-prompt {
   background-color: var(--color-black);
   color: var(--color-white);
 }
@@ -881,13 +881,13 @@ h3 {
   margin-bottom: var(--spacing-xl);
 }
 
-.black-card-section {
+.prompt-card-section {
   margin-top: var(--spacing-xl);
   padding-top: var(--spacing-xl);
   border-top: 2px solid var(--color-gray-medium);
 }
 
-.black-card-header {
+.prompt-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -895,7 +895,7 @@ h3 {
   gap: var(--spacing-md);
 }
 
-.black-card-header h3 {
+.prompt-card-header h3 {
   margin: 0;
 }
 
@@ -1467,13 +1467,13 @@ h3 {
   gap: var(--spacing-md);
 }
 
-.white-cards-below {
+.response-cards-below {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
 }
 
-.white-text-inline {
+.response-text-inline {
   background-color: var(--color-white);
   color: var(--color-black);
   padding: var(--spacing-xs) var(--spacing-sm);
@@ -1482,7 +1482,7 @@ h3 {
   margin: 0 2px;
 }
 
-.black-text {
+.prompt-text {
   color: var(--color-white);
 }
 
@@ -1747,4 +1747,3 @@ h3 {
   gap: var(--spacing-sm);
   margin-top: var(--spacing-xl);
 }
-

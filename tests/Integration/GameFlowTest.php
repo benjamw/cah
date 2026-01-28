@@ -105,7 +105,7 @@ class GameFlowTest extends TestCase
 
         $this->assertEquals('playing', $result['state']);
         $this->assertNotNull($result['current_czar_id']);
-        $this->assertNotNull($result['current_black_card']);
+        $this->assertNotNull($result['current_prompt_card']);
         $this->assertEquals(1, $result['current_round']);
 
         // Verify all players have cards in hand by fetching full game state from database
@@ -165,9 +165,9 @@ class GameFlowTest extends TestCase
         $game = Game::find($gameId);
         $players = $game['player_data']['players'];
 
-        // Get how many cards the black card requires
-        $blackCardId = $this->getCardId($gameState['current_black_card']);
-        $requiredCards = CardService::getBlackCardChoices($blackCardId);
+        // Get how many cards the prompt card requires
+        $promptCardId = $this->getCardId($gameState['current_prompt_card']);
+        $requiredCards = CardService::getPromptCardChoices($promptCardId);
 
         // Non-czar players submit cards
         foreach ($players as $player) {

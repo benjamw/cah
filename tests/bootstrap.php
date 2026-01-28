@@ -30,6 +30,12 @@ date_default_timezone_set($_ENV['APP_TIMEZONE'] ?? getenv('APP_TIMEZONE') ?: 'UT
 // Load database config
 $dbConfig = require __DIR__ . '/../config/database.php';
 
+// Override with test database settings from phpunit.xml
+$dbConfig['host'] = $_ENV['TEST_DB_HOST'] ?? getenv('TEST_DB_HOST') ?: $dbConfig['host'];
+$dbConfig['database'] = $_ENV['TEST_DB_NAME'] ?? getenv('TEST_DB_NAME') ?: $dbConfig['database'];
+$dbConfig['username'] = $_ENV['TEST_DB_USER'] ?? getenv('TEST_DB_USER') ?: $dbConfig['username'];
+$dbConfig['password'] = $_ENV['TEST_DB_PASS'] ?? getenv('TEST_DB_PASS') ?: $dbConfig['password'];
+
 // Initialize database
 Database::init($dbConfig);
 
@@ -53,35 +59,35 @@ try {
 // Seed test data
 echo "Seeding test data...\n";
 
-// Insert test white cards (increased for testing with multiple players)
-$whiteCards = [];
+// Insert test response cards (increased for testing with multiple players)
+$responseCards = [];
 for ($i = 1; $i <= 300; $i++) {
-    $whiteCards[] = sprintf('White Card %03d', $i);
+    $responseCards[] = sprintf('White Card %03d', $i);
 }
 
-$stmt = $connection->prepare("INSERT INTO cards (card_type, value) VALUES ('white', ?)");
-foreach ($whiteCards as $text) {
+$stmt = $connection->prepare("INSERT INTO cards (type, copy) VALUES ('response', ?)");
+foreach ($responseCards as $text) {
     $stmt->execute([$text]);
 }
 
-// Insert test black cards (increased for multi-round testing)
-$blackCards = [];
+// Insert test prompt cards (increased for multi-round testing)
+$promptCards = [];
 // Add cards that require 1 choice
 for ($i = 1; $i <= 40; $i++) {
-    $blackCards[] = ['value' => sprintf('Black Card %03d with ____.', $i), 'choices' => 1];
+    $promptCards[] = ['copy' => sprintf('Black Card %03d with ____.', $i), 'choices' => 1];
 }
 // Add cards that require 2 choices
 for ($i = 41; $i <= 55; $i++) {
-    $blackCards[] = ['value' => sprintf('Black Card %03d with ____ and ____.', $i), 'choices' => 2];
+    $promptCards[] = ['copy' => sprintf('Black Card %03d with ____ and ____.', $i), 'choices' => 2];
 }
 // Add cards that require 3 choices
 for ($i = 56; $i <= 70; $i++) {
-    $blackCards[] = ['value' => sprintf('Black Card %03d with ____, ____, and ____.', $i), 'choices' => 3];
+    $promptCards[] = ['copy' => sprintf('Black Card %03d with ____, ____, and ____.', $i), 'choices' => 3];
 }
 
-$stmt = $connection->prepare("INSERT INTO cards (card_type, value, choices) VALUES ('black', ?, ?)");
-foreach ($blackCards as $card) {
-    $stmt->execute([$card['value'], $card['choices']]);
+$stmt = $connection->prepare("INSERT INTO cards (type, copy, choices) VALUES ('prompt', ?, ?)");
+foreach ($promptCards as $card) {
+    $stmt->execute([$card['copy'], $card['choices']]);
 }
 
 // Insert a test tag
@@ -92,16 +98,16 @@ $tagId = $connection->lastInsertId();
 define('TEST_TAG_ID', (int) $tagId);
 
 // Tag all cards with test_base - get actual card IDs from database
-$whiteCardCount = count($whiteCards);
-$blackCardCount = count($blackCards);
+$responseCardCount = count($responseCards);
+$promptCardCount = count($promptCards);
 $cardIds = $connection->query("SELECT card_id FROM cards ORDER BY card_id")->fetchAll(PDO::FETCH_COLUMN);
 $stmt = $connection->prepare("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)");
 foreach ($cardIds as $cardId) {
     $stmt->execute([$cardId, $tagId]);
 }
 
-echo "Seeded {$whiteCardCount} white cards\n";
-echo "Seeded {$blackCardCount} black cards\n";
+echo "Seeded {$responseCardCount} response cards\n";
+echo "Seeded {$promptCardCount} prompt cards\n";
 echo "Created test_base tag (ID: {$tagId})\n";
 echo "Test data ready!\n\n";
 

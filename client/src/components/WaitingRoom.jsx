@@ -136,8 +136,8 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
           {settings.allow_late_join && <li>Late Join: Allowed</li>}
           {gameState?.deck_counts && (
             <>
-              <li>White Cards in Deck: <strong>{gameState.deck_counts.white_cards}</strong></li>
-              <li>Black Cards in Deck: <strong>{gameState.deck_counts.black_cards}</strong></li>
+              <li>White Cards in Deck: <strong>{gameState.deck_counts.response_cards}</strong></li>
+              <li>Black Cards in Deck: <strong>{gameState.deck_counts.prompt_cards}</strong></li>
             </>
           )}
         </ul>

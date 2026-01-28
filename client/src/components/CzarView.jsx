@@ -4,7 +4,7 @@ import { faTrophy } from '@fortawesome/free-solid-svg-icons';
 import { pickWinner, setNextCzar, forceEarlyReview } from '../utils/api';
 import CardSwiper from './CardSwiper';
 
-function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
+function CzarView({ gameState, gameData, promptCard, responseCards, showToast }) {
   const [currentSubmissionIndex, setCurrentSubmissionIndex] = useState(0);
   const [selecting, setSelecting] = useState(false);
   const [error, setError] = useState('');
@@ -149,22 +149,22 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
     }
   };
 
-  const renderCardWithBlanks = (blackCardText, whiteCardTexts) => {
-    const blanks = (blackCardText.match(/_+/g) || []).length;
+  const renderCardWithBlanks = (promptCardText, responseCardTexts) => {
+    const blanks = (promptCardText.match(/_+/g) || []).length;
 
     if (blanks === 0) {
-      // No blanks, show black card and white cards below
+      // No blanks, show prompt card and response cards below
       return (
         <div className="card-combination">
           <div
-            className="card-text black-text"
-            dangerouslySetInnerHTML={{ __html: formatCardText(blackCardText) }}
+            className="card-text prompt-text"
+            dangerouslySetInnerHTML={{ __html: formatCardText(promptCardText) }}
           />
-          <div className="white-cards-below">
-            {whiteCardTexts.map((text, index) => (
+          <div className="response-cards-below">
+            {responseCardTexts.map((text, index) => (
               <div
                 key={index}
-                className="card-text white-text-inline"
+                className="card-text response-text-inline"
                 dangerouslySetInnerHTML={{ __html: formatCardText(text) }}
               />
             ))}
@@ -173,18 +173,18 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
       );
     }
 
-    // Replace blanks with white card text
-    let result = blackCardText;
-    let whiteIndex = 0;
+    // Replace blanks with response card text
+    let result = promptCardText;
+    let responseIndex = 0;
 
     result = result.replace(/_+/g, () => {
-      if (whiteIndex < whiteCardTexts.length) {
-        // Trim trailing periods from white cards since black cards usually have punctuation
-        const whiteText = whiteCardTexts[whiteIndex].replace(/\.+$/, '');
-        const replacement = `<span class="white-text-inline">${formatCardText(
-          whiteText
+      if (responseIndex < responseCardTexts.length) {
+        // Trim trailing periods from response cards since prompt cards usually have punctuation
+        const responseText = responseCardTexts[responseIndex].replace(/\.+$/, '');
+        const replacement = `<span class="response-text-inline">${formatCardText(
+          responseText
         )}</span>`;
-        whiteIndex++;
+        responseIndex++;
         return replacement;
       }
       return '_____';
@@ -192,7 +192,7 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
 
     return (
       <div
-        className="card-text black-text"
+        className="card-text prompt-text"
         dangerouslySetInnerHTML={{ __html: result }}
       />
     );
@@ -207,11 +207,11 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
 
       { ! allSubmitted && (
         <div className="card-section">
-          {blackCard ? (
-            <div className="card card-black">
-              <div className="card-content" dangerouslySetInnerHTML={{ __html: formatCardText(blackCard.value) }} />
-              {blackCard.choices > 1 && (
-                <div className="card-pick">Pick {blackCard.choices}</div>
+          {promptCard ? (
+            <div className="card card-prompt">
+              <div className="card-content" dangerouslySetInnerHTML={{ __html: formatCardText(promptCard.copy) }} />
+              {promptCard.choices > 1 && (
+                <div className="card-pick">Pick {promptCard.choices}</div>
               )}
             </div>
           ) : (
@@ -248,10 +248,10 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
 
           <div className="card-section">
             <CardSwiper
-              cards={whiteCards}
+              cards={responseCards}
               selectedCards={[]}
               onCardSelect={null}
-              cardType="white"
+              cardType="response"
               disabled={true}
             />
           </div>
@@ -268,10 +268,10 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
 
             {submissions.length > 0 && submissions[currentSubmissionIndex] ? (
               <>
-                <div className="card card-black card-submission">
+                <div className="card card-prompt card-submission">
                   {renderCardWithBlanks(
-                    blackCard.value,
-                    submissions[currentSubmissionIndex].cards.map((c) => c.value)
+                    promptCard.copy,
+                    submissions[currentSubmissionIndex].cards.map((c) => c.copy)
                   )}
                 </div>
 
@@ -313,10 +313,10 @@ function CzarView({ gameState, gameData, blackCard, whiteCards, showToast }) {
 
           <div className="card-section">
             <CardSwiper
-              cards={whiteCards}
+              cards={responseCards}
               selectedCards={[]}
               onCardSelect={null}
-              cardType="white"
+              cardType="response"
               disabled={true}
             />
           </div>

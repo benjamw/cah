@@ -79,8 +79,8 @@ class Tag
         $sql = "
             SELECT
                 t.*,
-                COUNT(DISTINCT CASE WHEN c.card_type = 'white' AND c.active = 1 THEN c.card_id END) as white_card_count,
-                COUNT(DISTINCT CASE WHEN c.card_type = 'black' AND c.active = 1 THEN c.card_id END) as black_card_count,
+                COUNT(DISTINCT CASE WHEN c.type = 'response' AND c.active = 1 THEN c.card_id END) as response_card_count,
+                COUNT(DISTINCT CASE WHEN c.type = 'prompt' AND c.active = 1 THEN c.card_id END) as prompt_card_count,
                 COUNT(DISTINCT CASE WHEN c.active = 1 THEN c.card_id END) as total_card_count
             FROM tags t
             LEFT JOIN cards_to_tags ct ON t.tag_id = ct.tag_id
@@ -96,7 +96,7 @@ class Tag
      * Get card count for a specific tag
      *
      * @param int $tagId
-     * @param string|null $cardType Optional: 'white', 'black', or null for all
+     * @param string|null $cardType Optional: 'response', 'prompt', or null for all
      * @return int Number of active cards with this tag
      */
     public static function getCardCount(int $tagId, ?string $cardType = null): int
@@ -106,7 +106,7 @@ class Tag
                 SELECT COUNT(DISTINCT c.card_id) as count
                 FROM cards c
                 INNER JOIN cards_to_tags ct ON c.card_id = ct.card_id
-                WHERE ct.tag_id = ? AND c.active = 1 AND c.card_type = ?
+                WHERE ct.tag_id = ? AND c.active = 1 AND c.type = ?
             ";
             $result = Database::fetchOne($sql, [$tagId, $cardType]);
         } else {

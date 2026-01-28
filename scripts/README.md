@@ -27,15 +27,15 @@ pip install odfpy
 Converts Excel (.xlsx) or OpenDocument (.ods) spreadsheet files to CSV format while preserving text formatting (bold, italic, underline) as markdown.
 
 **Features:**
-- Reads rows where first column contains "prompt" for black cards
-- Reads rows where first column contains "response" for white cards
+- Reads rows where first column contains "prompt" for prompt cards
+- Reads rows where first column contains "response" for response cards
 - Card data is read from second column (and third column if present)
 - Converts text formatting to markdown:
   - **Bold** -> `**text**`
   - *Italic* -> `*text*`
   - <u>Underline</u> -> `<u>text</u>`
 - **Preserves newlines** within card text (for multi-line cards)
-- Outputs separate CSV files for black and white cards
+- Outputs separate CSV files for prompt and response cards
 - Includes header row with 10 tag columns
 
 **Installation:**
@@ -51,13 +51,13 @@ pip install odfpy
 **Usage:**
 
 ```bash
-python scripts/convert_spreadsheet_to_csv.py input_file.xlsx output_black.csv output_white.csv
+python scripts/convert_spreadsheet_to_csv.py input_file.xlsx output_prompt.csv output_response.csv
 ```
 
 **Example:**
 
 ```bash
-python scripts/convert_spreadsheet_to_csv.py data/cards.xlsx data/black_cards.csv data/white_cards.csv
+python scripts/convert_spreadsheet_to_csv.py data/cards.xlsx data/prompt_cards.csv data/response_cards.csv
 ```
 
 **Input Format:**
@@ -104,7 +104,7 @@ Automatically adds content warning tags to cards based on keyword detection.
 python scripts/add_tags.py
 ```
 
-**Note:** Currently hardcoded to process `data/black_cards.csv`. Edit the script to change the input file.
+**Note:** Currently hardcoded to process `data/prompt_cards.csv`. Edit the script to change the input file.
 
 **Tag Detection Keywords:**
 
@@ -121,7 +121,7 @@ Typical workflow for importing new cards:
 
 1. **Convert spreadsheet to CSV:**
    ```bash
-   python scripts/convert_spreadsheet_to_csv.py data/cards.xlsx data/black_cards.csv data/white_cards.csv
+   python scripts/convert_spreadsheet_to_csv.py data/cards.xlsx data/prompt_cards.csv data/response_cards.csv
    ```
 
 2. **Add automatic tags:**
@@ -138,15 +138,15 @@ Typical workflow for importing new cards:
      -H "Content-Type: application/json" \
      -d '{"password":"your_admin_password"}'
    
-   # Import black cards
-   curl -X POST "http://localhost:8000/api/admin/cards/import?type=black" \
+   # Import prompt cards
+   curl -X POST "http://localhost:8000/api/admin/cards/import?type=prompt" \
      -H "Authorization: Bearer YOUR_TOKEN" \
-     -F "file=@data/black_cards.csv"
+     -F "file=@data/prompt_cards.csv"
    
-   # Import white cards
-   curl -X POST "http://localhost:8000/api/admin/cards/import?type=white" \
+   # Import response cards
+   curl -X POST "http://localhost:8000/api/admin/cards/import?type=response" \
      -H "Authorization: Bearer YOUR_TOKEN" \
-     -F "file=@data/white_cards.csv"
+     -F "file=@data/response_cards.csv"
    ```
 
 ## Example: Text Formatting Conversion
@@ -162,14 +162,14 @@ If your Excel/ODS file has formatted text like:
 
 The script will convert it to two CSV files:
 
-**black_cards.csv:**
+**prompt_cards.csv:**
 ```csv
 Card Text,Tag1,Tag2,Tag3,Tag4,Tag5,Tag6,Tag7,Tag8,Tag9,Tag10
 "This is **bold** text and *italic*",,,,,,,,,
 "What is ___?",,,,,,,,,
 ```
 
-**white_cards.csv:**
+**response_cards.csv:**
 ```csv
 Card Text,Tag1,Tag2,Tag3,Tag4,Tag5,Tag6,Tag7,Tag8,Tag9,Tag10
 "Another <u>underlined</u> card",,,,,,,,,

@@ -17,7 +17,7 @@
         <env name="TEST_DB_HOST" value="localhost"/>
         <env name="TEST_DB_NAME" value="cah_game_test"/>
         <env name="TEST_DB_USER" value="root"/>
-        <env name="TEST_DB_PASS" value=""/>
+        <env name="TEST_DB_PASS" value="root"/>
         <env name="APP_DEBUG" value="true"/>
         <env name="APP_TIMEZONE" value="UTC"/>
     </php>

@@ -79,11 +79,11 @@ class EdgeCasesTest extends TestCase
 
         $gameState = GameService::startGame($gameId, $creatorId);
         $czarId = $gameState['current_czar_id'];
-        $firstBlackCard = $gameState['current_black_card'];
+        $firstBlackCard = $gameState['current_prompt_card'];
 
-        // Get how many cards the black card requires
-        $blackCardId = $this->getCardId($gameState['current_black_card']);
-        $requiredCards = CardService::getBlackCardChoices($blackCardId);
+        // Get how many cards the prompt card requires
+        $promptCardId = $this->getCardId($gameState['current_prompt_card']);
+        $requiredCards = CardService::getPromptCardChoices($promptCardId);
 
         // Get full game state from database to access all player hands
         $game = Game::find($gameId);
@@ -106,10 +106,10 @@ class EdgeCasesTest extends TestCase
         $result = RoundService::advanceToNextRound($gameId);
 
         $this->assertEquals(2, $result['current_round']);
-        $this->assertNotEquals($firstBlackCard, $result['current_black_card']);
+        $this->assertNotEquals($firstBlackCard, $result['current_prompt_card']);
         $this->assertEmpty($result['submissions']);
 
-        // Verify players' hands were refilled (may have bonus cards if new black card requires 3+ choices)
+        // Verify players' hands were refilled (may have bonus cards if new prompt card requires 3+ choices)
         foreach ($result['players'] as $player) {
             if ($player['id'] !== $result['current_czar_id'] && empty($player['is_rando'])) {
                 $this->assertGreaterThanOrEqual(10, count($player['hand']), 'Player should have at least 10 cards');
@@ -137,7 +137,7 @@ class EdgeCasesTest extends TestCase
 
         $this->expectException(InsufficientCardsException::class);
 
-        CardService::drawWhiteCards($pile, 10);
+        CardService::drawResponseCards($pile, 10);
     }
 
     public function testInsufficientBlackCardsThrowsException(): void
@@ -146,7 +146,7 @@ class EdgeCasesTest extends TestCase
 
         $this->expectException(InsufficientCardsException::class);
 
-        CardService::drawBlackCard($pile);
+        CardService::drawPromptCard($pile);
     }
 
     public function testMaxPlayersLimit(): void

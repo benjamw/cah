@@ -62,7 +62,7 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
 
   const currentCard = cards[currentIndex];
   const isSelected = selectedCards?.includes(currentCard.card_id);
-  const cardClass = cardType === 'white' ? 'card-white' : 'card-black';
+  const cardClass = cardType === 'response' ? 'card-response' : 'card-prompt';
 
   return (
     <div
@@ -80,7 +80,7 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
       >
         <div
           className="card-content"
-          dangerouslySetInnerHTML={{ __html: formatCardText(currentCard.value) }}
+          dangerouslySetInnerHTML={{ __html: formatCardText(currentCard.copy) }}
         />
         {currentCard.choices > 1 && (
           <div className="card-pick">Pick {currentCard.choices}</div>
@@ -101,7 +101,7 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
           </div>
         )}
 
-        {onRefreshHand && cardType === 'white' && (
+        {onRefreshHand && cardType === 'response' && (
           <button
             className="btn-refresh-hand"
             onClick={onRefreshHand}

@@ -7,10 +7,10 @@ namespace CAH\Enums;
 /**
  * Card Type Enum
  *
- * Represents the type of card (white answer cards or black question cards)
+ * Represents the type of card (black prompt cards or white response cards)
  */
 enum CardType: string
 {
-    case WHITE = 'white';
-    case BLACK = 'black';
+    case PROMPT = 'prompt';
+    case RESPONSE = 'response';
 }

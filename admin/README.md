@@ -5,7 +5,7 @@ A simple, clean admin interface for managing the Cards API Hub game.
 ## Features
 
 ### Cards Management
-- View all cards (white and black)
+- View all cards (response and prompt)
 - Filter by card type and active status
 - Pagination support (50 cards per page)
 - Import cards from CSV files
@@ -17,7 +17,7 @@ A simple, clean admin interface for managing the Cards API Hub game.
 - Create new tags
 - Activate/deactivate tags
 - Delete tags
-- See white and black card counts per tag
+- See response and prompt card counts per tag
 
 ### Games Management
 - View all active games
@@ -62,13 +62,13 @@ Enter your admin password to access the panel.
 
 ```csv
 type,text,tags
-white,"Card text here","tag1,tag2"
-black,"Black card with _ blank","tag1"
+response,"Card text here","tag1,tag2"
+prompt,"Black card with _ blank","tag1"
 ```
 
 **CSV Format:**
-- `type`: Either "white" or "black"
-- `text`: The card text (use `_` for blanks in black cards)
+- `type`: Either "response" or "prompt"
+- `text`: The card text (use `_` for blanks in prompt cards)
 - `tags`: Comma-separated list of tag names (optional)
 
 3. Click "Upload" to import the cards

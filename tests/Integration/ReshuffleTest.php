@@ -31,7 +31,7 @@ class ReshuffleTest extends TestCase
         // Manually add cards to discard pile
         $game = Game::find($gameId);
         $discardPile = [1, 2, 3, 4, 5];
-        $originalDrawPileSize = count($game['draw_pile']['white']);
+        $originalDrawPileSize = count($game['draw_pile']['response']);
 
         Game::update($gameId, ['discard_pile' => $discardPile]);
 
@@ -45,7 +45,7 @@ class ReshuffleTest extends TestCase
         // Verify discard pile is empty
         $game = Game::find($gameId);
         $this->assertEmpty($game['discard_pile']);
-        $this->assertCount($originalDrawPileSize + 5, $game['draw_pile']['white']);
+        $this->assertCount($originalDrawPileSize + 5, $game['draw_pile']['response']);
     }
 
     public function testOnlyCreatorCanReshuffle(): void
@@ -112,7 +112,7 @@ class ReshuffleTest extends TestCase
 
         // Get current draw pile
         $game = Game::find($gameId);
-        $originalDrawPile = $game['draw_pile']['white'];
+        $originalDrawPile = $game['draw_pile']['response'];
         $topCards = array_slice($originalDrawPile, 0, 5);
 
         // Add cards to discard pile
@@ -124,12 +124,12 @@ class ReshuffleTest extends TestCase
 
         // Verify top cards of draw pile are unchanged
         $game = Game::find($gameId);
-        $newTopCards = array_slice($game['draw_pile']['white'], 0, 5);
+        $newTopCards = array_slice($game['draw_pile']['response'], 0, 5);
 
         $this->assertEquals($topCards, $newTopCards, 'Top cards should remain in same order');
 
         // Verify discard pile cards are now at the bottom
-        $bottomCards = array_slice($game['draw_pile']['white'], -3);
+        $bottomCards = array_slice($game['draw_pile']['response'], -3);
         foreach ($discardPile as $cardId) {
             $this->assertContains($cardId, $bottomCards, 'Discard pile cards should be at bottom');
         }

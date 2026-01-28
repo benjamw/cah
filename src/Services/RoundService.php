@@ -20,16 +20,16 @@ use CAH\Exceptions\ValidationException;
  * drawing replacement cards, and advancing to next round
  *
  * @phpstan-type Submission array{player_id: string, cards: array<int>}
- * @phpstan-type RoundHistory array{round: int, black_card: int, czar_id: string, winner_id: string, winning_cards: array<int>}
+ * @phpstan-type RoundHistory array{round: int, prompt_card: int, czar_id: string, winner_id: string, winning_cards: array<int>}
  */
 class RoundService
 {
     /**
-     * Submit white cards for the current round
+     * Submit response cards for the current round
      *
      * @param string $gameId Game code
      * @param string $playerId Player ID
-     * @param array<int> $cardIds Array of white card IDs to submit
+     * @param array<int> $cardIds Array of response card IDs to submit
      * @return array{game_state: array<string, mixed>}
      * @throws GameNotFoundException
      * @throws InvalidGameStateException
@@ -60,7 +60,7 @@ class RoundService
                 throw new PlayerNotFoundException($playerId);
             }
 
-            $requiredCards = CardService::getBlackCardChoices($playerData['current_black_card']);
+            $requiredCards = CardService::getPromptCardChoices($playerData['current_prompt_card']);
 
             if (count($cardIds) !== $requiredCards) {
                 throw new ValidationException("Must submit exactly {$requiredCards} card(s)");
@@ -86,9 +86,9 @@ class RoundService
 
             // Draw replacement cards FIRST (before removing from hand)
             // This prevents player losing cards if draw fails
-            $whitePile = $game['draw_pile']['white'] ?? [];
+            $responsePile = $game['draw_pile']['response'] ?? [];
             $cardsNeeded = count($cardIds);
-            $result = CardService::drawWhiteCards($whitePile, $cardsNeeded);
+            $result = CardService::drawResponseCards($responsePile, $cardsNeeded);
 
             // Now remove submitted cards from player's hand
             $playerData['players'][$playerIndex]['hand'] = array_values(
@@ -104,8 +104,8 @@ class RoundService
                 $result['cards']
             );
 
-            // Update the white pile in the draw pile
-            $game['draw_pile']['white'] = $result['remaining_pile'];
+            // Update the response pile in the draw pile
+            $game['draw_pile']['response'] = $result['remaining_pile'];
 
             $playerData['submissions'][] = [
                 'player_id' => $playerId,
@@ -169,7 +169,7 @@ class RoundService
             // Save round to round_history (separate column for performance)
             $roundData = [
                 'round' => $playerData['current_round'],
-                'black_card' => $playerData['current_black_card'],
+                'prompt_card' => $playerData['current_prompt_card'],
                 'czar_id' => $czarId,
                 'winner_id' => $winningPlayerId,
                 'winning_cards' => $winningSubmission['cards'],
@@ -210,7 +210,7 @@ class RoundService
      * - Removes submitted cards from players' hands
      * - Draws replacement cards for all players
      * - Discards used cards
-     * - Draws new black card
+     * - Draws new prompt card
      * - Clears submissions
      * - Increments round counter
      *
@@ -227,8 +227,8 @@ class RoundService
             }
 
             $playerData = $game['player_data'];
-            $whitePile = $game['draw_pile']['white'];
-            $blackPile = $game['draw_pile']['black'];
+            $responsePile = $game['draw_pile']['response'];
+            $promptPile = $game['draw_pile']['prompt'];
             $discardPile = $game['discard_pile'] ?? [];
 
             $submittedCards = [];
@@ -236,7 +236,7 @@ class RoundService
                 $submittedCards = array_merge($submittedCards, $submission['cards']);
             }
 
-            // Only discard white cards - black cards are not recycled
+            // Only discard response cards - prompt cards are not recycled
             $discardPile = CardService::discardCards($discardPile, $submittedCards);
 
             $handSize = $playerData['settings']['hand_size'];
@@ -260,15 +260,15 @@ class RoundService
 
                     $cardsToDraw = $handSize - count($player['hand']);
                     if ($cardsToDraw > 0) {
-                        $result = CardService::drawWhiteCards($whitePile, $cardsToDraw);
+                        $result = CardService::drawResponseCards($responsePile, $cardsToDraw);
                         $player['hand'] = array_merge($player['hand'], $result['cards']);
-                        $whitePile = $result['remaining_pile'];
+                        $responsePile = $result['remaining_pile'];
                     }
                 }
             }
 
-            // Check if we've run out of black cards - game is over
-            if (empty($blackPile)) {
+            // Check if we've run out of prompt cards - game is over
+            if (empty($promptPile)) {
                 $highestScore = -1;
                 $winnerId = null;
                 foreach ($playerData['players'] as $player) {
@@ -284,7 +284,7 @@ class RoundService
                 $playerData['end_reason'] = GameEndReason::NO_BLACK_CARDS_LEFT->value;
 
                 Game::update($gameId, [
-                    'draw_pile' => ['white' => $whitePile, 'black' => $blackPile],
+                    'draw_pile' => ['response' => $responsePile, 'prompt' => $promptPile],
                     'discard_pile' => $discardPile,
                     'player_data' => $playerData,
                 ]);
@@ -292,25 +292,25 @@ class RoundService
                 return $playerData;
             }
 
-            $blackResult = CardService::drawBlackCard($blackPile);
-            $newBlackCard = $blackResult['card'];
-            $blackPile = $blackResult['remaining_pile'];
+            $promptResult = CardService::drawPromptCard($promptPile);
+            $newBlackCard = $promptResult['card'];
+            $promptPile = $promptResult['remaining_pile'];
 
-            $choices = CardService::getBlackCardChoices($newBlackCard);
+            $choices = CardService::getPromptCardChoices($newBlackCard);
             $bonusCards = CardService::calculateBonusCards($choices);
 
             if ($bonusCards > 0) {
                 // Deal bonus cards to all players except Rando
                 foreach ($playerData['players'] as &$player) {
                     if (empty($player['is_rando'])) {
-                        $result = CardService::drawWhiteCards($whitePile, $bonusCards);
+                        $result = CardService::drawResponseCards($responsePile, $bonusCards);
                         $player['hand'] = array_merge($player['hand'], $result['cards']);
-                        $whitePile = $result['remaining_pile'];
+                        $responsePile = $result['remaining_pile'];
                     }
                 }
             }
 
-            $playerData['current_black_card'] = $newBlackCard;
+            $playerData['current_prompt_card'] = $newBlackCard;
             $playerData['current_round']++;
             $playerData['submissions'] = [];
             
@@ -319,11 +319,11 @@ class RoundService
 
             // Auto-submit for Rando if enabled
             if ($playerData['settings']['rando_enabled'] && ! empty($playerData['rando_id'])) {
-                $whitePile = self::submitRandoCards($playerData, $whitePile, $choices);
+                $responsePile = self::submitRandoCards($playerData, $responsePile, $choices);
             }
 
             Game::update($gameId, [
-                'draw_pile' => ['white' => $whitePile, 'black' => $blackPile],
+                'draw_pile' => ['response' => $responsePile, 'prompt' => $promptPile],
                 'discard_pile' => $discardPile,
                 'player_data' => $playerData,
             ]);
@@ -335,29 +335,29 @@ class RoundService
     /**
      * Submit random cards for Rando Cardrissian
      *
-     * Draws cards directly from the white pile (Rando has no hand).
+     * Draws cards directly from the response pile (Rando has no hand).
      * Rando never becomes the czar, so this is called every round.
      *
      * @param array &$playerData Player data (modified in place)
-     * @param array $whitePile Current white card pile
+     * @param array $responsePile Current response card pile
      * @param int $cardsNeeded Number of cards to submit
-     * @return array Updated white pile
+     * @return array Updated response pile
      */
-    public static function submitRandoCards(array &$playerData, array $whitePile, int $cardsNeeded): array
+    public static function submitRandoCards(array &$playerData, array $responsePile, int $cardsNeeded): array
     {
         if (empty($playerData['rando_id'])) {
-            return $whitePile;
+            return $responsePile;
         }
 
         // Check if Rando already submitted (prevent duplicates)
         foreach ($playerData['submissions'] as $submission) {
             if ($submission['player_id'] === $playerData['rando_id']) {
-                return $whitePile;
+                return $responsePile;
             }
         }
 
         // Draw cards from the pile for Rando's submission
-        $result = CardService::drawWhiteCards($whitePile, $cardsNeeded);
+        $result = CardService::drawResponseCards($responsePile, $cardsNeeded);
 
         // Add Rando's submission
         $playerData['submissions'][] = [

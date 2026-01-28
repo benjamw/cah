@@ -16,7 +16,7 @@ use CAH\Tests\TestCase;
 class InsufficientCardsTest extends TestCase
 {
     /**
-     * Test that starting a game with insufficient white cards throws exception
+     * Test that starting a game with insufficient response cards throws exception
      */
     public function testStartGameWithInsufficientWhiteCards(): void
     {
@@ -36,9 +36,9 @@ class InsufficientCardsTest extends TestCase
         $player2 = GameService::joinGame($gameId, 'Player2');
         $player3 = GameService::joinGame($gameId, 'Player3');
         
-        // Artificially reduce white card pile to force insufficient cards
+        // Artificially reduce response card pile to force insufficient cards
         $game = Game::find($gameId);
-        $game['draw_pile']['white'] = array_slice($game['draw_pile']['white'], 0, 50); // Only 50 cards
+        $game['draw_pile']['response'] = array_slice($game['draw_pile']['response'], 0, 50); // Only 50 cards
         Game::update($gameId, ['draw_pile' => $game['draw_pile']]);
         
         // Try to start game - should throw exception
@@ -47,7 +47,7 @@ class InsufficientCardsTest extends TestCase
     }
     
     /**
-     * Test that starting a game with no black cards throws exception
+     * Test that starting a game with no prompt cards throws exception
      */
     public function testStartGameWithNoBlackCards(): void
     {
@@ -63,9 +63,9 @@ class InsufficientCardsTest extends TestCase
         GameService::joinGame($gameId, 'Player2');
         GameService::joinGame($gameId, 'Player3');
         
-        // Remove all black cards
+        // Remove all prompt cards
         $game = Game::find($gameId);
-        $game['draw_pile']['black'] = [];
+        $game['draw_pile']['prompt'] = [];
         Game::update($gameId, ['draw_pile' => $game['draw_pile']]);
         
         // Try to start game - should throw exception
@@ -99,10 +99,10 @@ class InsufficientCardsTest extends TestCase
         // Get the current czar
         $czarId = $gameState['current_czar_id'];
         
-        // Get black card ID (it might be hydrated to an array with card details)
-        $blackCard = $gameState['current_black_card'];
-        $blackCardId = is_array($blackCard) ? $blackCard['card_id'] : $blackCard;
-        $choices = CardService::getBlackCardChoices($blackCardId);
+        // Get prompt card ID (it might be hydrated to an array with card details)
+        $promptCard = $gameState['current_prompt_card'];
+        $promptCardId = is_array($promptCard) ? $promptCard['card_id'] : $promptCard;
+        $choices = CardService::getPromptCardChoices($promptCardId);
         
         // Find a non-czar player
         $submittingPlayerId = null;
@@ -130,7 +130,7 @@ class InsufficientCardsTest extends TestCase
         $cardsToSubmit = array_slice($playerHand, 0, $choices);
         
         // Empty the draw pile
-        Game::update($gameId, ['draw_pile' => ['white' => [], 'black' => $game['draw_pile']['black']]]);
+        Game::update($gameId, ['draw_pile' => ['response' => [], 'prompt' => $game['draw_pile']['prompt']]]);
         
         // Try to submit cards - should throw exception
         try {
@@ -158,11 +158,11 @@ class InsufficientCardsTest extends TestCase
     }
     
     /**
-     * Test that game ends gracefully when black cards run out
+     * Test that game ends gracefully when prompt cards run out
      */
     public function testGameEndsWhenBlackCardsRunOut(): void
     {
-        // Create a game with only 2 black cards
+        // Create a game with only 2 prompt cards
         $creatorName = 'TestPlayer';
         $tagIds = [1];
         
@@ -176,9 +176,9 @@ class InsufficientCardsTest extends TestCase
         $player3Result = GameService::joinGame($gameId, 'Player3');
         $player3Id = $player3Result['player_id'];
         
-        // Limit black cards to just 1 (one for start, then empty)
+        // Limit prompt cards to just 1 (one for start, then empty)
         $game = Game::find($gameId);
-        $game['draw_pile']['black'] = array_slice($game['draw_pile']['black'], 0, 1);
+        $game['draw_pile']['prompt'] = array_slice($game['draw_pile']['prompt'], 0, 1);
         Game::update($gameId, ['draw_pile' => $game['draw_pile']]);
         
         // Start game
@@ -188,10 +188,10 @@ class InsufficientCardsTest extends TestCase
         // Play one round
         $czarId = $gameState['current_czar_id'];
         
-        // Get the black card ID (might be hydrated to array)
-        $blackCard = $gameState['current_black_card'];
-        $blackCardId = is_array($blackCard) ? $blackCard['card_id'] : $blackCard;
-        $choices = CardService::getBlackCardChoices($blackCardId);
+        // Get the prompt card ID (might be hydrated to array)
+        $promptCard = $gameState['current_prompt_card'];
+        $promptCardId = is_array($promptCard) ? $promptCard['card_id'] : $promptCard;
+        $choices = CardService::getPromptCardChoices($promptCardId);
         
         // Submit cards from non-czar players
         foreach ([$player1Id, $player2Id, $player3Id] as $pid) {
@@ -239,11 +239,11 @@ class InsufficientCardsTest extends TestCase
             
             GameService::setNextCzar($gameId, $czarId, $nextCzarId);
             
-            // This should end the game due to no black cards
+            // This should end the game due to no prompt cards
             $gameState = RoundService::advanceToNextRound($gameId);
             
             $this->assertEquals(GameState::FINISHED->value, $gameState['state']);
-            $this->assertEquals('no_black_cards_left', $gameState['end_reason']);
+            $this->assertEquals('no_prompt_cards_left', $gameState['end_reason']);
         }
     }
 }

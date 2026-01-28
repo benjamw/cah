@@ -58,7 +58,7 @@ function GamePlay({ gameData, onLeaveGame }) {
           game_id: response.data.game_id,
           created_at: response.data.created_at,
           updated_at: response.data.updated_at,
-          deck_counts: response.data.deck_counts || { white_cards: 0, black_cards: 0 },
+          deck_counts: response.data.deck_counts || { response_cards: 0, prompt_cards: 0 },
         };
         
         // Check if current player is still in the game

@@ -46,8 +46,8 @@ class AdminCardController
             $offset = isset($queryParams['offset']) ? (int) $queryParams['offset'] : 0;
 
             // Validate parameters
-            if ( ! in_array($cardType, [null, 'white', 'black'], true)) {
-                throw new ValidationException('Invalid card type. Must be "white" or "black"');
+            if ( ! in_array($cardType, [null, 'response', 'prompt'], true)) {
+                throw new ValidationException('Invalid card type. Must be "response" or "prompt"');
             }
 
             if ($limit < 0 || $limit > 10000) {
@@ -95,7 +95,7 @@ class AdminCardController
         try {
             $uploadedFiles = $request->getUploadedFiles();
             $queryParams = $request->getQueryParams();
-            $cardType = $queryParams['type'] ?? 'white';
+            $cardType = $queryParams['type'] ?? 'response';
 
             if ( ! isset($uploadedFiles['file'])) {
                 throw new ValidationException('No file uploaded');
@@ -107,8 +107,8 @@ class AdminCardController
                 throw new ValidationException('File upload error');
             }
 
-            if ($cardType !== 'white' && $cardType !== 'black') {
-                throw new ValidationException('Invalid card type. Must be "white" or "black"');
+            if ($cardType !== 'response' && $cardType !== 'prompt') {
+                throw new ValidationException('Invalid card type. Must be "response" or "prompt"');
             }
 
             // Read CSV file
@@ -141,11 +141,11 @@ class AdminCardController
             }
 
             $updateData = [];
-            if (isset($data['value'])) {
-                $updateData['value'] = $data['value'];
+            if (isset($data['copy'])) {
+                $updateData['copy'] = $data['copy'];
             }
-            if (isset($data['card_type'])) {
-                $updateData['card_type'] = $data['card_type'];
+            if (isset($data['type'])) {
+                $updateData['type'] = $data['type'];
             }
             if (isset($data['choices'])) {
                 $updateData['choices'] = $data['choices'];

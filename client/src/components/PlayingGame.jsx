@@ -24,7 +24,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
   
   // Check if current player is czar using current_czar_id
   const isCzar = gameState.current_czar_id === gameData.playerId;
-  const blackCard = gameState.current_black_card;
+  const promptCard = gameState.current_prompt_card;
   
   // Check if player has submitted by looking in submissions array
   const hasSubmittedInAPI = gameState.submissions?.some(
@@ -70,14 +70,14 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
 
   // Filter out submitted cards from the hand
   const allWhiteCards = currentPlayer?.hand || [];
-  const whiteCards = hasSubmitted 
+  const responseCards = hasSubmitted 
     ? allWhiteCards.filter(card => ! submittedCardIds.includes(card.card_id))
     : allWhiteCards;
     
-  const blanksNeeded = blackCard?.choices || 1;
+  const blanksNeeded = promptCard?.choices || 1;
 
   // Calculate if cards were added to hand
-  const cardsInHand = whiteCards.length;
+  const cardsInHand = responseCards.length;
   const normalHandSize = gameState.hand_size || 10;
   const cardsAdded = Math.max(0, cardsInHand - normalHandSize);
 
@@ -299,8 +299,8 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
           <CzarView
             gameState={gameState}
             gameData={gameData}
-            blackCard={blackCard}
-            whiteCards={allWhiteCards}
+            promptCard={promptCard}
+            responseCards={allWhiteCards}
             showToast={showToast}
           />
         <Scoreboard 
@@ -377,7 +377,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
 
         <CardSelector
           selectedCards={selectedCards}
-          whiteCards={allWhiteCards}
+          responseCards={allWhiteCards}
           onCardSelect={handleCardSelect}
           onCardReorder={handleCardReorder}
           blanksNeeded={blanksNeeded}
@@ -389,18 +389,18 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
 
         <div className="card-section">
           <CardSwiper
-            cards={whiteCards}
+            cards={responseCards}
             selectedCards={selectedCards}
             onCardSelect={handleCardSelect}
-            cardType="white"
+            cardType="response"
             disabled={hasSubmitted}
             onRefreshHand={handleRefreshHand}
             refreshing={refreshing}
           />
         </div>
 
-        <div className="card-section black-card-section">
-          <div className="black-card-header">
+        <div className="card-section prompt-card-section">
+          <div className="prompt-card-header">
             <h3>Card Czar: {czarName}</h3>
             { ! isCzar && (
               <SkipCzarButton 
@@ -411,9 +411,9 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
               />
             )}
           </div>
-          {blackCard ? (
-            <div className="card card-black">
-              <div className="card-content" dangerouslySetInnerHTML={{ __html: formatCardText(blackCard.value) }} />
+          {promptCard ? (
+            <div className="card card-prompt">
+              <div className="card-content" dangerouslySetInnerHTML={{ __html: formatCardText(promptCard.copy) }} />
               {blanksNeeded > 1 && (
                 <div className="card-pick">Pick {blanksNeeded}</div>
               )}

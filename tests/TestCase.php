@@ -41,7 +41,7 @@ abstract class TestCase extends BaseTestCase
     }
 
     /**
-     * Re-seed base test data (300 white cards, 70 black cards, test_base tag)
+     * Re-seed base test data (300 response cards, 70 prompt cards, test_base tag)
      * Used when tests delete all cards (like CSV import tests)
      */
     protected function reseedBaseTestData(): void
@@ -52,14 +52,14 @@ abstract class TestCase extends BaseTestCase
         $connection->exec("ALTER TABLE cards AUTO_INCREMENT = 1");
         $connection->exec("ALTER TABLE tags AUTO_INCREMENT = 1");
         
-        // Insert test white cards
-        $stmt = $connection->prepare("INSERT INTO cards (card_type, value) VALUES ('white', ?)");
+        // Insert test response cards
+        $stmt = $connection->prepare("INSERT INTO cards (type, copy) VALUES ('response', ?)");
         for ($i = 1; $i <= 300; $i++) {
             $stmt->execute([sprintf('White Card %03d', $i)]);
         }
         
-        // Insert test black cards
-        $stmt = $connection->prepare("INSERT INTO cards (card_type, value, choices) VALUES ('black', ?, ?)");
+        // Insert test prompt cards
+        $stmt = $connection->prepare("INSERT INTO cards (type, copy, choices) VALUES ('prompt', ?, ?)");
         for ($i = 1; $i <= 40; $i++) {
             $stmt->execute([sprintf('Black Card %03d with ____.', $i), 1]);
         }
@@ -75,7 +75,7 @@ abstract class TestCase extends BaseTestCase
         $tagId = $connection->lastInsertId();
         
         // Tag all cards
-        $totalCards = 370; // 300 white + 70 black
+        $totalCards = 370; // 300 response + 70 prompt
         $stmt = $connection->prepare("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)");
         for ($i = 1; $i <= $totalCards; $i++) {
             $stmt->execute([$i, $tagId]);
@@ -115,7 +115,7 @@ abstract class TestCase extends BaseTestCase
             'player_order' => [],
             'order_locked' => false,
             'current_czar_id' => null,
-            'current_black_card' => null,
+            'current_prompt_card' => null,
             'current_round' => 0,
             'submissions' => [],
             'round_history' => [],
@@ -123,8 +123,8 @@ abstract class TestCase extends BaseTestCase
         ], $overrides);
 
         $drawPile = [
-            'white' => range(1, 100), // Mock white card IDs
-            'black' => range(1001, 1050), // Mock black card IDs
+            'response' => range(1, 100), // Mock response card IDs
+            'prompt' => range(1001, 1050), // Mock prompt card IDs
         ];
 
         \CAH\Models\Game::create($gameId, [], $drawPile, $playerData);

@@ -183,8 +183,8 @@ class GameController
             $playerData = GameService::filterHands($playerData, $request->getAttributes()['player_id']);
 
             // Calculate deck sizes
-            $whiteCardsRemaining = count($game['draw_pile']['white'] ?? []);
-            $blackCardsRemaining = count($game['draw_pile']['black'] ?? []);
+            $responseCardsRemaining = count($game['draw_pile']['response'] ?? []);
+            $promptCardsRemaining = count($game['draw_pile']['prompt'] ?? []);
 
             // Add Last-Modified header
             $response = $response->withHeader('Last-Modified', gmdate('D, d M Y H:i:s', strtotime((string) $game['updated_at'])) . ' GMT');
@@ -193,8 +193,8 @@ class GameController
                 'game_id' => $game['game_id'],
                 'player_data' => $playerData,
                 'deck_counts' => [
-                    'white_cards' => $whiteCardsRemaining,
-                    'black_cards' => $blackCardsRemaining,
+                    'response_cards' => $responseCardsRemaining,
+                    'prompt_cards' => $promptCardsRemaining,
                 ],
                 'created_at' => $game['created_at'],
                 'updated_at' => $game['updated_at'],

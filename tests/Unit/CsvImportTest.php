@@ -44,14 +44,14 @@ class CsvImportTest extends TestCase
             $connection->exec("ALTER TABLE cards AUTO_INCREMENT = 1");
             $connection->exec("ALTER TABLE tags AUTO_INCREMENT = 1");
             
-            // Insert test white cards
-            $stmt = $connection->prepare("INSERT INTO cards (card_type, value) VALUES ('white', ?)");
+            // Insert test response cards
+            $stmt = $connection->prepare("INSERT INTO cards (type, copy) VALUES ('response', ?)");
             for ($i = 1; $i <= 300; $i++) {
                 $stmt->execute([sprintf('White Card %03d', $i)]);
             }
             
-            // Insert test black cards
-            $stmt = $connection->prepare("INSERT INTO cards (card_type, value, choices) VALUES ('black', ?, ?)");
+            // Insert test prompt cards
+            $stmt = $connection->prepare("INSERT INTO cards (type, copy, choices) VALUES ('prompt', ?, ?)");
             for ($i = 1; $i <= 40; $i++) {
                 $stmt->execute([sprintf('Black Card %03d with ____.', $i), 1]);
             }
@@ -67,7 +67,7 @@ class CsvImportTest extends TestCase
             $tagId = $connection->lastInsertId();
             
             // Tag all cards
-            $totalCards = 370; // 300 white + 70 black
+            $totalCards = 370; // 300 response + 70 prompt
             $stmt = $connection->prepare("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)");
             for ($i = 1; $i <= $totalCards; $i++) {
                 $stmt->execute([$i, $tagId]);

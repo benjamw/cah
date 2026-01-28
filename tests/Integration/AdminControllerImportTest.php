@@ -49,19 +49,24 @@ class AdminControllerImportTest extends TestCase
         // Re-seed base test data once after all tests in this class complete
         if (self::$needsReseed) {
             $connection = Database::getConnection();
-            
+
+            // Clean up all test data first (in reverse order of dependencies)
+            $connection->exec("DELETE FROM cards_to_tags");
+            $connection->exec("DELETE FROM tags");
+            $connection->exec("DELETE FROM cards");
+
             // Reset auto-increment for cards and tags
             $connection->exec("ALTER TABLE cards AUTO_INCREMENT = 1");
             $connection->exec("ALTER TABLE tags AUTO_INCREMENT = 1");
-            
-            // Insert test white cards
-            $stmt = $connection->prepare("INSERT INTO cards (card_type, value) VALUES ('white', ?)");
+
+            // Insert test response cards
+            $stmt = $connection->prepare("INSERT INTO cards (type, copy) VALUES ('response', ?)");
             for ($i = 1; $i <= 300; $i++) {
                 $stmt->execute([sprintf('White Card %03d', $i)]);
             }
-            
-            // Insert test black cards
-            $stmt = $connection->prepare("INSERT INTO cards (card_type, value, choices) VALUES ('black', ?, ?)");
+
+            // Insert test prompt cards
+            $stmt = $connection->prepare("INSERT INTO cards (type, copy, choices) VALUES ('prompt', ?, ?)");
             for ($i = 1; $i <= 40; $i++) {
                 $stmt->execute([sprintf('Black Card %03d with ____.', $i), 1]);
             }
@@ -71,21 +76,21 @@ class AdminControllerImportTest extends TestCase
             for ($i = 56; $i <= 70; $i++) {
                 $stmt->execute([sprintf('Black Card %03d with ____, ____, and ____.', $i), 3]);
             }
-            
+
             // Insert test tag
             $connection->exec("INSERT INTO tags (name) VALUES ('test_base')");
             $tagId = $connection->lastInsertId();
-            
+
             // Tag all cards
-            $totalCards = 370; // 300 white + 70 black
+            $totalCards = 370; // 300 response + 70 prompt
             $stmt = $connection->prepare("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)");
             for ($i = 1; $i <= $totalCards; $i++) {
                 $stmt->execute([$i, $tagId]);
             }
-            
+
             self::$needsReseed = false;
         }
-        
+
         parent::tearDownAfterClass();
     }
 
@@ -121,7 +126,7 @@ class AdminControllerImportTest extends TestCase
         $uploadedFile = $this->createUploadedFile($csvContent);
 
         $requestFactory = new ServerRequestFactory();
-        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=white')
+        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=response')
             ->withUploadedFiles(['file' => $uploadedFile]);
 
         $responseFactory = new ResponseFactory();
@@ -140,7 +145,7 @@ class AdminControllerImportTest extends TestCase
         $this->assertEquals(0, $data['data']['failed']);
 
         // Verify cards were created in database
-        $cards = Card::getActiveByType('white');
+        $cards = Card::getActiveByType('response');
         $this->assertCount(2, $cards);
     }
 
@@ -157,9 +162,9 @@ class AdminControllerImportTest extends TestCase
         $uploadedFile = $this->createUploadedFile($csvContent);
 
         $requestFactory = new ServerRequestFactory();
-        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=black')
+        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=prompt')
             ->withUploadedFiles(['file' => $uploadedFile])
-            ->withQueryParams(['type' => 'black']);
+            ->withQueryParams(['type' => 'prompt']);
 
         $responseFactory = new ResponseFactory();
         $response = $responseFactory->createResponse();
@@ -177,7 +182,7 @@ class AdminControllerImportTest extends TestCase
         $this->assertEquals(0, $data['data']['failed']);
 
         // Verify cards were created
-        $cards = Card::getActiveByType('black');
+        $cards = Card::getActiveByType('prompt');
         $this->assertCount(3, $cards);
 
         // Verify tags were created
@@ -209,9 +214,9 @@ class AdminControllerImportTest extends TestCase
         $uploadedFile = $this->createUploadedFile($csvContent);
 
         $requestFactory = new ServerRequestFactory();
-        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=white')
+        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=response')
             ->withUploadedFiles(['file' => $uploadedFile])
-            ->withQueryParams(['type' => 'white']);
+            ->withQueryParams(['type' => 'response']);
 
         $responseFactory = new ResponseFactory();
         $response = $responseFactory->createResponse();
@@ -225,8 +230,8 @@ class AdminControllerImportTest extends TestCase
         $this->assertEquals(2, $data['data']['imported']);
 
         // Verify cards have correct text with commas preserved
-        $cards = Card::getActiveByType('white');
-        $cardTexts = array_column($cards, 'value');
+        $cards = Card::getActiveByType('response');
+        $cardTexts = array_column($cards, 'copy');
         $this->assertContains('A card with, commas in it', $cardTexts);
         $this->assertContains('Another card, with commas, and more', $cardTexts);
     }
@@ -242,9 +247,9 @@ class AdminControllerImportTest extends TestCase
         $uploadedFile = $this->createUploadedFile($csvContent);
 
         $requestFactory = new ServerRequestFactory();
-        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=white')
+        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=response')
             ->withUploadedFiles(['file' => $uploadedFile])
-            ->withQueryParams(['type' => 'white']);
+            ->withQueryParams(['type' => 'response']);
 
         $responseFactory = new ResponseFactory();
         $response = $responseFactory->createResponse();
@@ -282,9 +287,9 @@ class AdminControllerImportTest extends TestCase
         $uploadedFile = $this->createUploadedFile($csvContent);
 
         $requestFactory = new ServerRequestFactory();
-        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=white')
+        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=response')
             ->withUploadedFiles(['file' => $uploadedFile])
-            ->withQueryParams(['type' => 'white']);
+            ->withQueryParams(['type' => 'response']);
 
         $responseFactory = new ResponseFactory();
         $response = $responseFactory->createResponse();
@@ -312,9 +317,9 @@ class AdminControllerImportTest extends TestCase
         $uploadedFile = $this->createUploadedFile($csvContent);
 
         $requestFactory = new ServerRequestFactory();
-        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=white')
+        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=response')
             ->withUploadedFiles(['file' => $uploadedFile])
-            ->withQueryParams(['type' => 'white']);
+            ->withQueryParams(['type' => 'response']);
 
         $responseFactory = new ResponseFactory();
         $response = $responseFactory->createResponse();
@@ -376,9 +381,9 @@ class AdminControllerImportTest extends TestCase
         $uploadedFile = $this->createUploadedFile($csvContent);
 
         $requestFactory = new ServerRequestFactory();
-        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=white')
+        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=response')
             ->withUploadedFiles(['file' => $uploadedFile])
-            ->withQueryParams(['type' => 'white']);
+            ->withQueryParams(['type' => 'response']);
 
         $responseFactory = new ResponseFactory();
         $response = $responseFactory->createResponse();
@@ -392,13 +397,13 @@ class AdminControllerImportTest extends TestCase
         $this->assertEquals(3, $data['data']['imported']);
 
         // Verify cards were created with newlines preserved - filter by our prefix
-        $cards = Card::getActiveByType('white');
+        $cards = Card::getActiveByType('response');
         $ourCards = array_filter($cards, function($c) {
-            return strpos($c['value'], '[NewlineTest]') === 0;
+            return strpos($c['copy'], '[NewlineTest]') === 0;
         });
         $this->assertCount(3, $ourCards);
 
-        $cardTexts = array_column($ourCards, 'value');
+        $cardTexts = array_column($ourCards, 'copy');
 
         // Check that newlines are preserved in card text
         $this->assertContains("[NewlineTest] A card with\na newline in it", $cardTexts);
@@ -407,7 +412,7 @@ class AdminControllerImportTest extends TestCase
 
         // Verify tags were still added correctly
         $card1 = array_values(array_filter($ourCards, function($c) {
-            return strpos($c['value'], '[NewlineTest] A card with') === 0;
+            return strpos($c['copy'], '[NewlineTest] A card with') === 0;
         }))[0];
 
         $card1Tags = Tag::getCardTags($card1['card_id']);
@@ -427,9 +432,9 @@ class AdminControllerImportTest extends TestCase
         $uploadedFile = $this->createUploadedFile($csvContent);
 
         $requestFactory = new ServerRequestFactory();
-        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=black')
+        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=prompt')
             ->withUploadedFiles(['file' => $uploadedFile])
-            ->withQueryParams(['type' => 'black']);
+            ->withQueryParams(['type' => 'prompt']);
 
         $responseFactory = new ResponseFactory();
         $response = $responseFactory->createResponse();
@@ -443,13 +448,13 @@ class AdminControllerImportTest extends TestCase
         $this->assertEquals(1, $data['data']['imported']);
 
         // Verify card text has both commas and newlines preserved - filter by our prefix
-        $cards = Card::getActiveByType('black');
+        $cards = Card::getActiveByType('prompt');
         $ourCards = array_filter($cards, function($c) {
-            return strpos($c['value'], '[CommaNewlineTest]') === 0;
+            return strpos($c['copy'], '[CommaNewlineTest]') === 0;
         });
         $this->assertCount(1, $ourCards);
         $ourCard = array_values($ourCards)[0];
-        $this->assertEquals("[CommaNewlineTest] A card with,\ncommas and newlines", $ourCard['value']);
+        $this->assertEquals("[CommaNewlineTest] A card with,\ncommas and newlines", $ourCard['copy']);
 
         // Verify both tags were added
         $cardTags = Tag::getCardTags($ourCard['card_id']);
@@ -471,9 +476,9 @@ class AdminControllerImportTest extends TestCase
         $uploadedFile = $this->createUploadedFile($csvContent);
 
         $requestFactory = new ServerRequestFactory();
-        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=white')
+        $request = $requestFactory->createServerRequest('POST', '/api/admin/cards/import?type=response')
             ->withUploadedFiles(['file' => $uploadedFile])
-            ->withQueryParams(['type' => 'white']);
+            ->withQueryParams(['type' => 'response']);
 
         $responseFactory = new ResponseFactory();
         $response = $responseFactory->createResponse();
@@ -487,12 +492,12 @@ class AdminControllerImportTest extends TestCase
         $this->assertEquals(1, $data['data']['imported']);
 
         // Verify card text has quotes preserved (CSV parser converts "" to ") - filter by our prefix
-        $cards = Card::getActiveByType('white');
+        $cards = Card::getActiveByType('response');
         $ourCards = array_filter($cards, function($c) {
-            return strpos($c['value'], '[QuotesTest]') === 0;
+            return strpos($c['copy'], '[QuotesTest]') === 0;
         });
         $this->assertCount(1, $ourCards);
         $ourCard = array_values($ourCards)[0];
-        $this->assertEquals('[QuotesTest] A card with "quoted" text', $ourCard['value']);
+        $this->assertEquals('[QuotesTest] A card with "quoted" text', $ourCard['copy']);
     }
 }

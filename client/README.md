@@ -52,7 +52,7 @@ npm run preview
 1. **Join/Create Game**: Players can join an existing game or create a new one
 2. **Waiting Room**: Shows all players and game settings, host can start the game
 3. **Playing**: 
-   - Regular players see their white cards (swipeable), select cards, and submit
+   - Regular players see their response cards (swipeable), select cards, and submit
    - Card Czar sees all submissions (swipeable) and picks a winner
 4. **Persistent State**: Game state is saved to localStorage/cookies
 

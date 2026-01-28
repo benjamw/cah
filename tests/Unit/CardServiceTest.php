@@ -16,7 +16,7 @@ class CardServiceTest extends TestCase
     public function testDrawWhiteCards(): void
     {
         $pile = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-        $result = CardService::drawWhiteCards($pile, 3);
+        $result = CardService::drawResponseCards($pile, 3);
 
         $this->assertCount(3, $result['cards']);
         $this->assertCount(7, $result['remaining_pile']);
@@ -31,13 +31,13 @@ class CardServiceTest extends TestCase
         $this->expectException(InsufficientCardsException::class);
         $this->expectExceptionMessage('Insufficient white cards');
 
-        CardService::drawWhiteCards($pile, 5);
+        CardService::drawResponseCards($pile, 5);
     }
 
     public function testDrawBlackCard(): void
     {
         $pile = [101, 102, 103];
-        $result = CardService::drawBlackCard($pile);
+        $result = CardService::drawPromptCard($pile);
 
         $this->assertEquals(101, $result['card']);
         $this->assertEquals([102, 103], $result['remaining_pile']);
@@ -50,7 +50,7 @@ class CardServiceTest extends TestCase
         $this->expectException(InsufficientCardsException::class);
         $this->expectExceptionMessage('Insufficient black cards');
 
-        CardService::drawBlackCard($pile);
+        CardService::drawPromptCard($pile);
     }
 
     public function testCalculateBonusCards(): void
@@ -68,9 +68,9 @@ class CardServiceTest extends TestCase
             ['id' => '1', 'hand' => [1, 2, 3]],
             ['id' => '2', 'hand' => [4, 5, 6]],
         ];
-        $whitePile = [10, 11, 12, 13, 14, 15];
+        $responsePile = [10, 11, 12, 13, 14, 15];
 
-        $remainingPile = CardService::dealBonusCards($players, $whitePile, 2);
+        $remainingPile = CardService::dealBonusCards($players, $responsePile, 2);
 
         // Each player should have 2 bonus cards added
         $this->assertCount(5, $players[0]['hand']); // 3 original + 2 bonus
@@ -85,9 +85,9 @@ class CardServiceTest extends TestCase
         $players = [
             ['id' => '1', 'hand' => [1, 2, 3]],
         ];
-        $whitePile = [10, 11, 12];
+        $responsePile = [10, 11, 12];
 
-        $remainingPile = CardService::dealBonusCards($players, $whitePile, 0);
+        $remainingPile = CardService::dealBonusCards($players, $responsePile, 0);
 
         // No cards should be dealt
         $this->assertCount(3, $players[0]['hand']);

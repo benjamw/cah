@@ -315,12 +315,12 @@ body {
     margin-right: 0.5rem;
 }
 
-.badge-white {
+.badge-response {
     background: #f1f5f9;
     color: #475569;
 }
 
-.badge-black {
+.badge-prompt {
     background: #1e293b;
     color: white;
 }
@@ -417,12 +417,12 @@ body {
     font-weight: 500;
 }
 
-.card-item-type.white {
+.card-item-type.response {
     background: #e3f2fd;
     color: #1976d2;
 }
 
-.card-item-type.black {
+.card-item-type.prompt {
     background: #f5f5f5;
     color: #424242;
 }

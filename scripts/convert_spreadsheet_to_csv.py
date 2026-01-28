@@ -4,7 +4,7 @@ Convert Excel (.xlsx) or OpenDocument (.ods) spreadsheet to CSV while preserving
 Text formatting (bold, italic, underline) is converted to markdown syntax.
 
 Usage:
-    python convert_spreadsheet_to_csv.py input_file.xlsx output_black.csv output_white.csv
+    python convert_spreadsheet_to_csv.py input_file.xlsx output_prompt.csv output_response.csv
 
 Expected spreadsheet format:
 - Column 1: Contains "prompt" (for black cards) or "response" (for white cards)
@@ -108,7 +108,7 @@ def convert_rich_text_to_markdown(cell):
     return text_content
 
 
-def process_xlsx(input_file, output_black, output_white):
+def process_xlsx(input_file, output_prompt, output_response):
     """Process Excel (.xlsx) file."""
     print(f"Loading Excel file: {input_file}")
     wb = load_workbook(input_file, rich_text=True)
@@ -120,8 +120,8 @@ def process_xlsx(input_file, output_black, output_white):
         print("Error: Empty spreadsheet")
         return
 
-    black_cards = []
-    white_cards = []
+    prompt_cards = []
+    response_cards = []
 
     # Process all rows - first column contains "prompt" or "response" label
     # Second column (and third if exists) contain the card data
@@ -156,33 +156,33 @@ def process_xlsx(input_file, output_black, output_white):
 
             # Categorize based on label
             if "prompt" in label:
-                black_cards.append([full_text])
+                prompt_cards.append([full_text])
                 # Show preview with newlines replaced for display
                 preview = full_text.replace('\n', '\\n')[:50]
                 print(f"Row {row_idx}: Black card - {preview}...")
             elif "response" in label:
-                white_cards.append([full_text])
+                response_cards.append([full_text])
                 preview = full_text.replace('\n', '\\n')[:50]
                 print(f"Row {row_idx}: White card - {preview}...")
     
-    # Write black cards CSV
-    if black_cards:
-        with open(output_black, 'w', encoding='utf-8', newline='') as f:
+    # Write prompt cards CSV
+    if prompt_cards:
+        with open(output_prompt, 'w', encoding='utf-8', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(['Card Text', 'Tag1', 'Tag2', 'Tag3', 'Tag4', 'Tag5', 'Tag6', 'Tag7', 'Tag8', 'Tag9', 'Tag10'])
-            writer.writerows(black_cards)
-        print(f"Wrote {len(black_cards)} black cards to {output_black}")
+            writer.writerows(prompt_cards)
+        print(f"Wrote {len(prompt_cards)} prompt cards to {output_prompt}")
     
-    # Write white cards CSV
-    if white_cards:
-        with open(output_white, 'w', encoding='utf-8', newline='') as f:
+    # Write response cards CSV
+    if response_cards:
+        with open(output_response, 'w', encoding='utf-8', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(['Card Text', 'Tag1', 'Tag2', 'Tag3', 'Tag4', 'Tag5', 'Tag6', 'Tag7', 'Tag8', 'Tag9', 'Tag10'])
-            writer.writerows(white_cards)
-        print(f"Wrote {len(white_cards)} white cards to {output_white}")
+            writer.writerows(response_cards)
+        print(f"Wrote {len(response_cards)} response cards to {output_response}")
 
 
-def process_ods(input_file, output_black, output_white):
+def process_ods(input_file, output_prompt, output_response):
     """Process OpenDocument (.ods) file."""
     if not HAS_ODF:
         print("Error: odfpy is required for ODS files. Install it with: pip install odfpy")
@@ -204,8 +204,8 @@ def process_ods(input_file, output_black, output_white):
         print("Error: Empty spreadsheet")
         return
 
-    black_cards = []
-    white_cards = []
+    prompt_cards = []
+    response_cards = []
 
     # Process all rows - first column contains "prompt" or "response" label
     # Second column (and third if exists) contain the card data
@@ -239,40 +239,40 @@ def process_ods(input_file, output_black, output_white):
 
             # Categorize based on label
             if "prompt" in label:
-                black_cards.append([full_text])
+                prompt_cards.append([full_text])
                 # Show preview with newlines replaced for display
                 preview = full_text.replace('\n', '\\n')[:50]
                 print(f"Row {row_idx}: Black card - {preview}...")
             elif "response" in label:
-                white_cards.append([full_text])
+                response_cards.append([full_text])
                 preview = full_text.replace('\n', '\\n')[:50]
                 print(f"Row {row_idx}: White card - {preview}...")
 
-    # Write black cards CSV
-    if black_cards:
-        with open(output_black, 'w', encoding='utf-8', newline='') as f:
+    # Write prompt cards CSV
+    if prompt_cards:
+        with open(output_prompt, 'w', encoding='utf-8', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(['Card Text', 'Tag1', 'Tag2', 'Tag3', 'Tag4', 'Tag5', 'Tag6', 'Tag7', 'Tag8', 'Tag9', 'Tag10'])
-            writer.writerows(black_cards)
-        print(f"Wrote {len(black_cards)} black cards to {output_black}")
+            writer.writerows(prompt_cards)
+        print(f"Wrote {len(prompt_cards)} prompt cards to {output_prompt}")
 
-    # Write white cards CSV
-    if white_cards:
-        with open(output_white, 'w', encoding='utf-8', newline='') as f:
+    # Write response cards CSV
+    if response_cards:
+        with open(output_response, 'w', encoding='utf-8', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(['Card Text', 'Tag1', 'Tag2', 'Tag3', 'Tag4', 'Tag5', 'Tag6', 'Tag7', 'Tag8', 'Tag9', 'Tag10'])
-            writer.writerows(white_cards)
-        print(f"Wrote {len(white_cards)} white cards to {output_white}")
+            writer.writerows(response_cards)
+        print(f"Wrote {len(response_cards)} response cards to {output_response}")
 
 
 def main():
     if len(sys.argv) != 4:
-        print("Usage: python convert_spreadsheet_to_csv.py input_file.xlsx output_black.csv output_white.csv")
+        print("Usage: python convert_spreadsheet_to_csv.py input_file.xlsx output_prompt.csv output_response.csv")
         sys.exit(1)
 
     input_file = Path(sys.argv[1])
-    output_black = Path(sys.argv[2])
-    output_white = Path(sys.argv[3])
+    output_prompt = Path(sys.argv[2])
+    output_response = Path(sys.argv[3])
 
     if not input_file.exists():
         print(f"Error: Input file not found: {input_file}")
@@ -280,9 +280,9 @@ def main():
 
     # Determine file type and process accordingly
     if input_file.suffix.lower() == '.xlsx':
-        process_xlsx(input_file, output_black, output_white)
+        process_xlsx(input_file, output_prompt, output_response)
     elif input_file.suffix.lower() == '.ods':
-        process_ods(input_file, output_black, output_white)
+        process_ods(input_file, output_prompt, output_response)
     else:
         print(f"Error: Unsupported file format: {input_file.suffix}")
         print("Supported formats: .xlsx, .ods")

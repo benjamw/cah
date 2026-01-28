@@ -5,7 +5,7 @@ import { submitCards } from '../utils/api';
 
 function CardSelector({
   selectedCards,
-  whiteCards,
+  responseCards,
   onCardSelect,
   onCardReorder,
   blanksNeeded,
@@ -49,7 +49,7 @@ function CardSelector({
       if (response.success) {
         // Store submitted cards with their full data (not just IDs) in localStorage
         const submittedCardsData = selectedCards.map(cardId => {
-          return whiteCards.find(c => c.card_id === cardId);
+          return responseCards.find(c => c.card_id === cardId);
         }).filter(Boolean);
         
         const storageKey = `submitted_cards_${gameData.gameId}_${gameState.current_round}`;
@@ -122,9 +122,9 @@ function CardSelector({
                 return (
                   <div key={card.card_id} className="submitted-card-preview">
                     <div className="card-order-badge">{index + 1}</div>
-                    <div className="card card-white card-preview">
+                    <div className="card card-response card-preview">
                       <div className="card-content-small">
-                        {card.value}
+                        {card.copy}
                       </div>
                     </div>
                   </div>
@@ -150,7 +150,7 @@ function CardSelector({
 
             <div className="selected-cards-list-compact">
               {selectedCards.map((cardId, index) => {
-                const card = whiteCards.find((c) => c.card_id === cardId);
+                const card = responseCards.find((c) => c.card_id === cardId);
                 if ( ! card) return null;
 
                 return (
@@ -164,7 +164,7 @@ function CardSelector({
                   >
                     <div className="card-order-number-mini">{index + 1}</div>
                     <div className="selected-card-text-mini">
-                      {card.value}
+                      {card.copy}
                     </div>
                     <button
                       className="remove-card-btn-mini"

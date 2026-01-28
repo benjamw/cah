@@ -10,19 +10,19 @@ use CAH\Models\Card;
  * Card Import Service
  *
  * Utility for importing cards from external sources (JSON, CSV, etc.)
- * Handles parsing black card text to determine choices count
+ * Handles parsing prompt card text to determine choices count
  */
 class CardImportService
 {
     /**
-     * Parse a black card to determine how many white cards are needed
+     * Parse a prompt card to determine how many response cards are needed
      *
      * Counts continuous underscore sections (____) in the card text
      *
      * @param string $cardText Black card text
-     * @return int Number of white cards needed (1-3)
+     * @return int Number of response cards needed (1-3)
      */
-    public static function parseBlackCardChoices(string $cardText): int
+    public static function parsePromptCardChoices(string $cardText): int
     {
         preg_match_all('/_{2,}/', $cardText, $matches);
         $underscoreSections = count($matches[0]);
@@ -37,16 +37,16 @@ class CardImportService
     /**
      * Import a single card
      *
-     * @param string $type 'white' or 'black'
+     * @param string $type 'response' or 'prompt'
      * @param string $text Card text
-     * @param int|null $choices For black cards, number of white cards needed (auto-parsed if null)
+     * @param int|null $choices For prompt cards, number of response cards needed (auto-parsed if null)
      * @param bool $active Whether card is active
      * @return int|null Card ID or null on failure
      */
     public static function importCard(string $type, string $text, ?int $choices = null, bool $active = true): ?int
     {
-        if ($type === 'black' && $choices === null) {
-            $choices = self::parseBlackCardChoices($text);
+        if ($type === 'prompt' && $choices === null) {
+            $choices = self::parsePromptCardChoices($text);
         }
 
         return Card::create($type, $text, $choices, $active);
@@ -129,21 +129,21 @@ class CardImportService
     }
 
     /**
-     * Validate and fix choices for existing black cards
+     * Validate and fix choices for existing prompt cards
      *
      * Useful for updating cards that were imported without choices
      *
      * @return array ['updated' => count, 'errors' => [...]]
      */
-    public static function fixBlackCardChoices(): array
+    public static function fixPromptCardChoices(): array
     {
-        $blackCards = Card::getActiveByType('black');
+        $promptCards = Card::getActiveByType('prompt');
         $updated = 0;
         $errors = [];
 
-        foreach ($blackCards as $card) {
+        foreach ($promptCards as $card) {
             try {
-                $parsedChoices = self::parseBlackCardChoices($card['value']);
+                $parsedChoices = self::parsePromptCardChoices($card['copy']);
 
                 if ($card['choices'] === null || $card['choices'] != $parsedChoices) {
                     Card::update($card['card_id'], [
@@ -169,7 +169,7 @@ class CardImportService
      * Tags can be tag IDs (numeric) or tag names (string, will be created if not exist)
      *
      * @param string $csvContent CSV file content
-     * @param string $cardType 'white' or 'black'
+     * @param string $cardType 'response' or 'prompt'
      * @return array ['imported' => int, 'failed' => int, 'errors' => array, 'warnings' => array]
      */
     public static function importFromCsv(string $csvContent, string $cardType): array

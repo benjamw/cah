@@ -59,10 +59,10 @@ class CzarRotationTest extends TestCase
         );
         
         foreach ($nonCzarPlayers as $player) {
-            $blackCardId = is_array($gameState['current_black_card']) 
-                ? $gameState['current_black_card']['card_id'] 
-                : $gameState['current_black_card'];
-            $blanksNeeded = CardService::getBlackCardChoices($blackCardId);
+            $promptCardId = is_array($gameState['current_prompt_card'])
+                ? $gameState['current_prompt_card']['card_id'] 
+                : $gameState['current_prompt_card'];
+            $blanksNeeded = CardService::getPromptCardChoices($promptCardId);
             $cardIds = array_slice($this->getCardIds($player['hand']), 0, $blanksNeeded);
             if (count($cardIds) === $blanksNeeded) {
                 RoundService::submitCards($gameId, $player['id'], $cardIds);
@@ -357,12 +357,12 @@ class CzarRotationTest extends TestCase
             throw new \Exception("Czar mismatch: expected {$currentCzarId}, actual {$gameState['current_czar_id']}");
         }
         
-        // Get the black card to determine how many cards to submit
-        $blackCard = $gameState['current_black_card'];
-        $blackCardId = is_array($blackCard) ? $blackCard['card_id'] : $blackCard;
+        // Get the prompt card to determine how many cards to submit
+        $promptCard = $gameState['current_prompt_card'];
+        $promptCardId = is_array($promptCard) ? $promptCard['card_id'] : $promptCard;
         
-        // Get the number of blanks from the black card
-        $blanksNeeded = CardService::getBlackCardChoices($blackCardId);
+        // Get the number of blanks from the prompt card
+        $blanksNeeded = CardService::getPromptCardChoices($promptCardId);
 
         // Submit cards for all non-czar players
         foreach ($gameState['players'] as $player) {

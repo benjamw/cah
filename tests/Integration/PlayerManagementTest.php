@@ -242,7 +242,7 @@ class PlayerManagementTest extends TestCase
         // Start the game
         $gameState = GameService::startGame($gameId, $creatorId);
         $czarId = $gameState['current_czar_id'];
-        $originalBlackCard = $gameState['current_black_card'];
+        $originalBlackCard = $gameState['current_prompt_card'];
 
         // If creator is the czar, we can't remove them (they can't remove themselves)
         // So skip to next czar until we get a non-creator czar
@@ -251,9 +251,9 @@ class PlayerManagementTest extends TestCase
             $czarId = $gameState['current_czar_id'];
         }
 
-        // Get how many cards the black card requires
-        $blackCardId = $this->getCardId($gameState['current_black_card']);
-        $requiredCards = CardService::getBlackCardChoices($blackCardId);
+        // Get how many cards the prompt card requires
+        $promptCardId = $this->getCardId($gameState['current_prompt_card']);
+        $requiredCards = CardService::getPromptCardChoices($promptCardId);
 
         // Non-czar players submit cards
         foreach ($gameState['players'] as $player) {
@@ -272,7 +272,7 @@ class PlayerManagementTest extends TestCase
 
         // Verify round was reset
         $this->assertEmpty($result['submissions'], 'Submissions should be cleared');
-        $this->assertNotEquals($originalBlackCard, $result['current_black_card'], 'New black card should be drawn');
+        $this->assertNotEquals($originalBlackCard, $result['current_prompt_card'], 'New prompt card should be drawn');
         $this->assertNotEquals($czarId, $result['current_czar_id'], 'New czar should be assigned');
 
         // Verify submitted cards were returned to players' hands
@@ -297,7 +297,7 @@ class PlayerManagementTest extends TestCase
         // Start the game
         $gameState = GameService::startGame($gameId, $creatorId);
         $czarId = $gameState['current_czar_id'];
-        $originalBlackCardId = $this->getCardId($gameState['current_black_card']);
+        $originalBlackCardId = $this->getCardId($gameState['current_prompt_card']);
 
         // Find a non-czar, non-creator player to remove
         $nonCzarPlayer = null;
@@ -308,8 +308,8 @@ class PlayerManagementTest extends TestCase
             }
         }
 
-        // Get how many cards the black card requires
-        $requiredCards = CardService::getBlackCardChoices($originalBlackCardId);
+        // Get how many cards the prompt card requires
+        $requiredCards = CardService::getPromptCardChoices($originalBlackCardId);
 
         // Get full game state from database to access hands
         $game = \CAH\Models\Game::find($gameId);
@@ -327,7 +327,7 @@ class PlayerManagementTest extends TestCase
         $result = GameService::removePlayer($gameId, $creatorId, $nonCzarPlayer['id']);
 
         // Verify round was NOT reset (compare card IDs)
-        $resultBlackCardId = $this->getCardId($result['current_black_card']);
+        $resultBlackCardId = $this->getCardId($result['current_prompt_card']);
         $this->assertEquals($originalBlackCardId, $resultBlackCardId, 'Black card should remain the same');
         $this->assertEquals($czarId, $result['current_czar_id'], 'Czar should remain the same');
 

@@ -317,7 +317,7 @@ function renderCards(cards) {
         <div class="card-item" data-id="${card.card_id}">
             <div class="item-info">
                 <div class="item-title">
-                    <span class="badge badge-${card.card_type}">${card.card_type}</span>
+                    <span class="badge badge-${card.type}">${card.type}</span>
                     <span class="badge badge-${card.active ? 'active' : 'inactive'}">
                         ${card.active ? 'Active' : 'Inactive'}
                     </span>
@@ -346,8 +346,8 @@ function updatePagination(total) {
 
 async function editCard(card) {
     document.getElementById('edit-card-id').value = card.card_id;
-    document.getElementById('edit-card-text').value = card.value;
-    document.getElementById('edit-card-type').value = card.card_type;
+    document.getElementById('edit-card-text').value = card.copy;
+    document.getElementById('edit-card-type').value = card.type;
     document.getElementById('edit-card-active').checked = card.active;
 
     // Load all tags and populate the multi-select
@@ -475,14 +475,14 @@ function updateImportFormatInfo() {
     if (cardType === 'mixed') {
         importFormatInfo.innerHTML = `
             <p><strong>Mixed format:</strong> <code>type,text,tags</code></p>
-            <p>Example: <code>white,"Card text",tag1,tag2</code></p>
+            <p>Example: <code>response,"Card text",tag1,tag2</code></p>
         `;
-    } else if (cardType === 'white') {
+    } else if (cardType === 'response') {
         importFormatInfo.innerHTML = `
             <p><strong>White cards format:</strong> <code>text,tags</code></p>
             <p>Example: <code>"Card text",tag1,tag2</code></p>
         `;
-    } else if (cardType === 'black') {
+    } else if (cardType === 'prompt') {
         importFormatInfo.innerHTML = `
             <p><strong>Black cards format:</strong> <code>text,tags</code></p>
             <p>Example: <code>"Question with _ blank?",tag1,tag2</code></p>
@@ -506,7 +506,7 @@ async function handleImportCards() {
         importStatus.textContent = 'Uploading...';
         importStatus.className = 'status-message';
 
-        const cardType = importCardType.value === 'mixed' ? 'white' : importCardType.value;
+        const cardType = importCardType.value === 'mixed' ? 'response' : importCardType.value;
         const url = `${API_BASE_URL}/admin/cards/import?type=${cardType}`;
 
         const response = await fetch(url, {
@@ -573,8 +573,8 @@ function renderTags(tags) {
                 </div>
                 <div class="item-meta">
                     ${tag.description || 'No description'} |
-                    White Cards: ${tag.white_card_count || 0} |
-                    Black Cards: ${tag.black_card_count || 0}
+                    White Cards: ${tag.response_card_count || 0} |
+                    Black Cards: ${tag.prompt_card_count || 0}
                 </div>
             </div>
             <div class="item-actions">
@@ -772,7 +772,7 @@ async function loadTagAssignmentPage() {
         response.data.forEach(tag => {
             const option = document.createElement('option');
             option.value = tag.tag_id;
-            option.textContent = `${tag.name} (W: ${tag.white_card_count}, B: ${tag.black_card_count})`;
+            option.textContent = `${tag.name} (W: ${tag.response_card_count}, B: ${tag.prompt_card_count})`;
             tagSelect.appendChild(option);
         });
     }
@@ -826,7 +826,7 @@ async function loadTagAssignment(tagId) {
         // Card type badge
         const typeBadge = document.createElement('div');
         typeBadge.className = `card-item-type ${card.type}`;
-        typeBadge.textContent = card.type === 'white' ? 'White Card' : 'Black Card';
+        typeBadge.textContent = card.type === 'response' ? 'White Card' : 'Black Card';
 
         // Card text
         const cardText = document.createElement('div');

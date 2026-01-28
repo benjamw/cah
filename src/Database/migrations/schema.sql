@@ -9,15 +9,15 @@ DROP TABLE IF EXISTS `cards_to_tags`;
 DROP TABLE IF EXISTS `tags`;
 DROP TABLE IF EXISTS `cards`;
 
--- Cards table: stores all white and black cards
+-- Cards table: stores all response and prompt cards
 CREATE TABLE `cards` (
     `card_id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `card_type` ENUM('white', 'black') NOT NULL,
-    `value` TEXT NOT NULL,
-    `choices` SMALLINT UNSIGNED NULL DEFAULT NULL COMMENT 'Number of white cards needed (black cards only)',
+    `type` ENUM('response', 'prompt') NOT NULL,
+    `copy` TEXT NOT NULL,
+    `choices` SMALLINT UNSIGNED NULL DEFAULT NULL COMMENT 'Number of response cards needed (prompt cards only)',
     `active` TINYINT(1) NOT NULL DEFAULT 1,
     INDEX `idx_active` (`active`),
-    INDEX `idx_active_card_type` (`active`, `card_type`) COMMENT 'Optimized for filtering active cards by type when building draw pile'
+    INDEX `idx_active_type` (`active`, `type`) COMMENT 'Optimized for filtering active cards by type when building draw pile'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tags table: categorize cards (e.g., "base", "expansion1", "nsfw")
@@ -98,7 +98,7 @@ CREATE TABLE `admin_sessions` (
 --     }
 --   ],
 --   "current_czar_id": "uuid-v4",
---   "current_black_card": 42,
+--   "current_prompt_card": 42,
 --   "current_round": 1,
 --   "submissions": [
 --     {
@@ -109,8 +109,8 @@ CREATE TABLE `admin_sessions` (
 --   "round_history": [
 --     {
 --       "round": 1,
---       "black_card": 40,
---       "black_card_text": "Card text",
+--       "prompt_card": 40,
+--       "prompt_card_text": "Card text",
 --       "winner_id": "uuid-v4",
 --       "winner_name": "Player Name",
 --       "submissions": [

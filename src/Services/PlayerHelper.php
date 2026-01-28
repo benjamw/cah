@@ -81,8 +81,8 @@ class PlayerHelper
                 // For other players, just show card count
                 $player['hand'] = array_map(fn($card) => [
                     'card_id' => null,  // Hide card ID
-                    'value' => '*** HIDDEN ***',  // Hide card text
-                    'card_type' => 'white'
+                    'copy' => '*** HIDDEN ***',  // Hide card text
+                    'type' => 'response'
                 ], $player['hand']);
             }
         }
