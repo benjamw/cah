@@ -1,16 +1,8 @@
 -- Cards API Hub Database Schema
 -- MySQL/MariaDB
 
--- Drop tables if they exist (for clean reinstall)
-DROP TABLE IF EXISTS `admin_sessions`;
-DROP TABLE IF EXISTS `rate_limits`;
-DROP TABLE IF EXISTS `games`;
-DROP TABLE IF EXISTS `cards_to_tags`;
-DROP TABLE IF EXISTS `tags`;
-DROP TABLE IF EXISTS `cards`;
-
 -- Cards table: stores all response and prompt cards
-CREATE TABLE `cards` (
+CREATE TABLE IF NOT EXISTS `cards` (
     `card_id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `type` ENUM('response', 'prompt') NOT NULL,
     `copy` TEXT NOT NULL,
@@ -21,7 +13,7 @@ CREATE TABLE `cards` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Tags table: categorize cards (e.g., "base", "expansion1", "nsfw")
-CREATE TABLE `tags` (
+CREATE TABLE IF NOT EXISTS `tags` (
     `tag_id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `name` VARCHAR(100) NOT NULL UNIQUE,
     `description` VARCHAR(255) NULL,
@@ -29,8 +21,20 @@ CREATE TABLE `tags` (
     INDEX `idx_active` (`active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Packs table: card expansion packs
+CREATE TABLE IF NOT EXISTS `packs` (
+    `pack_id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(255) NOT NULL,
+    `version` VARCHAR(255) DEFAULT NULL,
+    `data` TEXT NULL COMMENT 'JSON data for additional metadata (release location, etc.)',
+    `release_date` DATETIME DEFAULT NULL,
+    `active` TINYINT(1) NOT NULL DEFAULT 1,
+    UNIQUE KEY `unique_pack_version` (`name`, `version`),
+    INDEX `idx_active` (`active`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Cards to Tags junction table: many-to-many relationship
-CREATE TABLE `cards_to_tags` (
+CREATE TABLE IF NOT EXISTS `cards_to_tags` (
     `card_id` INT UNSIGNED NOT NULL,
     `tag_id` INT UNSIGNED NOT NULL,
     PRIMARY KEY (`card_id`, `tag_id`),
@@ -39,8 +43,19 @@ CREATE TABLE `cards_to_tags` (
     INDEX `idx_tag_id` (`tag_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Cards to Packs junction table: many-to-many relationship
+CREATE TABLE IF NOT EXISTS `cards_to_packs` (
+    `card_id` INT UNSIGNED NOT NULL,
+    `pack_id` INT UNSIGNED NOT NULL,
+    PRIMARY KEY (`card_id`, `pack_id`),
+    FOREIGN KEY (`card_id`) REFERENCES `cards`(`card_id`) ON DELETE CASCADE,
+    FOREIGN KEY (`pack_id`) REFERENCES `packs`(`pack_id`) ON DELETE CASCADE,
+    INDEX `idx_card_id` (`card_id`),
+    INDEX `idx_pack_id` (`pack_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Games table: stores active game sessions
-CREATE TABLE `games` (
+CREATE TABLE IF NOT EXISTS `games` (
     `game_id` CHAR(4) PRIMARY KEY COMMENT 'Unique 4-character game code',
     `tags` JSON NOT NULL COMMENT 'Array of tag IDs used in this game',
     `draw_pile` JSON NOT NULL COMMENT 'Array of available card IDs',
@@ -55,7 +70,7 @@ CREATE TABLE `games` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Rate limits table: prevent brute force attacks
-CREATE TABLE `rate_limits` (
+CREATE TABLE IF NOT EXISTS `rate_limits` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `ip_address` VARCHAR(45) NOT NULL COMMENT 'IPv4 or IPv6 address',
     `action` VARCHAR(50) NOT NULL COMMENT 'Action being rate limited (e.g., join_game, create_game)',
@@ -68,7 +83,7 @@ CREATE TABLE `rate_limits` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Admin sessions table: store admin authentication tokens
-CREATE TABLE `admin_sessions` (
+CREATE TABLE IF NOT EXISTS `admin_sessions` (
     `session_id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `token` CHAR(64) NOT NULL UNIQUE COMMENT 'SHA-256 hash of random token',
     `ip_address` VARCHAR(45) NOT NULL COMMENT 'IPv4 or IPv6 address',

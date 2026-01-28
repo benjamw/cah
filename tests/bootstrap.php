@@ -42,16 +42,19 @@ Database::init($dbConfig);
 // Clean up any leftover test data first
 $connection = Database::getConnection();
 try {
+    $connection->exec("DELETE FROM cards_to_packs");
     $connection->exec("DELETE FROM cards_to_tags");
+    $connection->exec("DELETE FROM packs");
     $connection->exec("DELETE FROM tags WHERE name = 'test_base'");
     $connection->exec("DELETE FROM cards");
     $connection->exec("DELETE FROM games");
     $connection->exec("DELETE FROM rate_limits");
     $connection->exec("DELETE FROM admin_sessions");
-    
+
     // Reset auto-increment counters
     $connection->exec("ALTER TABLE cards AUTO_INCREMENT = 1");
     $connection->exec("ALTER TABLE tags AUTO_INCREMENT = 1");
+    $connection->exec("ALTER TABLE packs AUTO_INCREMENT = 1");
 } catch (\Exception $e) {
     // Ignore errors if tables are already empty
 }
@@ -114,21 +117,24 @@ echo "Test data ready!\n\n";
 // Register shutdown function to clean up test data
 register_shutdown_function(function () use ($connection) {
     echo "\nCleaning up test data...\n";
-    
+
     try {
         // Delete all test data
+        $connection->exec("DELETE FROM cards_to_packs");
         $connection->exec("DELETE FROM cards_to_tags");
+        $connection->exec("DELETE FROM packs");
         $connection->exec("DELETE FROM tags");
         $connection->exec("DELETE FROM cards");
         $connection->exec("DELETE FROM games");
         $connection->exec("DELETE FROM rate_limits");
         $connection->exec("DELETE FROM admin_sessions");
-        
+
         // Reset auto-increment
         $connection->exec("ALTER TABLE cards AUTO_INCREMENT = 1");
         $connection->exec("ALTER TABLE tags AUTO_INCREMENT = 1");
+        $connection->exec("ALTER TABLE packs AUTO_INCREMENT = 1");
         $connection->exec("ALTER TABLE games AUTO_INCREMENT = 1");
-        
+
         echo "Test data cleaned up\n";
     } catch (Exception $e) {
         echo "Error cleaning up: {$e->getMessage()}\n";

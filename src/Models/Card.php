@@ -60,6 +60,7 @@ class Card
      *
      * A card is included only if ALL of the card's tags are in the selected tags list
      * Untagged cards are always included
+     * Cards are excluded if they are ONLY in inactive packs (cards in at least one active pack are included)
      * Example: Player selects [1, 2]
      *   - Card with no tags -> Included (untagged cards always included)
      *   - Card with tags [1] -> Included (all card tags are in selection)
@@ -76,10 +77,26 @@ class Card
     {
         if (empty($tagIds)) {
             $sql = "
-                SELECT card_id
-                FROM cards
-                WHERE active = 1
-                    AND type = ?
+                SELECT DISTINCT c.card_id
+                FROM cards c
+                WHERE c.active = 1
+                    AND c.type = ?
+                    AND (
+                        -- Include cards that have at least one active pack
+                        EXISTS (
+                            SELECT 1
+                            FROM cards_to_packs cp
+                            INNER JOIN packs p ON cp.pack_id = p.pack_id
+                            WHERE cp.card_id = c.card_id
+                                AND p.active = 1
+                        )
+                        -- OR include cards that have no packs at all
+                        OR NOT EXISTS (
+                            SELECT 1
+                            FROM cards_to_packs cp
+                            WHERE cp.card_id = c.card_id
+                        )
+                    )
             ";
             return array_column(Database::fetchAll($sql, [$cardType]), 'card_id');
         }
@@ -87,6 +104,7 @@ class Card
         // Get cards where ALL of the card's tags are in the selected tags list
         // Strategy: Find cards that have tags NOT in the selected list, then exclude them
         // Untagged cards are always included
+        // Also exclude cards that are ONLY in inactive packs
         $placeholders = implode(',', array_fill(0, count($tagIds), '?'));
 
         $sql = "
@@ -100,6 +118,22 @@ class Card
                     FROM cards_to_tags ct
                     WHERE ct.tag_id NOT IN ({$placeholders})
                 )
+                AND (
+                    -- Include cards that have at least one active pack
+                    EXISTS (
+                        SELECT 1
+                        FROM cards_to_packs cp
+                        INNER JOIN packs p ON cp.pack_id = p.pack_id
+                        WHERE cp.card_id = c.card_id
+                            AND p.active = 1
+                    )
+                    -- OR include cards that have no packs at all
+                    OR NOT EXISTS (
+                        SELECT 1
+                        FROM cards_to_packs cp
+                        WHERE cp.card_id = c.card_id
+                    )
+                )
         ";
 
         $params = array_merge([$cardType], $tagIds);
@@ -108,6 +142,7 @@ class Card
 
     /**
      * Get all active cards by type
+     * Excludes cards that are ONLY in inactive packs
      *
      * @param string $cardType 'response' or 'prompt'
      * @return array Array of card data
@@ -115,10 +150,26 @@ class Card
     public static function getActiveByType(string $cardType): array
     {
         $sql = "
-            SELECT *
-            FROM cards
-            WHERE active = 1
-                AND type = ?
+            SELECT DISTINCT c.*
+            FROM cards c
+            WHERE c.active = 1
+                AND c.type = ?
+                AND (
+                    -- Include cards that have at least one active pack
+                    EXISTS (
+                        SELECT 1
+                        FROM cards_to_packs cp
+                        INNER JOIN packs p ON cp.pack_id = p.pack_id
+                        WHERE cp.card_id = c.card_id
+                            AND p.active = 1
+                    )
+                    -- OR include cards that have no packs at all
+                    OR NOT EXISTS (
+                        SELECT 1
+                        FROM cards_to_packs cp
+                        WHERE cp.card_id = c.card_id
+                    )
+                )
         ";
         return Database::fetchAll($sql, [$cardType]);
     }

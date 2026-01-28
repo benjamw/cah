@@ -82,7 +82,7 @@ foreach ($statements as $index => $statement) {
         $successCount++;
         
         // Extract table name for better output
-        if (preg_match('/CREATE TABLE\s+`?(\w+)`?/i', $statement, $matches)) {
+        if (preg_match('/CREATE TABLE(?: IF NOT EXISTS)?\s+`?(\w+)`?/i', $statement, $matches)) {
             echo "Created table: {$matches[1]}\n";
         } elseif (preg_match('/DROP TABLE\s+IF EXISTS\s+`?(\w+)`?/i', $statement, $matches)) {
             echo "Dropped table (if exists): {$matches[1]}\n";

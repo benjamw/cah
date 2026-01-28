@@ -71,6 +71,7 @@ class Tag
 
     /**
      * Get all active tags with card counts
+     * Only counts cards that are in at least one active pack (or have no packs)
      *
      * @return array Array of tag data with card counts
      */
@@ -79,9 +80,57 @@ class Tag
         $sql = "
             SELECT
                 t.*,
-                COUNT(DISTINCT CASE WHEN c.type = 'response' AND c.active = 1 THEN c.card_id END) as response_card_count,
-                COUNT(DISTINCT CASE WHEN c.type = 'prompt' AND c.active = 1 THEN c.card_id END) as prompt_card_count,
-                COUNT(DISTINCT CASE WHEN c.active = 1 THEN c.card_id END) as total_card_count
+                COUNT(DISTINCT CASE
+                    WHEN c.type = 'response' AND c.active = 1
+                        AND (
+                            EXISTS (
+                                SELECT 1
+                                FROM cards_to_packs cp
+                                INNER JOIN packs p ON cp.pack_id = p.pack_id
+                                WHERE cp.card_id = c.card_id AND p.active = 1
+                            )
+                            OR NOT EXISTS (
+                                SELECT 1
+                                FROM cards_to_packs cp
+                                WHERE cp.card_id = c.card_id
+                            )
+                        )
+                    THEN c.card_id
+                END) as response_card_count,
+                COUNT(DISTINCT CASE
+                    WHEN c.type = 'prompt' AND c.active = 1
+                        AND (
+                            EXISTS (
+                                SELECT 1
+                                FROM cards_to_packs cp
+                                INNER JOIN packs p ON cp.pack_id = p.pack_id
+                                WHERE cp.card_id = c.card_id AND p.active = 1
+                            )
+                            OR NOT EXISTS (
+                                SELECT 1
+                                FROM cards_to_packs cp
+                                WHERE cp.card_id = c.card_id
+                            )
+                        )
+                    THEN c.card_id
+                END) as prompt_card_count,
+                COUNT(DISTINCT CASE
+                    WHEN c.active = 1
+                        AND (
+                            EXISTS (
+                                SELECT 1
+                                FROM cards_to_packs cp
+                                INNER JOIN packs p ON cp.pack_id = p.pack_id
+                                WHERE cp.card_id = c.card_id AND p.active = 1
+                            )
+                            OR NOT EXISTS (
+                                SELECT 1
+                                FROM cards_to_packs cp
+                                WHERE cp.card_id = c.card_id
+                            )
+                        )
+                    THEN c.card_id
+                END) as total_card_count
             FROM tags t
             LEFT JOIN cards_to_tags ct ON t.tag_id = ct.tag_id
             LEFT JOIN cards c ON ct.card_id = c.card_id
@@ -94,6 +143,7 @@ class Tag
 
     /**
      * Get card count for a specific tag
+     * Only counts cards that are in at least one active pack (or have no packs)
      *
      * @param int $tagId
      * @param string|null $cardType Optional: 'response', 'prompt', or null for all
@@ -106,7 +156,24 @@ class Tag
                 SELECT COUNT(DISTINCT c.card_id) as count
                 FROM cards c
                 INNER JOIN cards_to_tags ct ON c.card_id = ct.card_id
-                WHERE ct.tag_id = ? AND c.active = 1 AND c.type = ?
+                WHERE ct.tag_id = ?
+                    AND c.active = 1
+                    AND c.type = ?
+                    AND (
+                        -- Include cards that have at least one active pack
+                        EXISTS (
+                            SELECT 1
+                            FROM cards_to_packs cp
+                            INNER JOIN packs p ON cp.pack_id = p.pack_id
+                            WHERE cp.card_id = c.card_id AND p.active = 1
+                        )
+                        -- OR include cards that have no packs at all
+                        OR NOT EXISTS (
+                            SELECT 1
+                            FROM cards_to_packs cp
+                            WHERE cp.card_id = c.card_id
+                        )
+                    )
             ";
             $result = Database::fetchOne($sql, [$tagId, $cardType]);
         } else {
@@ -114,7 +181,23 @@ class Tag
                 SELECT COUNT(DISTINCT c.card_id) as count
                 FROM cards c
                 INNER JOIN cards_to_tags ct ON c.card_id = ct.card_id
-                WHERE ct.tag_id = ? AND c.active = 1
+                WHERE ct.tag_id = ?
+                    AND c.active = 1
+                    AND (
+                        -- Include cards that have at least one active pack
+                        EXISTS (
+                            SELECT 1
+                            FROM cards_to_packs cp
+                            INNER JOIN packs p ON cp.pack_id = p.pack_id
+                            WHERE cp.card_id = c.card_id AND p.active = 1
+                        )
+                        -- OR include cards that have no packs at all
+                        OR NOT EXISTS (
+                            SELECT 1
+                            FROM cards_to_packs cp
+                            WHERE cp.card_id = c.card_id
+                        )
+                    )
             ";
             $result = Database::fetchOne($sql, [$tagId]);
         }

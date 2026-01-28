@@ -86,6 +86,7 @@ class Pack
 
     /**
      * Get all packs with card counts
+     * Only counts active cards
      *
      * @param bool|null $activeOnly If true, only active packs. If false, only inactive. If null, all packs.
      * @return array Array of pack data with card counts
@@ -94,19 +95,19 @@ class Pack
     {
         $whereClause = '';
         $params = [];
-        
+
         if ($activeOnly === true) {
             $whereClause = 'WHERE p.active = 1';
         } elseif ($activeOnly === false) {
             $whereClause = 'WHERE p.active = 0';
         }
-        
+
         $sql = "
             SELECT
                 p.*,
-                COUNT(DISTINCT CASE WHEN c.type = 'response' THEN c.card_id END) as response_card_count,
-                COUNT(DISTINCT CASE WHEN c.type = 'prompt' THEN c.card_id END) as prompt_card_count,
-                COUNT(DISTINCT c.card_id) as total_card_count
+                COUNT(DISTINCT CASE WHEN c.type = 'response' AND c.active = 1 THEN c.card_id END) as response_card_count,
+                COUNT(DISTINCT CASE WHEN c.type = 'prompt' AND c.active = 1 THEN c.card_id END) as prompt_card_count,
+                COUNT(DISTINCT CASE WHEN c.active = 1 THEN c.card_id END) as total_card_count
             FROM packs p
             LEFT JOIN cards_to_packs cp ON p.pack_id = cp.pack_id
             LEFT JOIN cards c ON cp.card_id = c.card_id
