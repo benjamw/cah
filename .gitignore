@@ -5,10 +5,6 @@ vendor/
 .env
 .env.local
 
-# Logs
-/logs/*.log
-/logs/
-
 # IDE
 .idea/
 .vscode/
@@ -21,5 +17,4 @@ vendor/
 Thumbs.db
 
 # Test coverage
-/coverage
 .phpunit.result.cache
