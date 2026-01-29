@@ -29,6 +29,8 @@ function GamePlay({ gameData, onLeaveGame }) {
   const hostTransferAlertedRef = useRef(false); // Track if host transfer alert was shown
   const toastTimeoutRef = useRef(null);
   const seenToastsRef = useRef(getSeenToasts(gameData.gameId)); // Track seen toast IDs
+  const pollIntervalTimeRef = useRef(3000); // Current polling interval (starts at 3s)
+  const consecutiveErrorsRef = useRef(0); // Track consecutive errors for backoff
 
   const showToast = useCallback((message, icon = null) => {
     if (toastTimeoutRef.current) {
@@ -40,6 +42,39 @@ function GamePlay({ gameData, onLeaveGame }) {
       setToastMessage('');
       setToastIcon(null);
     }, 7000); // 7 seconds display time
+  }, []);
+
+  const resetPolling = useCallback((fetchFn) => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
+    pollIntervalTimeRef.current = 3000; // Reset to 3 seconds
+    consecutiveErrorsRef.current = 0;
+    pollIntervalRef.current = setInterval(fetchFn, 3000);
+  }, []);
+
+  const increasePollingInterval = useCallback((fetchFn) => {
+    consecutiveErrorsRef.current += 1;
+    
+    // Exponential backoff: 3s → 6s → 12s → 24s → 30s (max)
+    const baseInterval = 3000;
+    const backoffMultiplier = Math.min(Math.pow(2, consecutiveErrorsRef.current), 10);
+    pollIntervalTimeRef.current = Math.min(baseInterval * backoffMultiplier, 30000);
+    
+    // Restart polling with new interval
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
+    pollIntervalRef.current = setInterval(fetchFn, pollIntervalTimeRef.current);
+    
+    console.log(`Polling slowed to ${pollIntervalTimeRef.current / 1000}s due to errors`);
+  }, []);
+
+  const stopPolling = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
   }, []);
 
   const fetchGameState = useCallback(async () => {
@@ -69,10 +104,8 @@ function GamePlay({ gameData, onLeaveGame }) {
         if ( ! playerStillInGame && ! removedRef.current) {
           removedRef.current = true; // Prevent multiple alerts
           
-          // Stop polling
-          if (pollIntervalRef.current) {
-            clearInterval(pollIntervalRef.current);
-          }
+          // Stop polling permanently
+          stopPolling();
           
           alert('You have been removed from the game.');
           onLeaveGame();
@@ -111,16 +144,50 @@ function GamePlay({ gameData, onLeaveGame }) {
         setGameState(transformedState);
         setError('');
         
+        // Reset polling to normal speed on success
+        if (consecutiveErrorsRef.current > 0) {
+          consecutiveErrorsRef.current = 0;
+          if (pollIntervalTimeRef.current !== 3000) {
+            resetPolling(fetchGameState);
+          }
+        }
+        
         // Update last modified timestamp if provided
         if (response.lastModified) {
           lastModifiedRef.current = response.lastModified;
         }
+        
+        // Stop polling when game is finished - no more state changes will occur
+        if (transformedState.state === 'finished') {
+          stopPolling();
+        }
       } else {
         console.error('Game state error:', response);
         
-        // Check if it's an authentication error
-        if (response.error && (response.error.includes('session') || response.error.includes('auth'))) {
-          setError('Session expired. Please refresh and rejoin the game.');
+        // Check for fatal errors that should stop polling permanently
+        const isGameDeleted = response.statusCode === 410 || 
+          (response.error && (response.error.includes('ended') || response.error.includes('deleted')));
+        const isSessionInvalid = response.statusCode === 401 || response.statusCode === 403 ||
+          (response.error && (response.error.includes('session') || response.error.includes('auth')));
+        
+        // Check for temporary errors that should slow polling (backoff)
+        const isTemporaryError = response.statusCode === 404 || 
+          response.statusCode >= 500 ||
+          (response.error && response.error.includes('not found'));
+        
+        if (isGameDeleted || isSessionInvalid) {
+          // Stop polling permanently for auth errors or game deletion
+          stopPolling();
+          
+          if (isGameDeleted) {
+            setError('This game has ended or been deleted.');
+          } else {
+            setError('Session expired. Please refresh and rejoin the game.');
+          }
+        } else if (isTemporaryError) {
+          // Slow down polling for temporary errors (network issues, etc.)
+          increasePollingInterval(fetchGameState);
+          setError(response.message || 'Connection issue - retrying...');
         } else {
           setError(response.message || 'Failed to get game state');
         }
@@ -128,30 +195,28 @@ function GamePlay({ gameData, onLeaveGame }) {
     } catch (err) {
       console.error('Game state exception:', err);
       
-      // Network error or session expired
-      if (err.message && (err.message.includes('401') || err.message.includes('403'))) {
-        setError('Session expired. Please refresh the page to rejoin.');
-      } else {
-        setError(err.message || 'Failed to connect to server');
-      }
+      // Network errors - slow down polling but don't stop
+      increasePollingInterval(fetchGameState);
+      setError(err.message || 'Connection issue - retrying...');
     } finally {
       setLoading(false);
     }
-  }, [gameData.playerId, isCreator, onLeaveGame, showToast]);
+  }, [gameData.playerId, isCreator, onLeaveGame, showToast, stopPolling, gameData.gameId, resetPolling, increasePollingInterval]);
 
   useEffect(() => {
     // Initial fetch
     fetchGameState();
 
-    // Set up polling every 3 seconds
-    pollIntervalRef.current = setInterval(fetchGameState, 3000);
+    // Set up polling every 3 seconds initially
+    pollIntervalRef.current = setInterval(fetchGameState, pollIntervalTimeRef.current);
 
     return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current);
+      stopPolling();
+      if (toastTimeoutRef.current) {
+        clearTimeout(toastTimeoutRef.current);
       }
     };
-  }, [fetchGameState]); // Add fetchGameState to dependencies
+  }, [fetchGameState, stopPolling]); // Add dependencies
 
   const handleStartGame = async () => {
     setLoading(true);

@@ -82,8 +82,15 @@ class RateLimitMiddleware implements MiddlewareInterface
         $response = $handler->handle($request);
 
         // Fail2ban: Record failed attempt if 404 on any API endpoint
+        // Only count 404s from unauthenticated users (no valid session)
+        // This prevents legitimate users from being rate-limited when their game is deleted
         if ($isApiEndpoint && $response->getStatusCode() === 404) {
-            RateLimitService::recordAttempt($clientIp, RateLimitAction::FAILED_GAME_CODE);
+            $hasValidSession = isset($_SESSION[\CAH\Constants\SessionKeys::PLAYER_ID])
+                && isset($_SESSION[\CAH\Constants\SessionKeys::GAME_ID]);
+            
+            if ( ! $hasValidSession) {
+                RateLimitService::recordAttempt($clientIp, RateLimitAction::FAILED_GAME_CODE);
+            }
         }
 
         return $response;

@@ -159,7 +159,13 @@ class GameController
             $game = Game::find($gameId);
 
             if ( ! $game) {
-                throw new GameNotFoundException($gameId);
+                // Return 410 Gone instead of 404 when authenticated user's game is deleted
+                // This helps the client distinguish between "no session" and "game deleted"
+                return JsonResponse::error(
+                    $response,
+                    "Game '{$gameId}' not found. It may have been ended or deleted.",
+                    410
+                );
             }
 
             // Check If-Modified-Since header for conditional request

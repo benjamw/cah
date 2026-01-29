@@ -33,8 +33,10 @@ async function apiRequest(endpoint, options = {}) {
     };
   }
 
+  // Include HTTP status code in response for error handling
   return {
     ...data,
+    statusCode: response.status,
     lastModified,
   };
 }
