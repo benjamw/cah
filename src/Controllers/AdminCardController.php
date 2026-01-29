@@ -31,11 +31,14 @@ class AdminCardController
 
             $cardType = $queryParams['type'] ?? null;
             $tagIdParam = $queryParams['tag_id'] ?? null;
+            $excludeTagIdParam = $queryParams['exclude_tag_id'] ?? null;
             $packIdParam = $queryParams['pack_id'] ?? null;
             $packActiveParam = $queryParams['pack_active'] ?? null;
+            $searchQuery = $queryParams['search'] ?? null;
             
             $tagId = null;
             $noTags = false;
+            $excludeTagId = null;
             $packId = null;
             $noPacks = false;
             $packActive = null;
@@ -46,6 +49,10 @@ class AdminCardController
                 } else {
                     $tagId = (int) $tagIdParam;
                 }
+            }
+            
+            if ($excludeTagIdParam !== null) {
+                $excludeTagId = (int) $excludeTagIdParam;
             }
 
             if ($packIdParam !== null) {
@@ -63,6 +70,14 @@ class AdminCardController
             $active = isset($queryParams['active']) ? (bool) ( (int) $queryParams['active'] ) : true;
             $limit = isset($queryParams['limit']) ? (int) $queryParams['limit'] : 100;
             $offset = isset($queryParams['offset']) ? (int) $queryParams['offset'] : 0;
+            
+            // Trim and validate search query
+            if ($searchQuery !== null) {
+                $searchQuery = trim($searchQuery);
+                if ($searchQuery === '') {
+                    $searchQuery = null;
+                }
+            }
 
             // Validate parameters
             if ( ! in_array($cardType, [null, 'response', 'prompt'], true)) {
@@ -78,7 +93,19 @@ class AdminCardController
             }
 
             // Use Card model to handle the complex query logic
-            $result = Card::listWithFilters($cardType, $tagId, $noTags, $packId, $noPacks, $packActive, $active, $limit, $offset);
+            $result = Card::listWithFilters(
+                $cardType,
+                $tagId,
+                $noTags,
+                $excludeTagId,
+                $packId,
+                $noPacks,
+                $packActive,
+                $searchQuery,
+                $active,
+                $limit,
+                $offset
+            );
             $cards = $result['cards'];
             $total = $result['total'];
 

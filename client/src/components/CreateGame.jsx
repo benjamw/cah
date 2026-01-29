@@ -242,7 +242,7 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
                   onClick={() => toggleTag(tag.tag_id)}
                   disabled={loading}
                 >
-                  {tag.name}
+                  {tag.name} ({tag.response_card_count || 0}W / {tag.prompt_card_count || 0}B)
                 </button>
               ))}
             </div>

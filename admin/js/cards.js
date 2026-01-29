@@ -14,11 +14,12 @@ let currentFilters = {
     tags: [],
     packs: [],
     packStatus: '',
+    search: '',
     limit: 50
 };
 
 // DOM elements (initialized in initCards)
-let cardsList, cardTypeFilter, cardActiveFilter, cardTagsFilter, cardPackFilter, cardPackStatusFilter, cardLimitFilter;
+let cardsList, cardTypeFilter, cardActiveFilter, cardTagsFilter, cardPackFilter, cardPackStatusFilter, cardSearchFilter, cardLimitFilter;
 let prevPageBtn, nextPageBtn, pageInfo;
 let importModal, uploadCsvBtn, csvFileInput, importStatus, importCardType, importFormatInfo;
 let editCardModal, saveCardBtn;
@@ -33,6 +34,7 @@ export function initCards() {
     cardTagsFilter = document.getElementById('card-tags-filter');
     cardPackFilter = document.getElementById('card-pack-filter');
     cardPackStatusFilter = document.getElementById('card-pack-status-filter');
+    cardSearchFilter = document.getElementById('card-search-filter');
     cardLimitFilter = document.getElementById('card-limit-filter');
     prevPageBtn = document.getElementById('prev-page');
     nextPageBtn = document.getElementById('next-page');
@@ -57,10 +59,18 @@ export function setupCardsListeners() {
         currentFilters.tags = Array.from(cardTagsFilter.selectedOptions).map(opt => opt.value).filter(v => v);
         currentFilters.packs = Array.from(cardPackFilter.selectedOptions).map(opt => opt.value).filter(v => v);
         currentFilters.packStatus = cardPackStatusFilter.value;
+        currentFilters.search = cardSearchFilter.value.trim();
         currentFilters.limit = parseInt(cardLimitFilter.value);
         itemsPerPage = currentFilters.limit;
         currentPage = 1;
         loadCards();
+    });
+    
+    // Search on Enter key
+    cardSearchFilter.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('apply-filters-btn').click();
+        }
     });
 
     prevPageBtn.addEventListener('click', () => {
@@ -151,6 +161,9 @@ export async function loadCards() {
         }
         if (currentFilters.packStatus !== '') {
             params.append('pack_active', currentFilters.packStatus);
+        }
+        if (currentFilters.search) {
+            params.append('search', currentFilters.search);
         }
 
         const data = await apiRequest(`/admin/cards/list?${params}`);

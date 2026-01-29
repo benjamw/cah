@@ -268,16 +268,39 @@ class Card
         ?string $cardType,
         ?int $tagId,
         bool $noTags,
+        ?int $excludeTagId,
         ?int $packId,
         bool $noPacks,
         ?bool $packActive,
+        ?string $searchQuery,
         bool $active,
         int $limit,
         int $offset
     ): array {
-        // Build main query
-        $sql = "SELECT DISTINCT c.* FROM cards c";
+        // Build main query with relevance scoring if search is present
+        $selectFields = "c.*";
+        $orderBy = "c.card_id ASC";
         $params = [];
+        
+        // Add relevance scoring for search query
+        if ($searchQuery !== null) {
+            // Split search query into words
+            $searchWords = preg_split('/\s+/', $searchQuery, -1, PREG_SPLIT_NO_EMPTY);
+            $relevanceConditions = [];
+            
+            foreach ($searchWords as $word) {
+                $relevanceConditions[] = "IF(c.copy LIKE ?, 1, 0)";
+                // Add params for relevance scoring FIRST
+                $params[] = '%' . $word . '%';
+            }
+            
+            if (!empty($relevanceConditions)) {
+                $selectFields = "c.*, (" . implode(" + ", $relevanceConditions) . ") as relevance";
+                $orderBy = "relevance DESC, c.card_id ASC";
+            }
+        }
+        
+        $sql = "SELECT DISTINCT {$selectFields} FROM cards c";
         $conditions = [];
         $joins = [];
 
@@ -290,6 +313,11 @@ class Card
             // Filter for cards with no tags using LEFT JOIN
             $joins[] = "LEFT JOIN cards_to_tags ct ON c.card_id = ct.card_id";
             $conditions[] = "ct.card_id IS NULL";
+        } elseif ($excludeTagId !== null) {
+            // Filter for cards that DON'T have this tag
+            $joins[] = "LEFT JOIN cards_to_tags ct_exclude ON c.card_id = ct_exclude.card_id AND ct_exclude.tag_id = ?";
+            $conditions[] = "ct_exclude.card_id IS NULL";
+            $params[] = $excludeTagId;
         }
 
         // Join with packs if filtering by pack or pack status
@@ -324,12 +352,26 @@ class Card
 
         $conditions[] = "c.active = ?";
         $params[] = $active;
+        
+        // Add search conditions
+        if ($searchQuery !== null) {
+            $searchWords = preg_split('/\s+/', $searchQuery, -1, PREG_SPLIT_NO_EMPTY);
+            if (!empty($searchWords)) {
+                $searchConditions = [];
+                foreach ($searchWords as $word) {
+                    $searchConditions[] = "c.copy LIKE ?";
+                    $params[] = '%' . $word . '%';
+                }
+                // Match if ANY search word is found
+                $conditions[] = "(" . implode(" OR ", $searchConditions) . ")";
+            }
+        }
 
         // Add WHERE clause (conditions array will always have at least one item)
         $sql .= " WHERE " . implode(' AND ', $conditions);
 
         // Add ordering and pagination
-        $sql .= " ORDER BY c.card_id ASC";
+        $sql .= " ORDER BY {$orderBy}";
 
         // Only add LIMIT if limit > 0 (0 means no limit)
         if ($limit > 0) {
@@ -353,6 +395,10 @@ class Card
         } elseif ($noTags) {
             $countJoins[] = "LEFT JOIN cards_to_tags ct ON c.card_id = ct.card_id";
             $countConditions[] = "ct.card_id IS NULL";
+        } elseif ($excludeTagId !== null) {
+            $countJoins[] = "LEFT JOIN cards_to_tags ct_exclude ON c.card_id = ct_exclude.card_id AND ct_exclude.tag_id = ?";
+            $countConditions[] = "ct_exclude.card_id IS NULL";
+            $countParams[] = $excludeTagId;
         }
 
         if ($packId !== null || $noPacks || $packActive !== null) {
@@ -382,6 +428,19 @@ class Card
 
         $countConditions[] = "c.active = ?";
         $countParams[] = $active;
+        
+        // Add search conditions to count query
+        if ($searchQuery !== null) {
+            $searchWords = preg_split('/\s+/', $searchQuery, -1, PREG_SPLIT_NO_EMPTY);
+            if (!empty($searchWords)) {
+                $searchConditions = [];
+                foreach ($searchWords as $word) {
+                    $searchConditions[] = "c.copy LIKE ?";
+                    $countParams[] = '%' . $word . '%';
+                }
+                $countConditions[] = "(" . implode(" OR ", $searchConditions) . ")";
+            }
+        }
 
         // Add WHERE clause (countConditions array will always have at least one item)
         $countSql .= " WHERE " . implode(' AND ', $countConditions);

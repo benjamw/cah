@@ -86,6 +86,10 @@
                             </select>
                         </div>
                         <div class="filter-group">
+                            <label for="card-search-filter">Search Text</label>
+                            <input type="text" id="card-search-filter" placeholder="Search card text..." />
+                        </div>
+                        <div class="filter-group">
                             <label for="card-limit-filter">Show</label>
                             <select id="card-limit-filter">
                                 <option value="50">50</option>
@@ -171,8 +175,49 @@
                         </select>
                     </div>
 
+                    <div class="filters" style="margin-top: 15px;">
+                        <div class="filter-group">
+                            <label for="tag-assignment-type-filter">Card Type</label>
+                            <select id="tag-assignment-type-filter">
+                                <option value="">All Types</option>
+                                <option value="response">White Cards</option>
+                                <option value="prompt">Black Cards</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="tag-assignment-search">Search Text</label>
+                            <input type="text" id="tag-assignment-search" placeholder="Search card text..." />
+                        </div>
+                        <div class="filter-group">
+                            <label for="tag-assignment-status-filter">Tag Status</label>
+                            <select id="tag-assignment-status-filter">
+                                <option value="">All Cards</option>
+                                <option value="tagged">Has Tag</option>
+                                <option value="untagged">No Tag</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="tag-assignment-limit-filter">Show</label>
+                            <select id="tag-assignment-limit-filter">
+                                <option value="50">50</option>
+                                <option value="100" selected>100</option>
+                                <option value="200">200</option>
+                                <option value="500">500</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <button id="tag-assignment-apply-filters-btn" class="btn btn-secondary">Apply Filters</button>
+                        </div>
+                    </div>
+
                     <div id="tag-assignment-cards" class="card-grid">
                         <div class="info-message">Select a tag to view and manage card assignments</div>
+                    </div>
+
+                    <div class="pagination" style="margin-top: 15px;">
+                        <button id="tag-assignment-prev-page" class="btn btn-secondary" disabled>Previous</button>
+                        <span id="tag-assignment-page-info">Page 1</span>
+                        <button id="tag-assignment-next-page" class="btn btn-secondary">Next</button>
                     </div>
                 </section>
             </main>
