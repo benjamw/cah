@@ -8,6 +8,7 @@ use CAH\Tests\TestCase;
 use CAH\Services\CardImportService;
 use CAH\Models\Tag;
 use CAH\Models\Card;
+use CAH\Enums\CardType;
 use CAH\Database\Database;
 
 /**
@@ -93,7 +94,7 @@ class CardImportTest extends TestCase
     public function testImportCardWithoutTags(): void
     {
         $cardText = 'This is a test prompt card with ____.';
-        $cardId = CardImportService::importCard('prompt', $cardText);
+        $cardId = CardImportService::importCard(CardType::PROMPT, $cardText);
 
         $this->assertNotNull($cardId);
         $this->assertIsInt($cardId);
@@ -112,7 +113,7 @@ class CardImportTest extends TestCase
     {
         // Import card
         $cardText = 'This is a profane card.';
-        $cardId = CardImportService::importCard('response', $cardText);
+        $cardId = CardImportService::importCard(CardType::RESPONSE, $cardText);
         $this->assertNotNull($cardId);
 
         // Create tags with unique names for this test
@@ -190,8 +191,8 @@ class CardImportTest extends TestCase
         $profanityTagId = Tag::create('Profanity_multipleCards', null, true);
 
         // Import two cards
-        $cardId1 = CardImportService::importCard('response', 'First profane card');
-        $cardId2 = CardImportService::importCard('response', 'Second profane card');
+        $cardId1 = CardImportService::importCard(CardType::RESPONSE, 'First profane card');
+        $cardId2 = CardImportService::importCard(CardType::RESPONSE, 'Second profane card');
 
         // Add same tag to both cards
         Tag::addToCard($cardId1, $profanityTagId);
@@ -248,7 +249,7 @@ class CardImportTest extends TestCase
                 }
             }
 
-            $cardId = CardImportService::importCard('response', $cardText);
+            $cardId = CardImportService::importCard(CardType::RESPONSE, $cardText);
             $this->assertNotNull($cardId);
             $this->assertEmpty($tags);
             $imported++;
@@ -293,7 +294,7 @@ class CardImportTest extends TestCase
                 }
             }
 
-            $cardId = CardImportService::importCard('response', $cardText);
+            $cardId = CardImportService::importCard(CardType::RESPONSE, $cardText);
             $this->assertNotNull($cardId);
 
             // Add tags if any
@@ -358,8 +359,8 @@ class CardImportTest extends TestCase
         $this->assertEquals('Another card, with commas, and more commas', $cardText2);
 
         // Import the cards
-        $cardId1 = CardImportService::importCard('response', $cardText1);
-        $cardId2 = CardImportService::importCard('response', $cardText2);
+        $cardId1 = CardImportService::importCard(CardType::RESPONSE, $cardText1);
+        $cardId2 = CardImportService::importCard(CardType::RESPONSE, $cardText2);
 
         $this->assertNotNull($cardId1);
         $this->assertNotNull($cardId2);
@@ -410,7 +411,7 @@ class CardImportTest extends TestCase
             $this->assertEquals('Sexually Explicit', $tags[1]);
             $this->assertEquals('Violence', $tags[2]);
 
-            $cardId = CardImportService::importCard('response', $cardText);
+            $cardId = CardImportService::importCard(CardType::RESPONSE, $cardText);
             $this->assertNotNull($cardId);
 
             // Add tags
@@ -462,7 +463,7 @@ class CardImportTest extends TestCase
             }
 
             $cardText = trim($data[0]);
-            $cardId = CardImportService::importCard('response', $cardText);
+            $cardId = CardImportService::importCard(CardType::RESPONSE, $cardText);
             $this->assertNotNull($cardId);
             $imported++;
         }
@@ -505,7 +506,7 @@ class CardImportTest extends TestCase
                 }
             }
 
-            $cardId = CardImportService::importCard('response', $cardText);
+            $cardId = CardImportService::importCard(CardType::RESPONSE, $cardText);
 
             // Add tags
             foreach ($tags as $tagName) {

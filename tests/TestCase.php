@@ -6,6 +6,7 @@ namespace CAH\Tests;
 
 use PHPUnit\Framework\TestCase as BaseTestCase;
 use CAH\Database\Database;
+use CAH\Enums\GameState;
 
 /**
  * Base Test Case
@@ -100,7 +101,7 @@ abstract class TestCase extends BaseTestCase
                 'max_score' => 8,
                 'hand_size' => 10,
             ],
-            'state' => 'waiting',
+            'state' => GameState::WAITING->value,
             'creator_id' => $playerId,
             'players' => [
                 [

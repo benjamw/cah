@@ -82,7 +82,7 @@ class PlayerHelper
                 $player['hand'] = array_map(fn($card) => [
                     'card_id' => null,  // Hide card ID
                     'copy' => '*** HIDDEN ***',  // Hide card text
-                    'type' => 'response'
+                    'type' => CardType::RESPONSE->value
                 ], $player['hand']);
             }
         }

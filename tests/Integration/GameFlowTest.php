@@ -9,6 +9,7 @@ use CAH\Services\GameService;
 use CAH\Services\RoundService;
 use CAH\Services\CardService;
 use CAH\Models\Game;
+use CAH\Enums\GameState;
 use CAH\Exceptions\GameNotFoundException;
 use CAH\Exceptions\ValidationException;
 use CAH\Exceptions\UnauthorizedException;
@@ -53,7 +54,7 @@ class GameFlowTest extends TestCase
         // Verify game was created in database
         $game = Game::find($result['game_id']);
         $this->assertNotNull($game);
-        $this->assertEquals('waiting', $game['player_data']['state']);
+        $this->assertEquals(GameState::WAITING->value, $game['player_data']['state']);
         $this->assertCount(1, $game['player_data']['players']);
     }
 
@@ -103,7 +104,7 @@ class GameFlowTest extends TestCase
         // Start the game
         $result = GameService::startGame($gameId, $creatorId);
 
-        $this->assertEquals('playing', $result['state']);
+        $this->assertEquals(GameState::PLAYING->value, $result['state']);
         $this->assertNotNull($result['current_czar_id']);
         $this->assertNotNull($result['current_prompt_card']);
         $this->assertEquals(1, $result['current_round']);

@@ -9,6 +9,8 @@ use CAH\Services\GameService;
 use CAH\Services\RoundService;
 use CAH\Services\CardService;
 use CAH\Models\Game;
+use CAH\Enums\GameState;
+use CAH\Enums\GameEndReason;
 use CAH\Exceptions\ValidationException;
 use CAH\Exceptions\PlayerNotFoundException;
 
@@ -347,14 +349,14 @@ class PlayerManagementTest extends TestCase
 
         // Verify game is in waiting state with 3 players
         $game = Game::find($gameId);
-        $this->assertEquals('waiting', $game['player_data']['state']);
+        $this->assertEquals(GameState::WAITING->value, $game['player_data']['state']);
         $this->assertCount(3, $game['player_data']['players']);
 
         // Player 2 leaves during pre-game (drops to 2 players, below minimum of 3)
         $result = GameService::leaveGame($gameId, $player2['player_id']);
 
         // Game should NOT end - should still be in waiting state
-        $this->assertEquals('waiting', $result['state'], 'Game should remain in waiting state');
+        $this->assertEquals(GameState::WAITING->value, $result['state'], 'Game should remain in waiting state');
         $this->assertArrayNotHasKey('end_reason', $result, 'Game should not have an end reason');
         $this->assertCount(2, $result['players'], 'Should have 2 players remaining');
 
@@ -381,7 +383,7 @@ class PlayerManagementTest extends TestCase
         // Verify only 2 players remain
         $game = Game::find($gameId);
         $this->assertCount(2, $game['player_data']['players']);
-        $this->assertEquals('waiting', $game['player_data']['state']);
+        $this->assertEquals(GameState::WAITING->value, $game['player_data']['state']);
 
         // Try to start game with only 2 players - should fail
         $this->expectException(ValidationException::class);
@@ -405,14 +407,14 @@ class PlayerManagementTest extends TestCase
 
         // Verify game is playing
         $game = Game::find($gameId);
-        $this->assertEquals('playing', $game['player_data']['state']);
+        $this->assertEquals(GameState::PLAYING->value, $game['player_data']['state']);
 
         // Player 2 leaves during active game (drops to 2 players, below minimum)
         $result = GameService::leaveGame($gameId, $player2['player_id']);
 
         // Game SHOULD end - too few players during active gameplay
-        $this->assertEquals('finished', $result['state'], 'Game should end due to too few players');
-        $this->assertEquals('too_few_players', $result['end_reason'], 'End reason should be too_few_players');
+        $this->assertEquals(GameState::FINISHED->value, $result['state'], 'Game should end due to too few players');
+        $this->assertEquals(GameEndReason::TOO_FEW_PLAYERS->value, $result['end_reason'], 'End reason should be too_few_players');
         $this->assertCount(2, $result['players'], 'Should have 2 players remaining');
     }
 }

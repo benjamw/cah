@@ -10,6 +10,7 @@ use CAH\Services\CardService;
 use CAH\Models\Game;
 use CAH\Models\Card;
 use CAH\Enums\GameState;
+use CAH\Enums\GameEndReason;
 use CAH\Exceptions\InsufficientCardsException;
 use CAH\Tests\TestCase;
 
@@ -243,7 +244,7 @@ class InsufficientCardsTest extends TestCase
             $gameState = RoundService::advanceToNextRound($gameId);
             
             $this->assertEquals(GameState::FINISHED->value, $gameState['state']);
-            $this->assertEquals('no_prompt_cards_left', $gameState['end_reason']);
+            $this->assertEquals(GameEndReason::NO_BLACK_CARDS_LEFT->value, $gameState['end_reason']);
         }
     }
 }

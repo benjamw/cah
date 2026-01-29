@@ -7,6 +7,7 @@ namespace CAH\Tests\Unit;
 use CAH\Tests\TestCase;
 use CAH\Models\Pack;
 use CAH\Models\Card;
+use CAH\Enums\CardType;
 use CAH\Database\Database;
 
 /**
@@ -30,8 +31,8 @@ class PackModelTest extends TestCase
         $this->testPackId2 = Pack::create('Unit Test Pack 2', '2.0', null, '2024-01-01 00:00:00', false);
 
         // Create test cards
-        $this->testCardId1 = Card::create('response', 'Unit Test Card 1', null, true);
-        $this->testCardId2 = Card::create('response', 'Unit Test Card 2', null, true);
+        $this->testCardId1 = Card::create(CardType::RESPONSE, 'Unit Test Card 1', null, true);
+        $this->testCardId2 = Card::create(CardType::RESPONSE, 'Unit Test Card 2', null, true);
     }
 
     protected function tearDown(): void
@@ -474,14 +475,14 @@ class PackModelTest extends TestCase
     public function testGetCardCountWithTypeFilter(): void
     {
         // Create cards of different types
-        $responseCard = Card::create('response', 'Response Card', null, true);
-        $promptCard = Card::create('prompt', 'Prompt Card', 1, true);
+        $responseCard = Card::create(CardType::RESPONSE, 'Response Card', null, true);
+        $promptCard = Card::create(CardType::PROMPT, 'Prompt Card', 1, true);
 
         Pack::addToCard($responseCard, $this->testPackId1);
         Pack::addToCard($promptCard, $this->testPackId1);
 
-        $responseCount = Pack::getCardCount($this->testPackId1, 'response');
-        $promptCount = Pack::getCardCount($this->testPackId1, 'prompt');
+        $responseCount = Pack::getCardCount($this->testPackId1, CardType::RESPONSE);
+        $promptCount = Pack::getCardCount($this->testPackId1, CardType::PROMPT);
         $totalCount = Pack::getCardCount($this->testPackId1);
 
         $this->assertEquals(1, $responseCount);

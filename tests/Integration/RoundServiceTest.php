@@ -9,6 +9,7 @@ use CAH\Services\RoundService;
 use CAH\Services\GameService;
 use CAH\Services\CardService;
 use CAH\Models\Game;
+use CAH\Enums\GameState;
 use CAH\Enums\GameEndReason;
 use CAH\Exceptions\UnauthorizedException;
 use CAH\Exceptions\ValidationException;
@@ -291,7 +292,7 @@ class RoundServiceTest extends TestCase
         $result = RoundService::advanceToNextRound($gameId);
 
         // Verify game ended correctly
-        $this->assertEquals('finished', $result['state']);
+        $this->assertEquals(GameState::FINISHED->value, $result['state']);
         $this->assertEquals($expectedWinnerId, $result['winner_id']);
         $this->assertArrayHasKey('finished_at', $result);
         $this->assertNotEmpty($result['finished_at']);

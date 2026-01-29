@@ -8,6 +8,7 @@ use CAH\Tests\TestCase;
 use CAH\Controllers\AdminCardController;
 use CAH\Models\Tag;
 use CAH\Models\Card;
+use CAH\Enums\CardType;
 use CAH\Database\Database;
 use Slim\Psr7\Factory\ServerRequestFactory;
 use Slim\Psr7\Factory\ResponseFactory;
@@ -145,7 +146,7 @@ class AdminControllerImportTest extends TestCase
         $this->assertEquals(0, $data['data']['failed']);
 
         // Verify cards were created in database
-        $cards = Card::getActiveByType('response');
+        $cards = Card::getActiveByType(CardType::RESPONSE);
         $this->assertCount(2, $cards);
     }
 
@@ -182,7 +183,7 @@ class AdminControllerImportTest extends TestCase
         $this->assertEquals(0, $data['data']['failed']);
 
         // Verify cards were created
-        $cards = Card::getActiveByType('prompt');
+        $cards = Card::getActiveByType(CardType::PROMPT);
         $this->assertCount(3, $cards);
 
         // Verify tags were created
@@ -230,7 +231,7 @@ class AdminControllerImportTest extends TestCase
         $this->assertEquals(2, $data['data']['imported']);
 
         // Verify cards have correct text with commas preserved
-        $cards = Card::getActiveByType('response');
+        $cards = Card::getActiveByType(CardType::RESPONSE);
         $cardTexts = array_column($cards, 'copy');
         $this->assertContains('A card with, commas in it', $cardTexts);
         $this->assertContains('Another card, with commas, and more', $cardTexts);
@@ -397,7 +398,7 @@ class AdminControllerImportTest extends TestCase
         $this->assertEquals(3, $data['data']['imported']);
 
         // Verify cards were created with newlines preserved - filter by our prefix
-        $cards = Card::getActiveByType('response');
+        $cards = Card::getActiveByType(CardType::RESPONSE);
         $ourCards = array_filter($cards, function($c) {
             return strpos($c['copy'], '[NewlineTest]') === 0;
         });
@@ -448,7 +449,7 @@ class AdminControllerImportTest extends TestCase
         $this->assertEquals(1, $data['data']['imported']);
 
         // Verify card text has both commas and newlines preserved - filter by our prefix
-        $cards = Card::getActiveByType('prompt');
+        $cards = Card::getActiveByType(CardType::PROMPT);
         $ourCards = array_filter($cards, function($c) {
             return strpos($c['copy'], '[CommaNewlineTest]') === 0;
         });
@@ -492,7 +493,7 @@ class AdminControllerImportTest extends TestCase
         $this->assertEquals(1, $data['data']['imported']);
 
         // Verify card text has quotes preserved (CSV parser converts "" to ") - filter by our prefix
-        $cards = Card::getActiveByType('response');
+        $cards = Card::getActiveByType(CardType::RESPONSE);
         $ourCards = array_filter($cards, function($c) {
             return strpos($c['copy'], '[QuotesTest]') === 0;
         });

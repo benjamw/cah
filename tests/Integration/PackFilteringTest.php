@@ -8,6 +8,7 @@ use CAH\Tests\TestCase;
 use CAH\Models\Card;
 use CAH\Models\Pack;
 use CAH\Models\Tag;
+use CAH\Enums\CardType;
 use CAH\Database\Database;
 
 /**
@@ -84,14 +85,14 @@ class PackFilteringTest extends TestCase
     public function testCardsInActivePacksAreIncluded(): void
     {
         // Create a card in active pack 1
-        $cardId = Card::create('response', 'PackTest Card in Active Pack', null, true);
+        $cardId = Card::create(CardType::RESPONSE, 'PackTest Card in Active Pack', null, true);
         Database::execute(
             "INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)",
             [$cardId, $this->pack1Id]
         );
 
         // Get active cards
-        $cards = Card::getActiveCardsByTypeAndTags('response', []);
+        $cards = Card::getActiveCardsByTypeAndTags(CardType::RESPONSE, []);
 
         $this->assertContains($cardId, $cards, 'Card in active pack should be included');
     }
@@ -102,14 +103,14 @@ class PackFilteringTest extends TestCase
     public function testCardsOnlyInInactivePacksAreExcluded(): void
     {
         // Create a card only in inactive pack 3
-        $cardId = Card::create('response', 'PackTest Card Only in Inactive Pack', null, true);
+        $cardId = Card::create(CardType::RESPONSE, 'PackTest Card Only in Inactive Pack', null, true);
         Database::execute(
             "INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)",
             [$cardId, $this->pack3Id]
         );
 
         // Get active cards
-        $cards = Card::getActiveCardsByTypeAndTags('response', []);
+        $cards = Card::getActiveCardsByTypeAndTags(CardType::RESPONSE, []);
 
         $this->assertNotContains($cardId, $cards, 'Card only in inactive pack should be excluded');
     }
@@ -122,14 +123,14 @@ class PackFilteringTest extends TestCase
     public function testCardsInBothActiveAndInactivePacksAreIncluded(): void
     {
         // Create a card in both active pack 1 and inactive pack 3
-        $cardId = Card::create('response', 'PackTest Card in Both Active and Inactive', null, true);
+        $cardId = Card::create(CardType::RESPONSE, 'PackTest Card in Both Active and Inactive', null, true);
         Database::execute(
             "INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?), (?, ?)",
             [$cardId, $this->pack1Id, $cardId, $this->pack3Id]
         );
 
         // Get active cards
-        $cards = Card::getActiveCardsByTypeAndTags('response', []);
+        $cards = Card::getActiveCardsByTypeAndTags(CardType::RESPONSE, []);
 
         $this->assertContains($cardId, $cards,
             'Card in both active and inactive packs should be included');
@@ -141,10 +142,10 @@ class PackFilteringTest extends TestCase
     public function testCardsWithNoPacksAreIncluded(): void
     {
         // Create a card with no pack assignments
-        $cardId = Card::create('response', 'PackTest Card with No Packs', null, true);
+        $cardId = Card::create(CardType::RESPONSE, 'PackTest Card with No Packs', null, true);
 
         // Get active cards
-        $cards = Card::getActiveCardsByTypeAndTags('response', []);
+        $cards = Card::getActiveCardsByTypeAndTags(CardType::RESPONSE, []);
 
         $this->assertContains($cardId, $cards,
             'Card with no pack assignments should be included for backward compatibility');
@@ -156,14 +157,14 @@ class PackFilteringTest extends TestCase
     public function testInactiveCardsAreExcludedEvenInActivePacks(): void
     {
         // Create an inactive card in active pack
-        $cardId = Card::create('response', 'PackTest Inactive Card in Active Pack', null, false);
+        $cardId = Card::create(CardType::RESPONSE, 'PackTest Inactive Card in Active Pack', null, false);
         Database::execute(
             "INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)",
             [$cardId, $this->pack1Id]
         );
 
         // Get active cards
-        $cards = Card::getActiveCardsByTypeAndTags('response', []);
+        $cards = Card::getActiveCardsByTypeAndTags(CardType::RESPONSE, []);
 
         $this->assertNotContains($cardId, $cards,
             'Inactive card should be excluded even if in active pack');
@@ -175,7 +176,7 @@ class PackFilteringTest extends TestCase
     public function testPackFilteringWorksWithTagFiltering(): void
     {
         // Create card in active pack with tag
-        $card1 = Card::create('response', 'PackTest Card Active Pack With Tag', null, true);
+        $card1 = Card::create(CardType::RESPONSE, 'PackTest Card Active Pack With Tag', null, true);
         Database::execute(
             "INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)",
             [$card1, $this->pack1Id]
@@ -186,7 +187,7 @@ class PackFilteringTest extends TestCase
         );
 
         // Create card in inactive pack with tag
-        $card2 = Card::create('response', 'PackTest Card Inactive Pack With Tag', null, true);
+        $card2 = Card::create(CardType::RESPONSE, 'PackTest Card Inactive Pack With Tag', null, true);
         Database::execute(
             "INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)",
             [$card2, $this->pack3Id]
@@ -197,7 +198,7 @@ class PackFilteringTest extends TestCase
         );
 
         // Get active cards with tag filter
-        $cards = Card::getActiveCardsByTypeAndTags('response', [$this->tagId]);
+        $cards = Card::getActiveCardsByTypeAndTags(CardType::RESPONSE, [$this->tagId]);
 
         $this->assertContains($card1, $cards,
             'Card in active pack with matching tag should be included');
@@ -211,21 +212,21 @@ class PackFilteringTest extends TestCase
     public function testGetActiveByTypeFiltersInactivePacks(): void
     {
         // Create card in active pack
-        $card1 = Card::create('prompt', 'PackTest Prompt in Active Pack', 1, true);
+        $card1 = Card::create(CardType::PROMPT, 'PackTest Prompt in Active Pack', 1, true);
         Database::execute(
             "INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)",
             [$card1, $this->pack1Id]
         );
 
         // Create card in inactive pack
-        $card2 = Card::create('prompt', 'PackTest Prompt in Inactive Pack', 1, true);
+        $card2 = Card::create(CardType::PROMPT, 'PackTest Prompt in Inactive Pack', 1, true);
         Database::execute(
             "INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)",
             [$card2, $this->pack3Id]
         );
 
         // Get active cards by type
-        $cards = Card::getActiveByType('prompt');
+        $cards = Card::getActiveByType(CardType::PROMPT);
         $cardIds = array_column($cards, 'card_id');
 
         $this->assertContains($card1, $cardIds,
@@ -240,7 +241,7 @@ class PackFilteringTest extends TestCase
     public function testTagCountsExcludeInactivePacks(): void
     {
         // Create card in active pack with tag
-        $card1 = Card::create('response', 'PackTest Tag Count Active', null, true);
+        $card1 = Card::create(CardType::RESPONSE, 'PackTest Tag Count Active', null, true);
         Database::execute(
             "INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)",
             [$card1, $this->pack1Id]
@@ -251,7 +252,7 @@ class PackFilteringTest extends TestCase
         );
 
         // Create card in inactive pack with tag
-        $card2 = Card::create('response', 'PackTest Tag Count Inactive', null, true);
+        $card2 = Card::create(CardType::RESPONSE, 'PackTest Tag Count Inactive', null, true);
         Database::execute(
             "INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)",
             [$card2, $this->pack3Id]
@@ -282,8 +283,8 @@ class PackFilteringTest extends TestCase
     public function testTagGetCardCountExcludesInactivePacks(): void
     {
         // Create 2 cards in active pack with tag
-        $card1 = Card::create('response', 'PackTest Count Active 1', null, true);
-        $card2 = Card::create('response', 'PackTest Count Active 2', null, true);
+        $card1 = Card::create(CardType::RESPONSE, 'PackTest Count Active 1', null, true);
+        $card2 = Card::create(CardType::RESPONSE, 'PackTest Count Active 2', null, true);
         Database::execute(
             "INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?), (?, ?)",
             [$card1, $this->pack1Id, $card2, $this->pack1Id]
@@ -294,7 +295,7 @@ class PackFilteringTest extends TestCase
         );
 
         // Create 1 card in inactive pack with tag
-        $card3 = Card::create('response', 'PackTest Count Inactive', null, true);
+        $card3 = Card::create(CardType::RESPONSE, 'PackTest Count Inactive', null, true);
         Database::execute(
             "INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)",
             [$card3, $this->pack3Id]
@@ -305,7 +306,7 @@ class PackFilteringTest extends TestCase
         );
 
         // Get card count for tag
-        $count = Tag::getCardCount($this->tagId, 'response');
+        $count = Tag::getCardCount($this->tagId, CardType::RESPONSE);
 
         $this->assertEquals(2, $count,
             'Should only count cards in active packs');
@@ -317,14 +318,14 @@ class PackFilteringTest extends TestCase
     public function testPackCountsOnlyIncludeActiveCards(): void
     {
         // Create active card in pack 1
-        $card1 = Card::create('response', 'PackTest Active Card', null, true);
+        $card1 = Card::create(CardType::RESPONSE, 'PackTest Active Card', null, true);
         Database::execute(
             "INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)",
             [$card1, $this->pack1Id]
         );
 
         // Create inactive card in pack 1
-        $card2 = Card::create('response', 'PackTest Inactive Card', null, false);
+        $card2 = Card::create(CardType::RESPONSE, 'PackTest Inactive Card', null, false);
         Database::execute(
             "INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)",
             [$card2, $this->pack1Id]
@@ -351,21 +352,21 @@ class PackFilteringTest extends TestCase
     public function testDeactivatingPackExcludesCards(): void
     {
         // Create a card only in pack 2 (currently active)
-        $cardId = Card::create('response', 'PackTest Card to be Excluded', null, true);
+        $cardId = Card::create(CardType::RESPONSE, 'PackTest Card to be Excluded', null, true);
         Database::execute(
             "INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)",
             [$cardId, $this->pack2Id]
         );
 
         // Verify card is included
-        $cards = Card::getActiveCardsByTypeAndTags('response', []);
+        $cards = Card::getActiveCardsByTypeAndTags(CardType::RESPONSE, []);
         $this->assertContains($cardId, $cards, 'Card should be included when pack is active');
 
         // Deactivate pack 2
         Database::execute("UPDATE packs SET active = 0 WHERE pack_id = ?", [$this->pack2Id]);
 
         // Verify card is now excluded
-        $cards = Card::getActiveCardsByTypeAndTags('response', []);
+        $cards = Card::getActiveCardsByTypeAndTags(CardType::RESPONSE, []);
         $this->assertNotContains($cardId, $cards, 'Card should be excluded when pack is deactivated');
     }
 
@@ -375,21 +376,21 @@ class PackFilteringTest extends TestCase
     public function testActivatingPackIncludesCards(): void
     {
         // Create a card only in pack 3 (currently inactive)
-        $cardId = Card::create('response', 'PackTest Card to be Included', null, true);
+        $cardId = Card::create(CardType::RESPONSE, 'PackTest Card to be Included', null, true);
         Database::execute(
             "INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)",
             [$cardId, $this->pack3Id]
         );
 
         // Verify card is excluded
-        $cards = Card::getActiveCardsByTypeAndTags('response', []);
+        $cards = Card::getActiveCardsByTypeAndTags(CardType::RESPONSE, []);
         $this->assertNotContains($cardId, $cards, 'Card should be excluded when pack is inactive');
 
         // Activate pack 3
         Database::execute("UPDATE packs SET active = 1 WHERE pack_id = ?", [$this->pack3Id]);
 
         // Verify card is now included
-        $cards = Card::getActiveCardsByTypeAndTags('response', []);
+        $cards = Card::getActiveCardsByTypeAndTags(CardType::RESPONSE, []);
         $this->assertContains($cardId, $cards, 'Card should be included when pack is activated');
     }
 }

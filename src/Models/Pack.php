@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CAH\Models;
 
 use CAH\Database\Database;
+use CAH\Enums\CardType;
 
 /**
  * Pack Model
@@ -102,11 +103,14 @@ class Pack
             $whereClause = 'WHERE p.active = 0';
         }
 
+        $responseType = CardType::RESPONSE->value;
+        $promptType = CardType::PROMPT->value;
+        
         $sql = "
             SELECT
                 p.*,
-                COUNT(DISTINCT CASE WHEN c.type = 'response' AND c.active = 1 THEN c.card_id END) as response_card_count,
-                COUNT(DISTINCT CASE WHEN c.type = 'prompt' AND c.active = 1 THEN c.card_id END) as prompt_card_count,
+                COUNT(DISTINCT CASE WHEN c.type = '{$responseType}' AND c.active = 1 THEN c.card_id END) as response_card_count,
+                COUNT(DISTINCT CASE WHEN c.type = '{$promptType}' AND c.active = 1 THEN c.card_id END) as prompt_card_count,
                 COUNT(DISTINCT CASE WHEN c.active = 1 THEN c.card_id END) as total_card_count
             FROM packs p
             LEFT JOIN cards_to_packs cp ON p.pack_id = cp.pack_id
@@ -122,10 +126,10 @@ class Pack
      * Get card count for a specific pack
      *
      * @param int $packId
-     * @param string|null $cardType Optional: 'response', 'prompt', or null for all
+     * @param CardType|null $cardType Optional card type enum, null for all
      * @return int Number of cards in this pack
      */
-    public static function getCardCount(int $packId, ?string $cardType = null): int
+    public static function getCardCount(int $packId, ?CardType $cardType = null): int
     {
         if ($cardType !== null) {
             $sql = "
@@ -134,7 +138,7 @@ class Pack
                 INNER JOIN cards_to_packs cp ON c.card_id = cp.card_id
                 WHERE cp.pack_id = ? AND c.type = ?
             ";
-            $result = Database::fetchOne($sql, [$packId, $cardType]);
+            $result = Database::fetchOne($sql, [$packId, $cardType->value]);
         } else {
             $sql = "
                 SELECT COUNT(DISTINCT c.card_id) as count

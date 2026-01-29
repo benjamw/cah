@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CAH\Services;
 
 use CAH\Models\Card;
+use CAH\Enums\CardType;
 
 /**
  * Card Import Service
@@ -37,15 +38,15 @@ class CardImportService
     /**
      * Import a single card
      *
-     * @param string $type 'response' or 'prompt'
+     * @param CardType $type Card type enum
      * @param string $copy Card copy
      * @param int|null $choices For prompt cards, number of response cards needed (auto-parsed if null)
      * @param bool $active Whether card is active
      * @return int|null Card ID or null on failure
      */
-    public static function importCard(string $type, string $copy, ?int $choices = null, bool $active = true): ?int
+    public static function importCard(CardType $type, string $copy, ?int $choices = null, bool $active = true): ?int
     {
-        if ($type === 'prompt' && $choices === null) {
+        if ($type === CardType::PROMPT && $choices === null) {
             $choices = self::parsePromptCardChoices($copy);
         }
 
@@ -137,7 +138,7 @@ class CardImportService
      */
     public static function fixPromptCardChoices(): array
     {
-        $promptCards = Card::getActiveByType('prompt');
+        $promptCards = Card::getActiveByType(CardType::PROMPT);
         $updated = 0;
         $errors = [];
 
@@ -169,10 +170,10 @@ class CardImportService
      * Tags can be tag IDs (numeric) or tag names (string, will be created if not exist)
      *
      * @param string $csvContent CSV file content
-     * @param string $cardType 'response' or 'prompt'
+     * @param CardType $cardType Card type enum
      * @return array ['imported' => int, 'failed' => int, 'errors' => array, 'warnings' => array]
      */
-    public static function importFromCsv(string $csvContent, string $cardType): array
+    public static function importFromCsv(string $csvContent, CardType $cardType): array
     {
         // Use a temporary file for proper CSV parsing
         $tmpFile = tempnam(sys_get_temp_dir(), 'csv_import_');

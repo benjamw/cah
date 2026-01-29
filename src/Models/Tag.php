@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CAH\Models;
 
 use CAH\Database\Database;
+use CAH\Enums\CardType;
 
 /**
  * Tag Model
@@ -77,11 +78,14 @@ class Tag
      */
     public static function getAllActiveWithCounts(): array
     {
+        $responseType = CardType::RESPONSE->value;
+        $promptType = CardType::PROMPT->value;
+        
         $sql = "
             SELECT
                 t.*,
                 COUNT(DISTINCT CASE
-                    WHEN c.type = 'response' AND c.active = 1
+                    WHEN c.type = '{$responseType}' AND c.active = 1
                         AND (
                             EXISTS (
                                 SELECT 1
@@ -98,7 +102,7 @@ class Tag
                     THEN c.card_id
                 END) as response_card_count,
                 COUNT(DISTINCT CASE
-                    WHEN c.type = 'prompt' AND c.active = 1
+                    WHEN c.type = '{$promptType}' AND c.active = 1
                         AND (
                             EXISTS (
                                 SELECT 1
@@ -146,10 +150,10 @@ class Tag
      * Only counts cards that are in at least one active pack (or have no packs)
      *
      * @param int $tagId
-     * @param string|null $cardType Optional: 'response', 'prompt', or null for all
+     * @param CardType|null $cardType Optional card type enum, null for all
      * @return int Number of active cards with this tag
      */
-    public static function getCardCount(int $tagId, ?string $cardType = null): int
+    public static function getCardCount(int $tagId, ?CardType $cardType = null): int
     {
         if ($cardType !== null) {
             $sql = "
@@ -175,7 +179,7 @@ class Tag
                         )
                     )
             ";
-            $result = Database::fetchOne($sql, [$tagId, $cardType]);
+            $result = Database::fetchOne($sql, [$tagId, $cardType->value]);
         } else {
             $sql = "
                 SELECT COUNT(DISTINCT c.card_id) as count

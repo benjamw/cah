@@ -9,6 +9,7 @@ use CAH\Services\GameService;
 use CAH\Services\RoundService;
 use CAH\Services\CardService;
 use CAH\Models\Game;
+use CAH\Enums\GameState;
 use CAH\Enums\GameEndReason;
 use CAH\Exceptions\InsufficientCardsException;
 use CAH\Exceptions\ValidationException;
@@ -125,7 +126,7 @@ class EdgeCasesTest extends TestCase
 
         $result = RoundService::endGame($gameId, $winnerId);
 
-        $this->assertEquals('finished', $result['state']);
+        $this->assertEquals(GameState::FINISHED->value, $result['state']);
         $this->assertEquals($winnerId, $result['winner_id']);
         $this->assertArrayHasKey('finished_at', $result);
         $this->assertEquals(GameEndReason::MAX_SCORE_REACHED->value, $result['end_reason'] ?? null);

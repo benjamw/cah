@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CAH\Controllers;
 
 use CAH\Exceptions\ValidationException;
+use CAH\Enums\CardType;
 use CAH\Models\Card;
 use CAH\Models\Pack;
 use CAH\Models\Tag;
@@ -79,9 +80,13 @@ class AdminCardController
                 }
             }
 
-            // Validate parameters
-            if ( ! in_array($cardType, [null, 'response', 'prompt'], true)) {
-                throw new ValidationException('Invalid card type. Must be "response" or "prompt"');
+            // Validate and convert card type to enum
+            $cardTypeEnum = null;
+            if ($cardType !== null) {
+                $cardTypeEnum = CardType::tryFrom($cardType);
+                if ($cardTypeEnum === null) {
+                    throw new ValidationException('Invalid card type. Must be "response" or "prompt"');
+                }
             }
 
             if ($limit < 0 || $limit > 10000) {
@@ -94,7 +99,7 @@ class AdminCardController
 
             // Use Card model to handle the complex query logic
             $result = Card::listWithFilters(
-                $cardType,
+                $cardTypeEnum,
                 $tagId,
                 $noTags,
                 $excludeTagId,
@@ -153,7 +158,9 @@ class AdminCardController
                 throw new ValidationException('File upload error');
             }
 
-            if ($cardType !== 'response' && $cardType !== 'prompt') {
+            // Validate and convert card type to enum
+            $cardTypeEnum = CardType::tryFrom($cardType);
+            if ($cardTypeEnum === null) {
                 throw new ValidationException('Invalid card type. Must be "response" or "prompt"');
             }
 
@@ -162,7 +169,7 @@ class AdminCardController
             $csvContent = $stream->getContents();
 
             // Use CardImportService to handle the import
-            $result = CardImportService::importFromCsv($csvContent, $cardType);
+            $result = CardImportService::importFromCsv($csvContent, $cardTypeEnum);
 
             return JsonResponse::success($response, $result);
         } catch (ValidationException $e) {

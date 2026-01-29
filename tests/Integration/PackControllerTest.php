@@ -7,6 +7,7 @@ namespace CAH\Tests\Integration;
 use CAH\Tests\TestCase;
 use CAH\Models\Pack;
 use CAH\Models\Card;
+use CAH\Enums\CardType;
 use CAH\Controllers\PackController;
 use CAH\Database\Database;
 use Slim\Psr7\Factory\RequestFactory;
@@ -38,9 +39,9 @@ class PackControllerTest extends TestCase
         $this->inactivePackId = Pack::create('ControllerTest Inactive Pack', '1.0', null, null, false);
 
         // Add some cards to packs
-        $card1 = Card::create('response', 'ControllerTest Card 1', null, true);
-        $card2 = Card::create('response', 'ControllerTest Card 2', null, true);
-        $card3 = Card::create('prompt', 'ControllerTest Prompt', 1, true);
+        $card1 = Card::create(CardType::RESPONSE, 'ControllerTest Card 1', null, true);
+        $card2 = Card::create(CardType::RESPONSE, 'ControllerTest Card 2', null, true);
+        $card3 = Card::create(CardType::PROMPT, 'ControllerTest Prompt', 1, true);
 
         Pack::addToCard($card1, $this->activePackId);
         Pack::addToCard($card2, $this->activePackId);
@@ -178,7 +179,7 @@ class PackControllerTest extends TestCase
     public function testCardCountsOnlyIncludeActiveCards(): void
     {
         // Add an inactive card to active pack
-        $inactiveCard = Card::create('response', 'ControllerTest Inactive Card', null, false);
+        $inactiveCard = Card::create(CardType::RESPONSE, 'ControllerTest Inactive Card', null, false);
         Pack::addToCard($inactiveCard, $this->activePackId);
 
         $request = $this->requestFactory->createRequest('GET', '/packs');

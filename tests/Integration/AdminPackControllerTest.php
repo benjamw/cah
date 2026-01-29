@@ -7,6 +7,7 @@ namespace CAH\Tests\Integration;
 use CAH\Tests\TestCase;
 use CAH\Models\Pack;
 use CAH\Models\Card;
+use CAH\Enums\CardType;
 use CAH\Controllers\AdminPackController;
 use CAH\Database\Database;
 use Slim\Psr7\Factory\RequestFactory;
@@ -248,7 +249,7 @@ class AdminPackControllerTest extends TestCase
     public function testDeletePackRemovesCardAssociations(): void
     {
         $packId = Pack::create('AdminTest Pack With Cards', '1.0', null, null, true);
-        $cardId = Card::create('response', 'AdminTest Card', null, true);
+        $cardId = Card::create(CardType::RESPONSE, 'AdminTest Card', null, true);
         Pack::addToCard($cardId, $packId);
 
         // Verify association exists
@@ -363,18 +364,18 @@ class AdminPackControllerTest extends TestCase
     public function testTogglePackAffectsCardAvailability(): void
     {
         $packId = Pack::create('AdminTest Availability Pack', '1.0', null, null, true);
-        $cardId = Card::create('response', 'AdminTest Availability Card', null, true);
+        $cardId = Card::create(CardType::RESPONSE, 'AdminTest Availability Card', null, true);
         Pack::addToCard($cardId, $packId);
 
         // Card should be available initially
-        $cards = Card::getActiveCardsByTypeAndTags('response', []);
+        $cards = Card::getActiveCardsByTypeAndTags(CardType::RESPONSE, []);
         $this->assertContains($cardId, $cards);
 
         // Deactivate pack
         Pack::setActive($packId, false);
 
         // Card should no longer be available
-        $cards = Card::getActiveCardsByTypeAndTags('response', []);
+        $cards = Card::getActiveCardsByTypeAndTags(CardType::RESPONSE, []);
         $this->assertNotContains($cardId, $cards);
 
         // Cleanup

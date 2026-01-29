@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CAH\Services;
 
 use CAH\Models\Card;
+use CAH\Enums\CardType;
 use CAH\Exceptions\InsufficientCardsException;
 
 /**
@@ -25,8 +26,8 @@ class CardService
      */
     public static function buildDrawPile(array $tagIds): array
     {
-        $responseCardIds = Card::getActiveCardsByTypeAndTags('response', $tagIds);
-        $promptCardIds = Card::getActiveCardsByTypeAndTags('prompt', $tagIds);
+        $responseCardIds = Card::getActiveCardsByTypeAndTags(CardType::RESPONSE, $tagIds);
+        $promptCardIds = Card::getActiveCardsByTypeAndTags(CardType::PROMPT, $tagIds);
 
         shuffle($responseCardIds);
         shuffle($promptCardIds);
@@ -50,7 +51,7 @@ class CardService
     {
         $available = count($responsePile);
         if ($available < $count) {
-            throw new InsufficientCardsException('response', $count, $available);
+            throw new InsufficientCardsException(CardType::RESPONSE->value, $count, $available);
         }
 
         $drawn = array_splice($responsePile, 0, $count);
@@ -72,7 +73,7 @@ class CardService
     public static function drawPromptCard(array $promptPile): array
     {
         if (empty($promptPile)) {
-            throw new InsufficientCardsException('prompt', 1, 0);
+            throw new InsufficientCardsException(CardType::PROMPT->value, 1, 0);
         }
 
         $card = array_shift($promptPile);

@@ -9,6 +9,7 @@ use CAH\Constants\SessionKeys;
 use CAH\Database\Database;
 use CAH\Enums\GameState;
 use CAH\Enums\GameEndReason;
+use CAH\Enums\CardType;
 use CAH\Models\Game;
 use CAH\Models\Card;
 use CAH\Models\Tag;
@@ -318,12 +319,12 @@ class GameService
             // Check if enough response cards to deal initial hands
             $cardsNeededForHands = $nonRandoPlayerCount * $handSize;
             if (count($responsePile) < $cardsNeededForHands) {
-                throw new InsufficientCardsException('response', $cardsNeededForHands, count($responsePile));
+                throw new InsufficientCardsException(CardType::RESPONSE->value, $cardsNeededForHands, count($responsePile));
             }
 
             // Check if at least one prompt card available
             if (empty($promptPile)) {
-                throw new InsufficientCardsException('prompt', 1, 0);
+                throw new InsufficientCardsException(CardType::PROMPT->value, 1, 0);
             }
 
             // Add Rando Cardrissian if enabled
