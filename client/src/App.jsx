@@ -17,7 +17,7 @@ function App() {
     // Check if user has an active game in storage
     const stored = getStoredGameData();
     
-    if (stored && stored.gameId && stored.playerId) {
+    if (stored?.gameId && stored.playerId) {
       // Verify the game is still valid
       getGameState()
         .then((state) => {
@@ -54,12 +54,6 @@ function App() {
     setView('game');
   };
 
-  const handleGameCreated = (data) => {
-    storeGameData(data);
-    setGameData(data);
-    setView('game');
-  };
-
   const handleLeaveGame = () => {
     clearGameData();
     setGameData(null);
@@ -86,7 +80,7 @@ function App() {
       )}
       {view === 'create' && (
         <CreateGame
-          onGameCreated={handleGameCreated}
+          onGameCreated={handleGameJoined}
           onSwitchToJoin={() => setView('join')}
           playerName={playerName}
           setPlayerName={setPlayerName}

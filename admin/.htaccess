@@ -2,7 +2,7 @@
 RewriteEngine On
 
 # Don't rewrite static files
-RewriteCond %{REQUEST_URI} !\.(css|js|json|csv)$
+RewriteCond %{REQUEST_URI} !\.(css|js|mjs|json|csv)$
 # Route all requests to index.html (for SPA routing)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
@@ -12,7 +12,7 @@ RewriteRule ^ index.html [L]
 <IfModule mod_mime.c>
     AddType text/html .html
     AddType text/css .css
-    AddType application/javascript .js
+    AddType application/javascript .js .mjs
     AddType application/json .json
 </IfModule>
 
