@@ -236,13 +236,19 @@ body {
     color: var(--secondary-color);
 }
 
-.filters select {
+.filters select,
+.filters input[type="text"] {
     padding: 0.5rem;
     border: 1px solid var(--border-color);
     border-radius: 6px;
     font-size: 0.875rem;
     background: var(--bg-color);
     color: var(--text-color);
+}
+
+.filters input[type="text"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
 }
 
 .filters select[multiple] {
