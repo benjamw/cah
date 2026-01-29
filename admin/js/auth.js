@@ -49,7 +49,7 @@ export function showAdminScreen() {
  * @returns {boolean}
  */
 export function isAuthenticated() {
-    return !!getAuthToken();
+    return !! getAuthToken();
 }
 
 /**
@@ -103,4 +103,3 @@ async function handleLogout() {
     setAuthToken(null);
     showLoginScreen();
 }
-

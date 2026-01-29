@@ -166,7 +166,9 @@ class GameService
         }
 
         if ($gameId === '') {
-            throw new GameCodeGenerationException('Unable to generate unique game code after ' . $maxAttempts . ' attempts');
+            throw new GameCodeGenerationException(
+                'Unable to generate unique game code after ' . $maxAttempts . ' attempts'
+            );
         }
 
         // Store session data for authentication
@@ -201,7 +203,8 @@ class GameService
      *
      * @param string $gameId Game code
      * @param string $playerName Player's display name
-     * @return array{game_started: bool, player_id: string, player_name: string, game_state: GameStateData, player_names?: array<string>}
+     * @return array{game_started: bool, player_id: string, player_name: string,
+     *               game_state: GameStateData, player_names?: array<string>}
      * @throws ValidationException
      */
     public static function joinGame(string $gameId, string $playerName): array
@@ -282,7 +285,7 @@ class GameService
      *
      * @param string $gameId Game code
      * @param string $playerId Player ID (must be creator)
-     * @return array Updated game state
+     * @return array<string, mixed> Updated game state
      */
     public static function startGame(string $gameId, string $playerId): array
     {
@@ -294,63 +297,19 @@ class GameService
             }
 
             $playerData = $game['player_data'];
-
-            if ($playerData['creator_id'] !== $playerId) {
-                throw new UnauthorizedException('Only the game creator can start the game');
-            }
-
-            if ($playerData['state'] !== GameState::WAITING->value) {
-                throw new InvalidGameStateException('Game has already started');
-            }
-
-            $config = ConfigService::getGameConfig();
-            $minPlayers = $config['min_players'];
-            if (count($playerData['players']) < $minPlayers) {
-                throw new ValidationException("Need at least {$minPlayers} players to start");
-            }
+            self::validateStartGame($playerData, $playerId);
 
             $responsePile = $game['draw_pile']['response'];
             $promptPile = $game['draw_pile']['prompt'];
             $handSize = $playerData['settings']['hand_size'];
 
-            // Calculate total cards needed
-            $nonRandoPlayerCount = count($playerData['players']);
+            self::validateCardAvailability($playerData, $responsePile, $promptPile, $handSize);
 
-            // Check if enough response cards to deal initial hands
-            $cardsNeededForHands = $nonRandoPlayerCount * $handSize;
-            if (count($responsePile) < $cardsNeededForHands) {
-                throw new InsufficientCardsException(CardType::RESPONSE->value, $cardsNeededForHands, count($responsePile));
-            }
-
-            // Check if at least one prompt card available
-            if (empty($promptPile)) {
-                throw new InsufficientCardsException(CardType::PROMPT->value, 1, 0);
-            }
-
-            // Add Rando Cardrissian if enabled
             if ($playerData['settings']['rando_enabled']) {
-                $randoName = $config['rando_cardrissian_name'];
-                $randoId = self::generatePlayerId();
-                $playerData['players'][] = [
-                    'id' => $randoId,
-                    'name' => $randoName,
-                    'score' => GameDefaults::INITIAL_SCORE,
-                    'hand' => [],
-                    'is_creator' => false,
-                    'is_rando' => true,
-                ];
-                $playerData['rando_id'] = $randoId;
+                self::addRandoCardrissian($playerData);
             }
 
-            // Deal hands to all players except Rando
-            foreach ($playerData['players'] as &$player) {
-                if ( ! empty($player['is_rando'])) {
-                    continue;
-                }
-                $result = CardService::drawResponseCards($responsePile, $handSize);
-                $player['hand'] = $result['cards'];
-                $responsePile = $result['remaining_pile'];
-            }
+            $responsePile = self::dealInitialHands($playerData, $responsePile, $handSize);
 
             $promptResult = CardService::drawPromptCard($promptPile);
             $promptCardId = $promptResult['card'];
@@ -360,39 +319,18 @@ class GameService
             $bonusCards = CardService::calculateBonusCards($choices);
 
             if ($bonusCards > 0) {
-                // Deal bonus cards to all players except Rando
-                $nonRandoPlayers = array_filter(
-                    $playerData['players'],
-                    fn($p): bool => empty($p['is_rando'])
-                );
-                $responsePile = CardService::dealBonusCards($nonRandoPlayers, $responsePile, $bonusCards);
-                // Update player hands from filtered array
-                foreach ($playerData['players'] as &$player) {
-                    if (empty($player['is_rando'])) {
-                        foreach ($nonRandoPlayers as $updated) {
-                            if ($updated['id'] === $player['id']) {
-                                $player['hand'] = $updated['hand'];
-                                break;
-                            }
-                        }
-                    }
-                }
+                $responsePile = self::dealStartBonusCards($playerData, $responsePile, $bonusCards);
             }
 
-            // Select first czar (exclude Rando)
-            $eligiblePlayers = array_filter($playerData['players'], fn($p): bool => empty($p['is_rando']));
-            $eligiblePlayers = array_values($eligiblePlayers);
-            $randomIndex = random_int(0, count($eligiblePlayers) - 1);
-            $firstCzar = $eligiblePlayers[$randomIndex]['id'];
+            $czarData = self::selectFirstCzar($playerData['players']);
 
             $playerData['state'] = GameState::PLAYING->value;
-            $playerData['current_czar_id'] = $firstCzar;
-            $playerData['current_czar_name'] = $eligiblePlayers[$randomIndex]['name'];
+            $playerData['current_czar_id'] = $czarData['id'];
+            $playerData['current_czar_name'] = $czarData['name'];
             $playerData['current_prompt_card'] = $promptCardId;
             $playerData['current_round'] = GameDefaults::FIRST_ROUND;
             $playerData['submissions'] = [];
 
-            // Auto-submit for Rando (draws from pile)
             if ($playerData['settings']['rando_enabled']) {
                 $responsePile = RoundService::submitRandoCards($playerData, $responsePile, $choices);
             }
@@ -407,12 +345,152 @@ class GameService
     }
 
     /**
+     * Validate that the game can be started
+     *
+     * @param array<string, mixed> $playerData Player data
+     * @param string $playerId Player ID attempting to start
+     */
+    private static function validateStartGame(array $playerData, string $playerId): void
+    {
+        if ($playerData['creator_id'] !== $playerId) {
+            throw new UnauthorizedException('Only the game creator can start the game');
+        }
+
+        if ($playerData['state'] !== GameState::WAITING->value) {
+            throw new InvalidGameStateException('Game has already started');
+        }
+
+        $config = ConfigService::getGameConfig();
+        $minPlayers = $config['min_players'];
+        if (count($playerData['players']) < $minPlayers) {
+            throw new ValidationException("Need at least {$minPlayers} players to start");
+        }
+    }
+
+    /**
+     * Validate that enough cards are available
+     *
+     * @param array<string, mixed> $playerData Player data
+     * @param array<int> $responsePile Response pile
+     * @param array<int> $promptPile Prompt pile
+     * @param int $handSize Hand size
+     */
+    private static function validateCardAvailability(
+        array $playerData,
+        array $responsePile,
+        array $promptPile,
+        int $handSize
+    ): void {
+        $nonRandoPlayerCount = count($playerData['players']);
+        $cardsNeededForHands = $nonRandoPlayerCount * $handSize;
+
+        if (count($responsePile) < $cardsNeededForHands) {
+            throw new InsufficientCardsException(
+                CardType::RESPONSE->value,
+                $cardsNeededForHands,
+                count($responsePile)
+            );
+        }
+
+        if (empty($promptPile)) {
+            throw new InsufficientCardsException(CardType::PROMPT->value, 1, 0);
+        }
+    }
+
+    /**
+     * Add Rando Cardrissian to the game
+     *
+     * @param array<string, mixed> &$playerData Player data (modified in place)
+     */
+    private static function addRandoCardrissian(array &$playerData): void
+    {
+        $config = ConfigService::getGameConfig();
+        $randoName = $config['rando_cardrissian_name'];
+        $randoId = self::generatePlayerId();
+
+        $playerData['players'][] = [
+            'id' => $randoId,
+            'name' => $randoName,
+            'score' => GameDefaults::INITIAL_SCORE,
+            'hand' => [],
+            'is_creator' => false,
+            'is_rando' => true,
+        ];
+        $playerData['rando_id'] = $randoId;
+    }
+
+    /**
+     * Deal initial hands to all non-Rando players
+     *
+     * @param array<string, mixed> &$playerData Player data (modified in place)
+     * @param array<int> $responsePile Response pile
+     * @param int $handSize Hand size
+     * @return array<int> Updated response pile
+     */
+    private static function dealInitialHands(array &$playerData, array $responsePile, int $handSize): array
+    {
+        foreach ($playerData['players'] as &$player) {
+            if ( ! empty($player['is_rando'])) {
+                continue;
+            }
+            $result = CardService::drawResponseCards($responsePile, $handSize);
+            $player['hand'] = $result['cards'];
+            $responsePile = $result['remaining_pile'];
+        }
+        return $responsePile;
+    }
+
+    /**
+     * Deal bonus cards at game start
+     *
+     * @param array<string, mixed> &$playerData Player data (modified in place)
+     * @param array<int> $responsePile Response pile
+     * @param int $bonusCards Number of bonus cards
+     * @return array<int> Updated response pile
+     */
+    private static function dealStartBonusCards(array &$playerData, array $responsePile, int $bonusCards): array
+    {
+        $nonRandoPlayers = array_filter($playerData['players'], fn($p): bool => empty($p['is_rando']));
+        $responsePile = CardService::dealBonusCards($nonRandoPlayers, $responsePile, $bonusCards);
+
+        foreach ($playerData['players'] as &$player) {
+            if (empty($player['is_rando'])) {
+                foreach ($nonRandoPlayers as $updated) {
+                    if ($updated['id'] === $player['id']) {
+                        $player['hand'] = $updated['hand'];
+                        break;
+                    }
+                }
+            }
+        }
+        return $responsePile;
+    }
+
+    /**
+     * Select the first czar randomly from eligible players
+     *
+     * @param array<int, array<string, mixed>> $players Players array
+     * @return array{id: string, name: string} Czar ID and name
+     */
+    private static function selectFirstCzar(array $players): array
+    {
+        $eligiblePlayers = array_filter($players, fn($p): bool => empty($p['is_rando']));
+        $eligiblePlayers = array_values($eligiblePlayers);
+        $randomIndex = random_int(0, count($eligiblePlayers) - 1);
+
+        return [
+            'id' => $eligiblePlayers[$randomIndex]['id'],
+            'name' => $eligiblePlayers[$randomIndex]['name'],
+        ];
+    }
+
+    /**
      * Remove a player from the game (creator only)
      *
      * @param string $gameId Game code
      * @param string $creatorId Creator's player ID
      * @param string $targetPlayerId Player ID to remove
-     * @return array Updated game state
+     * @return array<string, mixed> Updated game state
      */
     public static function removePlayer(string $gameId, string $creatorId, string $targetPlayerId): array
     {
@@ -484,7 +562,7 @@ class GameService
     /**
      * Check if there are enough players to remove one
      *
-     * @param array $playerData
+     * @param array<string, mixed> $playerData
      * @throws ValidationException
      */
     private static function checkMinimumPlayersBeforeRemoval(array $playerData): void
@@ -498,9 +576,9 @@ class GameService
     /**
      * Find the player to remove and return their index and hand
      *
-     * @param array $playerData
+     * @param array<string, mixed> $playerData
      * @param string $targetPlayerId
-     * @return array [playerIndex, playerHand]
+     * @return array{0: int, 1: array<int>} [playerIndex, playerHand]
      * @throws PlayerNotFoundException
      */
     private static function findPlayerToRemove(array $playerData, string $targetPlayerId): array
@@ -517,7 +595,7 @@ class GameService
     /**
      * Determine if the round should be reset due to czar removal
      *
-     * @param array $playerData
+     * @param array<string, mixed> $playerData
      * @param bool $isCzar
      * @return bool
      */
@@ -531,11 +609,11 @@ class GameService
     /**
      * Handle czar removal during an active round - reset round state
      *
-     * @param array $playerData
-     * @param array $responsePile
-     * @param array $promptPile
+     * @param array<string, mixed> $playerData
+     * @param array<int> $responsePile
+     * @param array<int> $promptPile
      *
-     * @return array [$playerData, $responsePile, $promptPile]
+     * @return array{0: array<string, mixed>, 1: array<int>, 2: array<int>} [$playerData, $responsePile, $promptPile]
      */
     private static function handleCzarRemovalDuringRound(
         array $playerData,
@@ -590,8 +668,8 @@ class GameService
     /**
      * Check if game should end due to too few players and handle game end
      *
-     * @param array $playerData
-     * @return array Updated playerData
+     * @param array<string, mixed> $playerData
+     * @return array<string, mixed> Updated playerData
      */
     private static function checkAndHandleGameEnd(array $playerData): array
     {
@@ -627,7 +705,7 @@ class GameService
     /**
      * Find player IDs by their names
      *
-     * @param array $playerData
+     * @param array<string, mixed> $playerData
      * @param string $playerName1
      * @param string $playerName2
      * @return array{0: string|null, 1: string|null} [player1Id, player2Id]
@@ -652,11 +730,11 @@ class GameService
     /**
      * Insert new player into player order between two adjacent players
      *
-     * @param array $playerOrder
+     * @param array<int, string> $playerOrder
      * @param string $newPlayerId
      * @param string $player1Id
      * @param string $player2Id
-     * @return array Updated player order
+     * @return array<int, string> Updated player order
      */
     private static function insertIntoPlayerOrder(
         array $playerOrder,
@@ -715,7 +793,7 @@ class GameService
     /**
      * Get the next czar in rotation (excludes Rando)
      *
-     * @param array $playerData Game player data
+     * @param array<string, mixed> $playerData Game player data
      * @return string|null Next czar's player ID
      */
     public static function getNextCzar(array $playerData): ?string
@@ -724,7 +802,7 @@ class GameService
         if (isset($playerData['next_czar_after_skip'])) {
             return $playerData['next_czar_after_skip'];
         }
-        
+
         // Filter out Rando and paused players from eligible czars
         $eligiblePlayers = array_filter(
             $playerData['players'],
@@ -767,7 +845,7 @@ class GameService
      *
      * @param string $gameId Game code
      * @param string $playerId Player's ID (must be current czar)
-     * @return array Updated game state
+     * @return array<string, mixed> Updated game state
      */
     public static function forceEarlyReview(string $gameId, string $playerId): array
     {
@@ -779,7 +857,7 @@ class GameService
             }
 
             $playerData = $game['player_data'];
-            
+
             // Verify player is the current czar
             if ($playerData['current_czar_id'] !== $playerId) {
                 throw new ValidationException('Only the czar can force early review');
@@ -799,7 +877,7 @@ class GameService
 
             // Add toast notification
             self::addToast($playerData, "{$czarName} started reviewing submissions early.", 'skip');
-            
+
             Game::updatePlayerData($gameId, $playerData);
 
             return $playerData;
@@ -811,7 +889,7 @@ class GameService
      *
      * @param string $gameId Game code
      * @param string $playerId Player's ID
-     * @return array Updated game state
+     * @return array<string, mixed> Updated game state
      */
     public static function refreshPlayerHand(string $gameId, string $playerId): array
     {
@@ -823,7 +901,7 @@ class GameService
             }
 
             $playerData = $game['player_data'];
-            
+
             // Find the player
             $playerIndex = null;
             $playerName = null;
@@ -846,7 +924,7 @@ class GameService
 
             $currentHand = $playerData['players'][$playerIndex]['hand'];
             $handSize = count($currentHand);
-            
+
             if ($handSize === 0) {
                 throw new ValidationException('No cards to refresh');
             }
@@ -856,7 +934,7 @@ class GameService
 
             // Add current hand to discard pile
             $discardPile = array_merge($discardPile, $currentHand);
-            
+
             // Draw new cards
             $result = CardService::drawResponseCards($responsePile, $handSize);
             $playerData['players'][$playerIndex]['hand'] = $result['cards'];
@@ -871,7 +949,7 @@ class GameService
 
             // Add toast notification
             self::addToast($playerData, "{$playerName} refreshed their hand.", 'refresh');
-            
+
             Game::updatePlayerData($gameId, $playerData);
 
             return $playerData;
@@ -885,7 +963,7 @@ class GameService
      * @param string $gameId Game code
      * @param string $creatorId Creator's player ID
      * @param string $targetPlayerId Player to pause/unpause
-     * @return array Updated game state
+     * @return array<string, mixed> Updated game state
      */
     public static function togglePlayerPause(string $gameId, string $creatorId, string $targetPlayerId): array
     {
@@ -927,11 +1005,11 @@ class GameService
             $playerData['players'][$playerIndex]['is_paused'] = ! $isPaused;
 
             $playerName = $playerData['players'][$playerIndex]['name'];
-            
+
             // If pausing the current czar, skip to next czar
             if ( ! $isPaused && $targetPlayerId === $playerData['current_czar_id']) {
                 $playerData['current_czar_id'] = self::getNextCzar($playerData);
-                
+
                 // Update czar name
                 foreach ($playerData['players'] as $player) {
                     if ($player['id'] === $playerData['current_czar_id']) {
@@ -939,10 +1017,10 @@ class GameService
                         break;
                     }
                 }
-                
+
                 // Clear submissions
                 $playerData['submissions'] = [];
-                
+
                 self::addToast($playerData, "{$playerName} was paused. Moving to next czar.", 'pause');
             } else {
                 // Add toast notification
@@ -962,7 +1040,7 @@ class GameService
      *
      * @param string $gameId Game code
      * @param string $voterId Voting player's ID
-     * @return array Updated game state with vote info
+     * @return array<string, mixed> Updated game state with vote info
      */
     public static function voteToSkipCzar(string $gameId, string $voterId): array
     {
@@ -1003,7 +1081,7 @@ class GameService
                 // Remove vote
                 $playerData['skip_czar_votes'] = array_values(array_filter(
                     $playerData['skip_czar_votes'],
-                    fn($id) => $id !== $voterId
+                    fn($id): bool => $id !== $voterId
                 ));
             } else {
                 // Add vote
@@ -1017,10 +1095,10 @@ class GameService
             if ($voteCount >= $votesNeeded) {
                 // Get czar name for toast
                 $czarName = $playerData['current_czar_name'] ?? 'The czar';
-                
+
                 // Skip to next czar
                 $playerData['current_czar_id'] = self::getNextCzar($playerData);
-                
+
                 // Update czar name
                 foreach ($playerData['players'] as $player) {
                     if ($player['id'] === $playerData['current_czar_id']) {
@@ -1028,11 +1106,11 @@ class GameService
                         break;
                     }
                 }
-                
+
                 // Clear submissions and votes
                 $playerData['submissions'] = [];
                 $playerData['skip_czar_votes'] = [];
-                
+
                 // Add toast notification
                 self::addToast($playerData, "{$czarName} was skipped. Moving to next czar.", 'skip');
             }
@@ -1048,7 +1126,7 @@ class GameService
      *
      * @param string $gameId Game code
      * @param string $creatorId Creator's player ID
-     * @return array Updated game state
+     * @return array<string, mixed> Updated game state
      */
     public static function skipCzar(string $gameId, string $creatorId): array
     {
@@ -1081,7 +1159,7 @@ class GameService
      * @param string $gameId Game code
      * @param string $currentCzarId Current czar's player ID
      * @param string $nextCzarId Next czar's player ID
-     * @return array Updated game state
+     * @return array<string, mixed> Updated game state
      */
     public static function setNextCzar(string $gameId, string $currentCzarId, string $nextCzarId): array
     {
@@ -1093,80 +1171,14 @@ class GameService
             }
 
             $playerData = $game['player_data'];
+            $nextCzarPlayer = self::validateNextCzar($playerData, $currentCzarId, $nextCzarId);
 
-            if ($playerData['current_czar_id'] !== $currentCzarId) {
-                throw new UnauthorizedException('Only the current czar can select the next czar');
-            }
-
-            $nextCzarPlayer = null;
-            foreach ($playerData['players'] as $player) {
-                if ($player['id'] === $nextCzarId) {
-                    $nextCzarPlayer = $player;
-                    break;
-                }
-            }
-
-            if ($nextCzarPlayer === null) {
-                throw new PlayerNotFoundException($nextCzarId);
-            }
-
-            // Rando cannot be the czar
-            if ( ! empty($nextCzarPlayer['is_rando'])) {
-                throw new ValidationException('Rando Cardrissian cannot be the Card Czar');
-            }
-
-            // Update the current czar to the next czar
             $playerData['current_czar_id'] = $nextCzarId;
             $playerData['current_czar_name'] = $nextCzarPlayer['name'];
-            
-            // Clear the next_czar_after_skip flag if it was set
-            if (isset($playerData['next_czar_after_skip'])) {
-                unset($playerData['next_czar_after_skip']);
-            }
+            unset($playerData['next_czar_after_skip']);
 
             if ( ! $playerData['order_locked']) {
-                // Add current czar to order if not already there
-                if ( ! in_array($currentCzarId, $playerData['player_order'], true)) {
-                    $playerData['player_order'][] = $currentCzarId;
-                }
-
-                // Check if the next czar completes the circle (loops back to first)
-                if ( ! empty($playerData['player_order']) && $nextCzarId === $playerData['player_order'][0]) {
-                    // Check if anyone was skipped
-                    $eligiblePlayerIds = array_map(
-                        fn($p) => $p['id'],
-                        array_filter($playerData['players'], fn($p): bool => empty($p['is_rando']))
-                    );
-
-                    $skippedPlayers = array_diff($eligiblePlayerIds, $playerData['player_order']);
-
-                    if ( ! empty($skippedPlayers)) {
-                        // Store skipped players info - order NOT locked yet, waiting for placement
-                        $skippedNames = [];
-                        foreach ($playerData['players'] as $player) {
-                            if (in_array($player['id'], $skippedPlayers, true)) {
-                                $skippedNames[] = $player['name'];
-                            }
-                        }
-                        $playerData['skipped_players'] = [
-                            'ids' => array_values($skippedPlayers),
-                            'names' => $skippedNames,
-                        ];
-                        
-                        // Add toast notification for skipped players
-                        $names = implode(', ', $skippedNames);
-                        $verb = count($skippedNames) === 1 ? 'was' : 'were';
-                        self::addToast($playerData, "Player order almost complete! {$names} {$verb} skipped.", '⚠️');
-                        
-                        // Order will be locked after skipped players are placed
-                    } else {
-                        // No skipped players - lock the order
-                        $playerData['order_locked'] = true;
-                    }
-                } elseif ( ! in_array($nextCzarId, $playerData['player_order'], true)) {
-                    // Add next czar to order
-                    $playerData['player_order'][] = $nextCzarId;
-                }
+                self::updatePlayerOrder($playerData, $currentCzarId, $nextCzarId);
             }
 
             Game::updatePlayerData($gameId, $playerData);
@@ -1176,13 +1188,128 @@ class GameService
     }
 
     /**
+     * Validate the next czar selection
+     *
+     * @param array<string, mixed> $playerData Player data
+     * @param string $currentCzarId Current czar ID
+     * @param string $nextCzarId Next czar ID
+     * @return array<string, mixed> Next czar player data
+     */
+    private static function validateNextCzar(array $playerData, string $currentCzarId, string $nextCzarId): array
+    {
+        if ($playerData['current_czar_id'] !== $currentCzarId) {
+            throw new UnauthorizedException('Only the current czar can select the next czar');
+        }
+
+        $nextCzarPlayer = self::findPlayerById($playerData['players'], $nextCzarId);
+
+        if ($nextCzarPlayer === null) {
+            throw new PlayerNotFoundException($nextCzarId);
+        }
+
+        if ( ! empty($nextCzarPlayer['is_rando'])) {
+            throw new ValidationException('Rando Cardrissian cannot be the Card Czar');
+        }
+
+        return $nextCzarPlayer;
+    }
+
+    /**
+     * Find a player by ID
+     *
+     * @param array<int, array<string, mixed>> $players Players array
+     * @param string $playerId Player ID to find
+     * @return array<string, mixed>|null Player data or null
+     */
+    private static function findPlayerById(array $players, string $playerId): ?array
+    {
+        foreach ($players as $player) {
+            if ($player['id'] === $playerId) {
+                return $player;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Update player order when setting next czar
+     *
+     * @param array<string, mixed> &$playerData Player data (modified in place)
+     * @param string $currentCzarId Current czar ID
+     * @param string $nextCzarId Next czar ID
+     */
+    private static function updatePlayerOrder(array &$playerData, string $currentCzarId, string $nextCzarId): void
+    {
+        if ( ! in_array($currentCzarId, $playerData['player_order'], true)) {
+            $playerData['player_order'][] = $currentCzarId;
+        }
+
+        $completesCircle = ! empty($playerData['player_order'])
+            && $nextCzarId === $playerData['player_order'][0];
+
+        if ($completesCircle) {
+            self::handleOrderCompletion($playerData);
+        } elseif ( ! in_array($nextCzarId, $playerData['player_order'], true)) {
+            $playerData['player_order'][] = $nextCzarId;
+        }
+    }
+
+    /**
+     * Handle player order completion (check for skipped players)
+     *
+     * @param array<string, mixed> &$playerData Player data (modified in place)
+     */
+    private static function handleOrderCompletion(array &$playerData): void
+    {
+        $eligiblePlayerIds = array_map(
+            fn($p) => $p['id'],
+            array_filter($playerData['players'], fn($p): bool => empty($p['is_rando']))
+        );
+
+        $skippedPlayers = array_diff($eligiblePlayerIds, $playerData['player_order']);
+
+        if (empty($skippedPlayers)) {
+            $playerData['order_locked'] = true;
+            return;
+        }
+
+        $skippedNames = self::getPlayerNames($playerData['players'], $skippedPlayers);
+        $playerData['skipped_players'] = [
+            'ids' => array_values($skippedPlayers),
+            'names' => $skippedNames,
+        ];
+
+        $names = implode(', ', $skippedNames);
+        $verb = count($skippedNames) === 1 ? 'was' : 'were';
+        self::addToast($playerData, "Player order almost complete! {$names} {$verb} skipped.", '');
+    }
+
+    /**
+     * Get player names for a list of player IDs
+     *
+     * @param array<int, array<string, mixed>> $players Players array
+     * @param array<string> $playerIds Player IDs to get names for
+     * @return array<string> Player names
+     */
+    private static function getPlayerNames(array $players, array $playerIds): array
+    {
+        $names = [];
+        foreach ($players as $player) {
+            if (in_array($player['id'], $playerIds, true)) {
+                $names[] = $player['name'];
+            }
+        }
+        return $names;
+    }
+
+    /**
      * Place a skipped player in the player order
      *
      * @param string $gameId Game code
      * @param string $creatorId Creator's player ID (only creator can do this)
      * @param string $skippedPlayerId Skipped player's ID
      * @param string $beforePlayerId Player ID to insert before
-     * @return array Updated game state
+     * @return array<string, mixed> Updated game state
      */
     public static function placeSkippedPlayer(
         string $gameId,
@@ -1190,7 +1317,7 @@ class GameService
         string $skippedPlayerId,
         string $beforePlayerId
     ): array {
-        return LockService::withGameLock($gameId, function () use ($gameId, $creatorId, $skippedPlayerId, $beforePlayerId) {
+        $callback = function () use ($gameId, $creatorId, $skippedPlayerId, $beforePlayerId) {
             $game = Game::find($gameId);
 
             if ( ! $game) {
@@ -1229,7 +1356,7 @@ class GameService
 
             // Set the skipped player as current czar so they can take their turn immediately
             $playerData['current_czar_id'] = $skippedPlayerId;
-            
+
             // Update current_czar_name for display
             foreach ($playerData['players'] as $player) {
                 if ($player['id'] === $skippedPlayerId) {
@@ -1242,7 +1369,7 @@ class GameService
             if (empty($playerData['skipped_players']['ids'])) {
                 $playerData['order_locked'] = true;
                 unset($playerData['skipped_players']);
-                
+
                 // Store that we should start from the beginning of the order after skipped players
                 // This will be used when advancing to next round
                 $playerData['next_czar_after_skip'] = $playerData['player_order'][0] ?? null;
@@ -1251,7 +1378,9 @@ class GameService
             Game::updatePlayerData($gameId, $playerData);
 
             return $playerData;
-        });
+        };
+
+        return LockService::withGameLock($gameId, $callback);
     }
 
     /**
@@ -1261,7 +1390,7 @@ class GameService
      * @param string $playerName Player's display name
      * @param string $playerName1 Name of first adjacent player
      * @param string $playerName2 Name of second adjacent player
-     * @return array ['player_id' => string, 'player_name' => string, 'game_state' => array]
+     * @return array{player_id: string, player_name: string, game_state: array<string, mixed>}
      */
     public static function joinGameLate(
         string $gameId,
@@ -1353,9 +1482,9 @@ class GameService
     /**
      * Find a player by ID
      *
-     * @param array $playerData Game player data
+     * @param array<string, mixed> $playerData Game player data
      * @param string $playerId Player ID to find
-     * @return array|null Player data or null
+     * @return array<string, mixed>|null Player data or null
      */
     public static function findPlayer(array $playerData, string $playerId): ?array
     {
@@ -1365,7 +1494,7 @@ class GameService
     /**
      * Check if player is the creator
      *
-     * @param array $playerData Game player data
+     * @param array<string, mixed> $playerData Game player data
      * @param string $playerId Player ID to check
      * @return bool
      */
@@ -1377,7 +1506,7 @@ class GameService
     /**
      * Check if player is the current czar
      *
-     * @param array $playerData Game player data
+     * @param array<string, mixed> $playerData Game player data
      * @param string $playerId Player ID to check
      * @return bool
      */
@@ -1394,8 +1523,8 @@ class GameService
      * - Current prompt card
      * - Submissions
      *
-     * @param array $playerData Game player data
-     * @return array Player data with hydrated cards
+     * @param array<string, mixed> $playerData Game player data
+     * @return array<string, mixed> Player data with hydrated cards
      */
     public static function hydrateCards(array $playerData): array
     {
@@ -1406,10 +1535,10 @@ class GameService
      * Filters out all other player's hands except the current player's
      * Also filters submissions until all players have submitted (Czar should not see partial submissions)
      *
-     * @param array $playerData Game player data
+     * @param array<string, mixed> $playerData Game player data
      * @param string $playerId Game player UUID
      *
-     * @return array Player data with filtered cards
+     * @return array<string, mixed> Player data with filtered cards
      */
     public static function filterHands(array $playerData, string $playerId): array
     {
@@ -1421,7 +1550,7 @@ class GameService
      *
      * @param string $gameId Game code
      * @param string $creatorId Creator's player ID
-     * @return array Updated game state with reshuffle info
+     * @return array<string, mixed> Updated game state with reshuffle info
      */
     public static function reshuffleDiscardPile(string $gameId, string $creatorId): array
     {
@@ -1471,11 +1600,15 @@ class GameService
      * @param string $currentHostId Current host's player ID
      * @param string $newHostId New host's player ID
      * @param bool $removeCurrentHost Whether to remove the current host after transfer
-     * @return array Updated game state
+     * @return array<string, mixed> Updated game state
      */
-    public static function transferHost(string $gameId, string $currentHostId, string $newHostId, bool $removeCurrentHost = false): array
-    {
-        return LockService::withGameLock($gameId, function () use ($gameId, $currentHostId, $newHostId, $removeCurrentHost) {
+    public static function transferHost(
+        string $gameId,
+        string $currentHostId,
+        string $newHostId,
+        bool $removeCurrentHost = false
+    ): array {
+        $callback = function () use ($gameId, $currentHostId, $newHostId, $removeCurrentHost) {
             $game = Game::find($gameId);
 
             if ( ! $game) {
@@ -1554,7 +1687,9 @@ class GameService
             Game::updatePlayerData($gameId, $playerData);
 
             return $playerData;
-        });
+        };
+
+        return LockService::withGameLock($gameId, $callback);
     }
 
     /**
@@ -1562,7 +1697,7 @@ class GameService
      *
      * @param string $gameId Game code
      * @param string $playerId Player ID who is leaving
-     * @return array Updated game state
+     * @return array<string, mixed> Updated game state
      */
     public static function leaveGame(string $gameId, string $playerId): array
     {
@@ -1646,10 +1781,10 @@ class GameService
     /**
      * Add a toast notification to the game state
      *
-     * @param array $playerData Game player data
+     * @param array<string, mixed> $playerData Game player data
      * @param string $message Toast message
      * @param string|null $icon Optional emoji/icon
-     * @return array Updated player data
+     * @return array<string, mixed> Updated player data
      */
     public static function addToast(array &$playerData, string $message, ?string $icon = null): array
     {
@@ -1659,8 +1794,8 @@ class GameService
     /**
      * Remove toasts older than 30 seconds
      *
-     * @param array $playerData Game player data
-     * @return array Updated player data
+     * @param array<string, mixed> $playerData Game player data
+     * @return array<string, mixed> Updated player data
      */
     public static function cleanExpiredToasts(array $playerData): array
     {

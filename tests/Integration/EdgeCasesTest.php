@@ -193,11 +193,4 @@ class EdgeCasesTest extends TestCase
         $this->assertArrayHasKey('player_names', $result);
         $this->assertCount(3, $result['player_names']);
     }
-
-    public function testDeleteGame(): void
-    {
-        // deleteGame() method doesn't exist in GameService
-        // Games are cleaned up by the bootstrap after tests
-        $this->markTestSkipped('deleteGame() method not implemented');
-    }
 }

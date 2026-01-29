@@ -18,7 +18,7 @@ class Tag
      * Get a tag by ID
      *
      * @param int $tagId
-     * @return array|null Tag data or null if not found
+     * @return array<string, mixed>|null Tag data or null if not found
      */
     public static function find(int $tagId): ?array
     {
@@ -35,8 +35,8 @@ class Tag
     /**
      * Get multiple tags by IDs
      *
-     * @param array $tagIds Array of tag IDs
-     * @return array Array of tag data
+     * @param array<int> $tagIds Array of tag IDs
+     * @return array<int, array<string, mixed>> Array of tag data
      */
     public static function findMany(array $tagIds): array
     {
@@ -57,7 +57,7 @@ class Tag
     /**
      * Get all active tags
      *
-     * @return array Array of tag data
+     * @return array<int, array<string, mixed>> Array of tag data
      */
     public static function getAllActive(): array
     {
@@ -74,13 +74,13 @@ class Tag
      * Get all active tags with card counts
      * Only counts cards that are in at least one active pack (or have no packs)
      *
-     * @return array Array of tag data with card counts
+     * @return array<int, array<string, mixed>> Array of tag data with card counts
      */
     public static function getAllActiveWithCounts(): array
     {
         $responseType = CardType::RESPONSE->value;
         $promptType = CardType::PROMPT->value;
-        
+
         $sql = "
             SELECT
                 t.*,
@@ -212,7 +212,7 @@ class Tag
     /**
      * Get all tags (including inactive)
      *
-     * @return array Array of tag data
+     * @return array<int, array<string, mixed>> Array of tag data
      */
     public static function getAll(): array
     {
@@ -247,7 +247,7 @@ class Tag
      * Update a tag
      *
      * @param int $tagId
-     * @param array $data Associative array of fields to update
+     * @param array<string, mixed> $data Associative array of fields to update
      * @return int Number of affected rows
      */
     public static function update(int $tagId, array $data): int
@@ -322,7 +322,7 @@ class Tag
      * Add multiple tags to a single card
      *
      * @param int $cardId
-     * @param array $tagIds Array of tag IDs
+     * @param array<int> $tagIds Array of tag IDs
      * @return int Number of tags successfully added
      */
     public static function addMultipleTagsToCard(int $cardId, array $tagIds): int
@@ -344,7 +344,7 @@ class Tag
     /**
      * Add a single tag to multiple cards (bulk operation)
      *
-     * @param array $cardIds Array of card IDs
+     * @param array<int> $cardIds Array of card IDs
      * @param int $tagId
      * @return int Number of cards successfully tagged
      */
@@ -408,7 +408,7 @@ class Tag
      * Get all tags for a card
      *
      * @param int $cardId
-     * @return array Array of tag data
+     * @return array<int, array<string, mixed>> Array of tag data
      */
     public static function getCardTags(int $cardId): array
     {
@@ -427,7 +427,7 @@ class Tag
      * Get tags for multiple cards (batch fetch to avoid N+1 queries)
      *
      * @param array<int> $cardIds Array of card IDs
-     * @return array<int, array> Associative array mapping card_id => array of tags
+     * @return array<int, array<int, array<string, mixed>>> Associative array mapping card_id => array of tags
      */
     public static function getCardTagsForMultipleCards(array $cardIds): array
     {

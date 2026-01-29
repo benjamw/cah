@@ -52,6 +52,8 @@ class AdminTagController
 
     /**
      * Edit a tag
+     *
+     * @param array<string, string> $args Route arguments
      */
     public function editTag(Request $request, Response $response, array $args): Response
     {
@@ -88,6 +90,8 @@ class AdminTagController
 
     /**
      * Delete a tag
+     *
+     * @param array<string, string> $args Route arguments
      */
     public function deleteTag(Request $request, Response $response, array $args): Response
     {

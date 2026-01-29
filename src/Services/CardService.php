@@ -41,10 +41,10 @@ class CardService
     /**
      * Draw cards from the response card pile
      *
-     * @param array $responsePile Array of response card IDs
+     * @param array<int> $responsePile Array of response card IDs
      * @param int $count Number of cards to draw
      *
-     * @return array ['cards' => [...drawn card IDs...], 'remaining_pile' => [...remaining IDs...]]
+     * @return DrawResult
      * @throws InsufficientCardsException If not enough cards in pile
      */
     public static function drawResponseCards(array $responsePile, int $count): array
@@ -65,9 +65,9 @@ class CardService
     /**
      * Draw a single prompt card from the pile
      *
-     * @param array $promptPile Array of prompt card IDs
+     * @param array<int> $promptPile Array of prompt card IDs
      *
-     * @return array ['card' => card ID, 'remaining_pile' => [...remaining IDs...]]
+     * @return array{card: int, remaining_pile: array<int>}
      * @throws InsufficientCardsException If pile is empty
      */
     public static function drawPromptCard(array $promptPile): array
@@ -127,11 +127,11 @@ class CardService
     /**
      * Deal bonus cards to all players for multi-choice prompt cards
      *
-     * @param array $players Array of player data (passed by reference)
-     * @param array $responsePile Response card draw pile
+     * @param array<string, array<string, mixed>> $players Array of player data (passed by reference)
+     * @param array<int> $responsePile Response card draw pile
      * @param int $bonusCount Number of bonus cards per player
      *
-     * @return array Updated response pile after dealing
+     * @return array<int> Updated response pile after dealing
      */
     public static function dealBonusCards(array &$players, array $responsePile, int $bonusCount): array
     {
@@ -152,9 +152,9 @@ class CardService
     /**
      * Return cards to the bottom of the draw pile
      *
-     * @param array $pile Current pile
-     * @param array $cards Cards to return
-     * @return array Updated pile
+     * @param array<int> $pile Current pile
+     * @param array<int> $cards Cards to return
+     * @return array<int> Updated pile
      */
     public static function returnCardsToPile(array $pile, array $cards): array
     {
@@ -164,9 +164,9 @@ class CardService
     /**
      * Move cards to discard pile
      *
-     * @param array $discardPile Current discard pile
-     * @param array $cards Cards to discard
-     * @return array Updated discard pile
+     * @param array<int> $discardPile Current discard pile
+     * @param array<int> $cards Cards to discard
+     * @return array<int> Updated discard pile
      */
     public static function discardCards(array $discardPile, array $cards): array
     {
@@ -176,7 +176,7 @@ class CardService
     /**
      * Check if draw pile is running low
      *
-     * @param array $responsePile Response card pile
+     * @param array<int> $responsePile Response card pile
      * @param int|null $threshold Warning threshold (uses config default if null)
      *
      * @return bool True if pile is low
@@ -190,7 +190,7 @@ class CardService
     /**
      * Get warning message if draw pile is low
      *
-     * @param array $responsePile Response card pile
+     * @param array<int> $responsePile Response card pile
      * @param int|null $threshold Warning threshold (uses config default if null)
      *
      * @return string|null Warning message or null
@@ -212,9 +212,9 @@ class CardService
      *
      * Shuffles the discard pile and appends it to the bottom of the draw pile
      *
-     * @param array $drawPile Current draw pile
-     * @param array $discardPile Current discard pile
-     * @return array ['draw_pile' => [...cards...], 'discard_pile' => []]
+     * @param array<int> $drawPile Current draw pile
+     * @param array<int> $discardPile Current discard pile
+     * @return array{draw_pile: array<int>, discard_pile: array<int>}
      */
     public static function reshuffleDiscardPile(array $drawPile, array $discardPile): array
     {

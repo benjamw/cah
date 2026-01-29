@@ -50,7 +50,7 @@ class Response
      * @param ResponseInterface $response
      * @param string $message Error message
      * @param int $statusCode HTTP status code
-     * @param array|null $errors Additional error details
+     * @param array<string, string>|null $errors Additional error details
      * @param mixed $data Optional data to include in response
      * @return ResponseInterface
      */
@@ -82,7 +82,7 @@ class Response
      * Send a validation error response
      *
      * @param ResponseInterface $response
-     * @param array $errors Validation errors
+     * @param array<string, string> $errors Validation errors
      * @param string $message Error message
      * @return ResponseInterface
      */

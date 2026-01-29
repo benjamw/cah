@@ -56,8 +56,8 @@ class CardImportService
     /**
      * Import multiple cards from array
      *
-     * @param array $cards Array of card data
-     * @return array ['imported' => count, 'failed' => count, 'errors' => [...]]
+     * @param array<int, array<string, mixed>> $cards Array of card data
+     * @return array{imported: int, failed: int, errors: array<int, string>}
      */
     public static function importBatch(array $cards): array
     {
@@ -103,7 +103,7 @@ class CardImportService
      * Import cards from JSON file
      *
      * @param string $filePath Path to JSON file
-     * @return array Import results
+     * @return array{imported: int, failed: int, errors: array<int, string>}
      */
     public static function importFromJson(string $filePath): array
     {
@@ -134,7 +134,7 @@ class CardImportService
      *
      * Useful for updating cards that were imported without choices
      *
-     * @return array ['updated' => count, 'errors' => [...]]
+     * @return array{updated: int, errors: array<int, string>}
      */
     public static function fixPromptCardChoices(): array
     {
@@ -171,7 +171,7 @@ class CardImportService
      *
      * @param string $csvContent CSV file content
      * @param CardType $cardType Card type enum
-     * @return array ['imported' => int, 'failed' => int, 'errors' => array, 'warnings' => array]
+     * @return array{imported: int, failed: int, errors: array<int, string>, warnings: array<int, string>}
      */
     public static function importFromCsv(string $csvContent, CardType $cardType): array
     {
@@ -229,48 +229,14 @@ class CardImportService
 
                 if ($cardId) {
                     // Process tags if any
-                    foreach ($tagValues as $tagValue) {
-                        $tagId = null;
-
-                        // Check if tag value is numeric (tag ID)
-                        if (is_numeric($tagValue)) {
-                            $numericTagId = (int) $tagValue;
-
-                            // Verify tag ID exists
-                            if (isset($tagsById[$numericTagId])) {
-                                $tagId = $numericTagId;
-                            } else {
-                                $warnings[] = "Row {$index}: Tag ID {$numericTagId} does not exist, skipping";
-                                continue;
-                            }
-                        } else {
-                            // Tag value is a string (tag name)
-                            $tagNameLower = strtolower($tagValue);
-
-                            // Check if tag name exists
-                            if (isset($tagsByName[$tagNameLower])) {
-                                $tagId = $tagsByName[$tagNameLower]['tag_id'];
-                            } else {
-                                // Create new tag
-                                $tagId = \CAH\Models\Tag::create($tagValue, null, true);
-
-                                // Add to our lookup arrays for future rows
-                                $newTag = \CAH\Models\Tag::find($tagId);
-                                if ($newTag) {
-                                    $tagsByName[strtolower((string) $newTag['name'])] = $newTag;
-                                    $tagsById[$tagId] = $newTag;
-                                }
-
-                                $warnings[] = "Row {$index}: Created new tag '{$tagValue}' (ID: {$tagId})";
-                            }
-                        }
-
-                        // Add tag to card
-                        if ($tagId !== null) {
-                            \CAH\Models\Tag::addToCard($cardId, $tagId);
-                        }
-                    }
-
+                    self::processTagsForCard(
+                        $cardId,
+                        $tagValues,
+                        $tagsByName,
+                        $tagsById,
+                        $index,
+                        $warnings
+                    );
                     $imported++;
                 } else {
                     $errors[] = "Row {$index}: Failed to import card";
@@ -294,5 +260,82 @@ class CardImportService
             'errors' => $errors,
             'warnings' => $warnings,
         ];
+    }
+
+    /**
+     * Process tags for an imported card
+     *
+     * @param int $cardId Card ID to add tags to
+     * @param array<string> $tagValues Tag values (IDs or names)
+     * @param array<string, array<string, mixed>> &$tagsByName Tags indexed by lowercase name
+     * @param array<int, array<string, mixed>> &$tagsById Tags indexed by ID
+     * @param int $rowIndex Current row index for warnings
+     * @param array<int, string> &$warnings Warnings array to append to
+     */
+    private static function processTagsForCard(
+        int $cardId,
+        array $tagValues,
+        array &$tagsByName,
+        array &$tagsById,
+        int $rowIndex,
+        array &$warnings
+    ): void {
+        foreach ($tagValues as $tagValue) {
+            $tagId = self::resolveTagId($tagValue, $tagsByName, $tagsById, $rowIndex, $warnings);
+
+            if ($tagId !== null) {
+                \CAH\Models\Tag::addToCard($cardId, $tagId);
+            }
+        }
+    }
+
+    /**
+     * Resolve a tag value to a tag ID
+     *
+     * @param string $tagValue Tag value (ID or name)
+     * @param array<string, array<string, mixed>> &$tagsByName Tags indexed by lowercase name
+     * @param array<int, array<string, mixed>> &$tagsById Tags indexed by ID
+     * @param int $rowIndex Current row index for warnings
+     * @param array<int, string> &$warnings Warnings array to append to
+     * @return int|null Tag ID or null if not found/created
+     */
+    private static function resolveTagId(
+        string $tagValue,
+        array &$tagsByName,
+        array &$tagsById,
+        int $rowIndex,
+        array &$warnings
+    ): ?int {
+        // Check if tag value is numeric (tag ID)
+        if (is_numeric($tagValue)) {
+            $numericTagId = (int) $tagValue;
+
+            if (isset($tagsById[$numericTagId])) {
+                return $numericTagId;
+            }
+
+            $warnings[] = "Row {$rowIndex}: Tag ID {$numericTagId} does not exist, skipping";
+            return null;
+        }
+
+        // Tag value is a string (tag name)
+        $tagNameLower = strtolower($tagValue);
+
+        if (isset($tagsByName[$tagNameLower])) {
+            return $tagsByName[$tagNameLower]['tag_id'];
+        }
+
+        // Create new tag
+        $tagId = \CAH\Models\Tag::create($tagValue, null, true);
+
+        // Add to our lookup arrays for future rows
+        $newTag = \CAH\Models\Tag::find($tagId);
+        if ($newTag) {
+            $tagsByName[strtolower((string) $newTag['name'])] = $newTag;
+            $tagsById[$tagId] = $newTag;
+        }
+
+        $warnings[] = "Row {$rowIndex}: Created new tag '{$tagValue}' (ID: {$tagId})";
+        return $tagId;
     }
 }

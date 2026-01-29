@@ -91,7 +91,7 @@ function CardSelector({
   if (hasSubmitted) {
     // Check if all submissions are in (exclude czar and paused players)
     const activePlayers = gameState.players?.filter(p => 
-      p.id !== gameState.current_czar_id && !p.is_paused
+      p.id !== gameState.current_czar_id && ! p.is_paused
     ) || [];
     const submissionCount = gameState.submissions?.length || 0;
     const expectedSubmissions = activePlayers.length;

@@ -37,12 +37,14 @@ class Game
      *
      * @param string $gameId 4-character game code
      * @param bool $includeHistory Whether to include round_history (default: false for performance)
-     * @return array|null Game data with decoded JSON fields
+     * @return array<string, mixed>|null Game data with decoded JSON fields
      */
     public static function find(string $gameId, bool $includeHistory = false): ?array
     {
         // Only select round_history if explicitly requested
-        $columns = $includeHistory ? '*' : 'game_id, tags, draw_pile, discard_pile, player_data, state, created_at, updated_at';
+        $columns = $includeHistory
+            ? '*'
+            : 'game_id, tags, draw_pile, discard_pile, player_data, state, created_at, updated_at';
 
         $sql = "
             SELECT {$columns}
@@ -62,9 +64,9 @@ class Game
      * Create a new game
      *
      * @param string $gameId 4-character game code
-     * @param array $tags Array of tag IDs
-     * @param array $drawPile Array of card IDs
-     * @param array $playerData Initial player data structure
+     * @param array<int> $tags Array of tag IDs
+     * @param array<string, array<int>> $drawPile Array of card IDs by type
+     * @param array<string, mixed> $playerData Initial player data structure
      * @return bool Success
      */
     public static function create(string $gameId, array $tags, array $drawPile, array $playerData): bool
@@ -90,7 +92,7 @@ class Game
      * Update game state
      *
      * @param string $gameId
-     * @param array $data Associative array of fields to update
+     * @param array<string, mixed> $data Associative array of fields to update
      * @return int Number of affected rows
      */
     public static function update(string $gameId, array $data): int
@@ -140,7 +142,7 @@ class Game
      * Get games older than specified days
      *
      * @param int $days Number of days
-     * @return array Array of game IDs
+     * @return array<int, string> Array of game IDs
      */
     public static function getOlderThan(int $days): array
     {
@@ -191,7 +193,7 @@ class Game
      * Update only the player_data field
      *
      * @param string $gameId
-     * @param array $playerData
+     * @param array<string, mixed> $playerData
      * @return int Number of affected rows
      */
     public static function updatePlayerData(string $gameId, array $playerData): int
@@ -213,8 +215,8 @@ class Game
      * Update draw and discard piles
      *
      * @param string $gameId
-     * @param array $drawPile
-     * @param array $discardPile
+     * @param array<string, array<int>> $drawPile
+     * @param array<int> $discardPile
      * @return int Number of affected rows
      */
     public static function updatePiles(string $gameId, array $drawPile, array $discardPile): int
@@ -236,7 +238,7 @@ class Game
      * Get the draw pile for a game
      *
      * @param string $gameId
-     * @return array|null Array of card IDs or null if game not found
+     * @return array<string, array<int>>|null Array of card IDs or null if game not found
      */
     public static function getDrawPile(string $gameId): ?array
     {
@@ -258,7 +260,7 @@ class Game
      * Get the player data for a game
      *
      * @param string $gameId
-     * @return array|null Player data or null if game not found
+     * @return array<string, mixed>|null Player data or null if game not found
      */
     public static function getPlayerData(string $gameId): ?array
     {
@@ -295,8 +297,8 @@ class Game
     /**
      * Decode JSON fields in game data
      *
-     * @param array $gameData Raw game data from database
-     * @return array Game data with decoded JSON fields
+     * @param array<string, mixed> $gameData Raw game data from database
+     * @return array<string, mixed> Game data with decoded JSON fields
      */
     private static function decodeJsonFields(array $gameData): array
     {
@@ -315,7 +317,7 @@ class Game
      * Append a round to the round_history
      *
      * @param string $gameId
-     * @param array $roundData Round data to append
+     * @param array<string, mixed> $roundData Round data to append
      * @return int Number of affected rows
      */
     public static function appendRoundHistory(string $gameId, array $roundData): int
@@ -340,7 +342,7 @@ class Game
      * Get round history for a game
      *
      * @param string $gameId
-     * @return array|null Round history or null if game not found
+     * @return array<int, array<string, mixed>>|null Round history or null if game not found
      */
     public static function getRoundHistory(string $gameId): ?array
     {

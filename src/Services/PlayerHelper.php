@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace CAH\Services;
 
+use CAH\Enums\CardType;
+
 /**
  * Player Helper Service
  *
@@ -14,9 +16,9 @@ class PlayerHelper
     /**
      * Find a player by ID
      *
-     * @param array $playerData Game player data
+     * @param array<string, mixed> $playerData Game player data
      * @param string $playerId Player ID to find
-     * @return array|null Player array or null if not found
+     * @return array<string, mixed>|null Player array or null if not found
      */
     public static function findPlayer(array $playerData, string $playerId): ?array
     {
@@ -31,7 +33,7 @@ class PlayerHelper
     /**
      * Check if a player is the game creator
      *
-     * @param array $playerData Game player data
+     * @param array<string, mixed> $playerData Game player data
      * @param string $playerId Player ID to check
      * @return bool
      */
@@ -43,7 +45,7 @@ class PlayerHelper
     /**
      * Check if a player is the current czar
      *
-     * @param array $playerData Game player data
+     * @param array<string, mixed> $playerData Game player data
      * @param string $playerId Player ID to check
      * @return bool
      */
@@ -62,9 +64,9 @@ class PlayerHelper
      * Returns a copy of player data with hands filtered so each player
      * can only see their own hand (except Rando Cardrissian)
      *
-     * @param array $playerData Game player data
+     * @param array<string, mixed> $playerData Game player data
      * @param string $playerId The player ID requesting the data
-     * @return array Player data with filtered hands
+     * @return array<string, mixed> Player data with filtered hands
      */
     public static function filterHands(array $playerData, string $playerId): array
     {
@@ -79,7 +81,7 @@ class PlayerHelper
 
             if ( ! $isOwnHand && ! $isRando) {
                 // For other players, just show card count
-                $player['hand'] = array_map(fn($card) => [
+                $player['hand'] = array_map(fn($card): array => [
                     'card_id' => null,  // Hide card ID
                     'copy' => '*** HIDDEN ***',  // Hide card text
                     'type' => CardType::RESPONSE->value

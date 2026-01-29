@@ -54,6 +54,8 @@ class AdminPackController
 
     /**
      * Edit a pack
+     *
+     * @param array<string, string> $args Route arguments
      */
     public function editPack(Request $request, Response $response, array $args): Response
     {
@@ -96,6 +98,8 @@ class AdminPackController
 
     /**
      * Delete a pack
+     *
+     * @param array<string, string> $args Route arguments
      */
     public function deletePack(Request $request, Response $response, array $args): Response
     {
@@ -120,6 +124,8 @@ class AdminPackController
 
     /**
      * Toggle pack active status
+     *
+     * @param array<string, string> $args Route arguments
      */
     public function togglePack(Request $request, Response $response, array $args): Response
     {

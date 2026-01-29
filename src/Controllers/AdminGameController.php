@@ -19,6 +19,8 @@ class AdminGameController
 {
     /**
      * Delete a game
+     *
+     * @param array<string, string> $args Route arguments
      */
     public function deleteGame(Request $request, Response $response, array $args): Response
     {

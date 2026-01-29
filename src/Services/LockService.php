@@ -20,6 +20,7 @@ class LockService
     private const LOCK_PREFIX = 'cah_game_';
     private const DEFAULT_LOCK_TIMEOUT = 10;
 
+    /** @var array<string, string> */
     private static array $activeLocks = [];
     private static ?int $lockTimeout = null;
 
@@ -110,8 +111,11 @@ class LockService
      * @return mixed Return value from callback
      * @throws LockException If lock cannot be acquired
      */
-    public static function withGameLock(string $gameId, callable $callback, int $timeout = self::DEFAULT_LOCK_TIMEOUT): mixed
-    {
+    public static function withGameLock(
+        string $gameId,
+        callable $callback,
+        int $timeout = self::DEFAULT_LOCK_TIMEOUT
+    ): mixed {
         if ( ! GameCodeGenerator::isValid($gameId)) {
             throw new ValidationException('Invalid game code format');
         }

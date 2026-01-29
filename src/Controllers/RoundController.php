@@ -52,7 +52,7 @@ class RoundController
 
             // Hydrate card IDs with full card data
             $gameState = GameService::hydrateCards($gameState);
-            
+
             // Filter out other players' hands
             $gameState = GameService::filterHands($gameState, $playerId);
 
@@ -101,7 +101,7 @@ class RoundController
 
                 // Hydrate card IDs with full card data
                 $gameState = GameService::hydrateCards($gameState);
-                
+
                 // Filter out other players' hands
                 $gameState = GameService::filterHands($gameState, $playerId);
 
@@ -124,7 +124,7 @@ class RoundController
 
             // Hydrate card IDs with full card data
             $gameState = GameService::hydrateCards($gameState);
-            
+
             // Filter out other players' hands
             $gameState = GameService::filterHands($gameState, $playerId);
 
@@ -175,7 +175,7 @@ class RoundController
 
             // Hydrate card IDs with full card data
             $gameState = GameService::hydrateCards($gameState);
-            
+
             // Filter out other players' hands
             $gameState = GameService::filterHands($gameState, $playerId);
 

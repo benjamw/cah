@@ -20,7 +20,8 @@ use CAH\Exceptions\ValidationException;
  * drawing replacement cards, and advancing to next round
  *
  * @phpstan-type Submission array{player_id: string, cards: array<int>}
- * @phpstan-type RoundHistory array{round: int, prompt_card: int, czar_id: string, winner_id: string, winning_cards: array<int>}
+ * @phpstan-type RoundHistory array{round: int, prompt_card: int, czar_id: string,
+ *                                  winner_id: string, winning_cards: array<int>}
  */
 class RoundService
 {
@@ -128,7 +129,7 @@ class RoundService
      * @param string $gameId Game code
      * @param string $czarId Czar's player ID
      * @param string $winningPlayerId Winning player's ID
-     * @return array Updated game state
+     * @return array<string, mixed> Updated game state
      */
     public static function pickWinner(string $gameId, string $czarId, string $winningPlayerId): array
     {
@@ -187,8 +188,8 @@ class RoundService
     /**
      * Check if a player has won the game
      *
-     * @param array $playerData Game player data
-     * @return array|null Winning player or null
+     * @param array<string, mixed> $playerData Game player data
+     * @return array<string, mixed>|null Winning player or null
      */
     public static function checkForWinner(array $playerData): ?array
     {
@@ -215,7 +216,7 @@ class RoundService
      * - Increments round counter
      *
      * @param string $gameId Game code
-     * @return array Updated game state
+     * @return array<string, mixed> Updated game state
      */
     public static function advanceToNextRound(string $gameId): array
     {
@@ -231,65 +232,14 @@ class RoundService
             $promptPile = $game['draw_pile']['prompt'];
             $discardPile = $game['discard_pile'] ?? [];
 
-            $submittedCards = [];
-            foreach ($playerData['submissions'] as $submission) {
-                $submittedCards = array_merge($submittedCards, $submission['cards']);
-            }
-
-            // Only discard response cards - prompt cards are not recycled
+            $submittedCards = self::collectSubmittedCards($playerData['submissions']);
             $discardPile = CardService::discardCards($discardPile, $submittedCards);
 
-            $handSize = $playerData['settings']['hand_size'];
-
-            foreach ($playerData['players'] as &$player) {
-                // Skip czar and Rando (Rando has no hand)
-                if ($player['id'] === $playerData['current_czar_id'] || ! empty($player['is_rando'])) {
-                    continue;
-                }
-
-                $playerSubmission = null;
-                foreach ($playerData['submissions'] as $submission) {
-                    if ($submission['player_id'] === $player['id']) {
-                        $playerSubmission = $submission;
-                        break;
-                    }
-                }
-
-                if ($playerSubmission) {
-                    $player['hand'] = array_values(array_diff($player['hand'], $playerSubmission['cards']));
-
-                    $cardsToDraw = $handSize - count($player['hand']);
-                    if ($cardsToDraw > 0) {
-                        $result = CardService::drawResponseCards($responsePile, $cardsToDraw);
-                        $player['hand'] = array_merge($player['hand'], $result['cards']);
-                        $responsePile = $result['remaining_pile'];
-                    }
-                }
-            }
+            $responsePile = self::replenishPlayerHands($playerData, $responsePile);
 
             // Check if we've run out of prompt cards - game is over
             if (empty($promptPile)) {
-                $highestScore = -1;
-                $winnerId = null;
-                foreach ($playerData['players'] as $player) {
-                    if ($player['score'] > $highestScore) {
-                        $highestScore = $player['score'];
-                        $winnerId = $player['id'];
-                    }
-                }
-
-                $playerData['state'] = GameState::FINISHED->value;
-                $playerData['winner_id'] = $winnerId;
-                $playerData['finished_at'] = ( new \DateTime() )->format('Y-m-d H:i:s');
-                $playerData['end_reason'] = GameEndReason::NO_BLACK_CARDS_LEFT->value;
-
-                Game::update($gameId, [
-                    'draw_pile' => ['response' => $responsePile, 'prompt' => $promptPile],
-                    'discard_pile' => $discardPile,
-                    'player_data' => $playerData,
-                ]);
-
-                return $playerData;
+                return self::endGameNoPromptCards($gameId, $playerData, $responsePile, $promptPile, $discardPile);
             }
 
             $promptResult = CardService::drawPromptCard($promptPile);
@@ -300,24 +250,14 @@ class RoundService
             $bonusCards = CardService::calculateBonusCards($choices);
 
             if ($bonusCards > 0) {
-                // Deal bonus cards to all players except Rando
-                foreach ($playerData['players'] as &$player) {
-                    if (empty($player['is_rando'])) {
-                        $result = CardService::drawResponseCards($responsePile, $bonusCards);
-                        $player['hand'] = array_merge($player['hand'], $result['cards']);
-                        $responsePile = $result['remaining_pile'];
-                    }
-                }
+                $responsePile = self::dealBonusCardsToPlayers($playerData, $responsePile, $bonusCards);
             }
 
             $playerData['current_prompt_card'] = $newBlackCard;
             $playerData['current_round']++;
             $playerData['submissions'] = [];
-            
-            // Clear forced early review flag for new round
             unset($playerData['forced_early_review']);
 
-            // Auto-submit for Rando if enabled
             if ($playerData['settings']['rando_enabled'] && ! empty($playerData['rando_id'])) {
                 $responsePile = self::submitRandoCards($playerData, $responsePile, $choices);
             }
@@ -333,15 +273,155 @@ class RoundService
     }
 
     /**
+     * Collect all submitted cards from submissions
+     *
+     * @param array<int, array<string, mixed>> $submissions Submissions array
+     * @return array<int> All submitted card IDs
+     */
+    private static function collectSubmittedCards(array $submissions): array
+    {
+        $submittedCards = [];
+        foreach ($submissions as $submission) {
+            $submittedCards = array_merge($submittedCards, $submission['cards']);
+        }
+        return $submittedCards;
+    }
+
+    /**
+     * Replenish player hands after submissions
+     *
+     * @param array<string, mixed> &$playerData Player data (modified in place)
+     * @param array<int> $responsePile Current response pile
+     * @return array<int> Updated response pile
+     */
+    private static function replenishPlayerHands(array &$playerData, array $responsePile): array
+    {
+        $handSize = $playerData['settings']['hand_size'];
+
+        foreach ($playerData['players'] as &$player) {
+            if ($player['id'] === $playerData['current_czar_id'] || ! empty($player['is_rando'])) {
+                continue;
+            }
+
+            $playerSubmission = self::findPlayerSubmission($playerData['submissions'], $player['id']);
+
+            if ($playerSubmission) {
+                $player['hand'] = array_values(array_diff($player['hand'], $playerSubmission['cards']));
+
+                $cardsToDraw = $handSize - count($player['hand']);
+                if ($cardsToDraw > 0) {
+                    $result = CardService::drawResponseCards($responsePile, $cardsToDraw);
+                    $player['hand'] = array_merge($player['hand'], $result['cards']);
+                    $responsePile = $result['remaining_pile'];
+                }
+            }
+        }
+
+        return $responsePile;
+    }
+
+    /**
+     * Find a player's submission
+     *
+     * @param array<int, array<string, mixed>> $submissions Submissions array
+     * @param string $playerId Player ID to find
+     * @return array<string, mixed>|null Submission or null if not found
+     */
+    private static function findPlayerSubmission(array $submissions, string $playerId): ?array
+    {
+        foreach ($submissions as $submission) {
+            if ($submission['player_id'] === $playerId) {
+                return $submission;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * End game when no prompt cards are left
+     *
+     * @param string $gameId Game ID
+     * @param array<string, mixed> &$playerData Player data
+     * @param array<int> $responsePile Response pile
+     * @param array<int> $promptPile Prompt pile
+     * @param array<int> $discardPile Discard pile
+     * @return array<string, mixed> Updated player data
+     */
+    private static function endGameNoPromptCards(
+        string $gameId,
+        array &$playerData,
+        array $responsePile,
+        array $promptPile,
+        array $discardPile
+    ): array {
+        $winnerId = self::findHighestScoringPlayer($playerData['players']);
+
+        $playerData['state'] = GameState::FINISHED->value;
+        $playerData['winner_id'] = $winnerId;
+        $playerData['finished_at'] = ( new \DateTime() )->format('Y-m-d H:i:s');
+        $playerData['end_reason'] = GameEndReason::NO_BLACK_CARDS_LEFT->value;
+
+        Game::update($gameId, [
+            'draw_pile' => ['response' => $responsePile, 'prompt' => $promptPile],
+            'discard_pile' => $discardPile,
+            'player_data' => $playerData,
+        ]);
+
+        return $playerData;
+    }
+
+    /**
+     * Find the player with the highest score
+     *
+     * @param array<int, array<string, mixed>> $players Players array
+     * @return string|null Winner player ID or null
+     */
+    private static function findHighestScoringPlayer(array $players): ?string
+    {
+        $highestScore = -1;
+        $winnerId = null;
+        foreach ($players as $player) {
+            if ($player['score'] > $highestScore) {
+                $highestScore = $player['score'];
+                $winnerId = $player['id'];
+            }
+        }
+        return $winnerId;
+    }
+
+    /**
+     * Deal bonus cards to all non-Rando players
+     *
+     * @param array<string, mixed> &$playerData Player data (modified in place)
+     * @param array<int> $responsePile Current response pile
+     * @param int $bonusCards Number of bonus cards to deal
+     * @return array<int> Updated response pile
+     */
+    private static function dealBonusCardsToPlayers(
+        array &$playerData,
+        array $responsePile,
+        int $bonusCards
+    ): array {
+        foreach ($playerData['players'] as &$player) {
+            if (empty($player['is_rando'])) {
+                $result = CardService::drawResponseCards($responsePile, $bonusCards);
+                $player['hand'] = array_merge($player['hand'], $result['cards']);
+                $responsePile = $result['remaining_pile'];
+            }
+        }
+        return $responsePile;
+    }
+
+    /**
      * Submit random cards for Rando Cardrissian
      *
      * Draws cards directly from the response pile (Rando has no hand).
      * Rando never becomes the czar, so this is called every round.
      *
-     * @param array &$playerData Player data (modified in place)
-     * @param array $responsePile Current response card pile
+     * @param array<string, mixed> &$playerData Player data (modified in place)
+     * @param array<int> $responsePile Current response card pile
      * @param int $cardsNeeded Number of cards to submit
-     * @return array Updated response pile
+     * @return array<int> Updated response pile
      */
     public static function submitRandoCards(array &$playerData, array $responsePile, int $cardsNeeded): array
     {
@@ -373,7 +453,7 @@ class RoundService
      *
      * @param string $gameId Game code
      * @param string $winnerId Winning player's ID
-     * @return array Final game state
+     * @return array<string, mixed> Final game state
      */
     public static function endGame(string $gameId, string $winnerId): array
     {
@@ -400,7 +480,7 @@ class RoundService
     /**
      * Check if all non-czar players have submitted
      *
-     * @param array $playerData Game player data
+     * @param array<string, mixed> $playerData Game player data
      * @return bool True if all players have submitted
      */
     public static function allPlayersSubmitted(array $playerData): bool

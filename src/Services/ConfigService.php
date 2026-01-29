@@ -11,7 +11,9 @@ namespace CAH\Services;
  */
 class ConfigService
 {
+    /** @var array<string, mixed>|null */
     private static ?array $gameConfig = null;
+    /** @var array<string, mixed>|null */
     private static ?array $databaseConfig = null;
 
     /**

@@ -22,22 +22,22 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast })
   
   // Calculate how many players should submit (exclude czar and paused players)
   const activePlayers = gameState.players?.filter(p => 
-    p.id !== gameState.current_czar_id && !p.is_paused
+    p.id !== gameState.current_czar_id && ! p.is_paused
   ) || [];
   const expectedSubmissions = activePlayers.length;
   const allSubmitted = submissions.length >= expectedSubmissions && submissions.length > 0;
   const forcedReview = gameState.forced_early_review === true;
-  const canForceReview = submissions.length > 0 && !allSubmitted && !forcedReview;
+  const canForceReview = submissions.length > 0 && ! allSubmitted && ! forcedReview;
   const canSkipRound = submissions.length === 0 && expectedSubmissions > 0;
 
   const handleForceReview = async () => {
-    if (!window.confirm(`Only ${submissions.length} out of ${expectedSubmissions} players have submitted. Review anyway?`)) {
+    if ( ! window.confirm(`Only ${submissions.length} out of ${expectedSubmissions} players have submitted. Review anyway?`)) {
       return;
     }
     
     try {
       const response = await forceEarlyReview(gameData.gameId);
-      if (!response.success) {
+      if ( ! response.success) {
         if (showToast) {
           showToast(response.message || 'Failed to force early review');
         }
@@ -52,7 +52,7 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast })
   };
 
   const handleSkipRound = async () => {
-    if (!window.confirm('No submissions received. Skip to next round without a winner?')) {
+    if ( ! window.confirm('No submissions received. Skip to next round without a winner?')) {
       return;
     }
     
@@ -61,7 +61,7 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast })
     
     try {
       const response = await setNextCzar(gameData.gameId);
-      if (!response.success) {
+      if ( ! response.success) {
         setError(response.message || 'Failed to advance round');
       }
     } catch (err) {
@@ -97,7 +97,7 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast })
 
   const handlePickWinner = async () => {
     // Allow picking winner if all submitted OR forced early review
-    if (!allSubmitted && !forcedReview) return;
+    if ( ! allSubmitted && ! forcedReview) return;
 
     const currentSubmission = submissions[currentSubmissionIndex];
     
@@ -220,7 +220,7 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast })
         </div>
       )}
 
-      { ! allSubmitted && !forcedReview ? (
+      { ! allSubmitted && ! forcedReview ? (
         <>
           <div className="waiting-for-submissions">
             <p>Waiting for players to submit their cards...</p>

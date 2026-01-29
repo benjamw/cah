@@ -20,7 +20,7 @@ class Card
      * Get a card by ID
      *
      * @param int $cardId
-     * @return array|null Card data or null if not found
+     * @return array<string, mixed>|null Card data or null if not found
      */
     public static function getById(int $cardId): ?array
     {
@@ -37,8 +37,8 @@ class Card
     /**
      * Get multiple cards by IDs
      *
-     * @param array $cardIds Array of card IDs
-     * @return array Array of card data
+     * @param array<int> $cardIds Array of card IDs
+     * @return array<int, array<string, mixed>> Array of card data
      */
     public static function getByIds(array $cardIds): array
     {
@@ -71,8 +71,8 @@ class Card
      *   - Card with tags [3] -> Excluded (tag 3 not in selection)
      *
      * @param CardType $cardType Card type enum
-     * @param array $tagIds Array of tag IDs to filter by
-     * @return array Array of card IDs
+     * @param array<int> $tagIds Array of tag IDs to filter by
+     * @return array<int> Array of card IDs
      */
     public static function getActiveCardsByTypeAndTags(CardType $cardType, array $tagIds): array
     {
@@ -146,7 +146,7 @@ class Card
      * Excludes cards that are ONLY in inactive packs
      *
      * @param CardType $cardType Card type enum
-     * @return array Array of card data
+     * @return array<int, array<string, mixed>> Array of card data
      */
     public static function getActiveByType(CardType $cardType): array
     {
@@ -200,7 +200,7 @@ class Card
      * Update a card
      *
      * @param int $cardId
-     * @param array $data Associative array of fields to update
+     * @param array<string, mixed> $data Associative array of fields to update
      * @return int Number of affected rows
      */
     public static function update(int $cardId, array $data): int
@@ -253,6 +253,103 @@ class Card
      * @return int
      */
     /**
+     * Build tag-related joins and conditions for card queries
+     *
+     * @param ?int $tagId Tag ID to filter by
+     * @param bool $noTags Whether to filter for cards with no tags
+     * @param ?int $excludeTagId Tag ID to exclude
+     * @param array<mixed> &$params Parameters array to append to
+     * @return array{joins: array<string>, conditions: array<string>}
+     */
+    private static function buildTagFilters(
+        ?int $tagId,
+        bool $noTags,
+        ?int $excludeTagId,
+        array &$params
+    ): array {
+        $joins = [];
+        $conditions = [];
+
+        if ($tagId !== null) {
+            $joins[] = "INNER JOIN cards_to_tags ct ON c.card_id = ct.card_id";
+            $conditions[] = "ct.tag_id = ?";
+            $params[] = $tagId;
+        } elseif ($noTags) {
+            $joins[] = "LEFT JOIN cards_to_tags ct ON c.card_id = ct.card_id";
+            $conditions[] = "ct.card_id IS NULL";
+        } elseif ($excludeTagId !== null) {
+            $joins[] = "LEFT JOIN cards_to_tags ct_exclude " .
+                "ON c.card_id = ct_exclude.card_id AND ct_exclude.tag_id = ?";
+            $conditions[] = "ct_exclude.card_id IS NULL";
+            $params[] = $excludeTagId;
+        }
+
+        return ['joins' => $joins, 'conditions' => $conditions];
+    }
+
+    /**
+     * Build pack-related joins and conditions for card queries
+     *
+     * @param ?int $packId Pack ID to filter by
+     * @param bool $noPacks Whether to filter for cards with no packs
+     * @param ?bool $packActive Pack active status to filter by
+     * @param array<mixed> &$params Parameters array to append to
+     * @return array{joins: array<string>, conditions: array<string>}
+     */
+    private static function buildPackFilters(
+        ?int $packId,
+        bool $noPacks,
+        ?bool $packActive,
+        array &$params
+    ): array {
+        $joins = [];
+        $conditions = [];
+
+        if ($packId !== null) {
+            $joins[] = "INNER JOIN cards_to_packs cp ON c.card_id = cp.card_id";
+            $conditions[] = "cp.pack_id = ?";
+            $params[] = $packId;
+        } elseif ($noPacks) {
+            $joins[] = "LEFT JOIN cards_to_packs cp ON c.card_id = cp.card_id";
+            $conditions[] = "cp.card_id IS NULL";
+        } elseif ($packActive !== null) {
+            $joins[] = "INNER JOIN cards_to_packs cp ON c.card_id = cp.card_id";
+            $joins[] = "INNER JOIN packs p ON cp.pack_id = p.pack_id";
+            $conditions[] = "p.active = ?";
+            $params[] = $packActive;
+        }
+
+        return ['joins' => $joins, 'conditions' => $conditions];
+    }
+
+    /**
+     * Build search-related conditions for card queries
+     *
+     * @param ?string $searchQuery Search query string
+     * @param array<mixed> &$params Parameters array to append to
+     * @return array<string> Search conditions
+     */
+    private static function buildSearchConditions(?string $searchQuery, array &$params): array
+    {
+        if ($searchQuery === null) {
+            return [];
+        }
+
+        $searchWords = preg_split('/\s+/', $searchQuery, -1, PREG_SPLIT_NO_EMPTY);
+        if (empty($searchWords)) {
+            return [];
+        }
+
+        $searchConditions = [];
+        foreach ($searchWords as $word) {
+            $searchConditions[] = "c.copy LIKE ?";
+            $params[] = '%' . $word . '%';
+        }
+
+        return ["(" . implode(" OR ", $searchConditions) . ")"];
+    }
+
+    /**
      * List cards with filtering, pagination, and total count
      *
      * This method encapsulates the complex query logic for the admin card list
@@ -260,10 +357,15 @@ class Card
      * @param CardType|null $cardType Filter by card type enum, null for all
      * @param int|null $tagId Filter by tag ID, null for no tag filter
      * @param bool $noTags If true, only return cards with no tags
+     * @param ?int $excludeTagId Tag ID to exclude
+     * @param ?int $packId Pack ID to filter by
+     * @param bool $noPacks If true, only return cards with no packs
+     * @param ?bool $packActive Pack active status to filter by
+     * @param ?string $searchQuery Search query string
      * @param bool $active Filter by active status
      * @param int $limit Number of cards per page (0 for no limit)
      * @param int $offset Offset for pagination
-     * @return array{cards: array, total: int} Array with 'cards' and 'total' count
+     * @return array{cards: array<int, array<string, mixed>>, total: int}
      */
     public static function listWithFilters(
         ?CardType $cardType,
@@ -282,96 +384,53 @@ class Card
         $selectFields = "c.*";
         $orderBy = "c.card_id ASC";
         $params = [];
-        
+
         // Add relevance scoring for search query
         if ($searchQuery !== null) {
-            // Split search query into words
             $searchWords = preg_split('/\s+/', $searchQuery, -1, PREG_SPLIT_NO_EMPTY);
             $relevanceConditions = [];
-            
+
             foreach ($searchWords as $word) {
                 $relevanceConditions[] = "IF(c.copy LIKE ?, 1, 0)";
-                // Add params for relevance scoring FIRST
                 $params[] = '%' . $word . '%';
             }
-            
-            if (!empty($relevanceConditions)) {
+
+            if ( ! empty($relevanceConditions)) {
                 $selectFields = "c.*, (" . implode(" + ", $relevanceConditions) . ") as relevance";
                 $orderBy = "relevance DESC, c.card_id ASC";
             }
         }
-        
+
         $sql = "SELECT DISTINCT {$selectFields} FROM cards c";
-        $conditions = [];
-        $joins = [];
 
-        // Join with tags if filtering by tag
-        if ($tagId !== null) {
-            $joins[] = "INNER JOIN cards_to_tags ct ON c.card_id = ct.card_id";
-            $conditions[] = "ct.tag_id = ?";
-            $params[] = $tagId;
-        } elseif ($noTags) {
-            // Filter for cards with no tags using LEFT JOIN
-            $joins[] = "LEFT JOIN cards_to_tags ct ON c.card_id = ct.card_id";
-            $conditions[] = "ct.card_id IS NULL";
-        } elseif ($excludeTagId !== null) {
-            // Filter for cards that DON'T have this tag
-            $joins[] = "LEFT JOIN cards_to_tags ct_exclude ON c.card_id = ct_exclude.card_id AND ct_exclude.tag_id = ?";
-            $conditions[] = "ct_exclude.card_id IS NULL";
-            $params[] = $excludeTagId;
-        }
+        // Build filters using helper methods
+        $tagFilters = self::buildTagFilters($tagId, $noTags, $excludeTagId, $params);
+        $packFilters = self::buildPackFilters($packId, $noPacks, $packActive, $params);
 
-        // Join with packs if filtering by pack or pack status
-        if ($packId !== null || $noPacks || $packActive !== null) {
-            if ($packId !== null) {
-                $joins[] = "INNER JOIN cards_to_packs cp ON c.card_id = cp.card_id";
-                $conditions[] = "cp.pack_id = ?";
-                $params[] = $packId;
-            } elseif ($noPacks) {
-                // Filter for cards with no packs using LEFT JOIN
-                $joins[] = "LEFT JOIN cards_to_packs cp ON c.card_id = cp.card_id";
-                $conditions[] = "cp.card_id IS NULL";
-            } elseif ($packActive !== null) {
-                // Filter by pack active status
-                $joins[] = "INNER JOIN cards_to_packs cp ON c.card_id = cp.card_id";
-                $joins[] = "INNER JOIN packs p ON cp.pack_id = p.pack_id";
-                $conditions[] = "p.active = ?";
-                $params[] = $packActive;
-            }
-        }
+        $joins = array_merge($tagFilters['joins'], $packFilters['joins']);
+        $conditions = array_merge($tagFilters['conditions'], $packFilters['conditions']);
 
         // Add joins to SQL
-        if (!empty($joins)) {
+        if ( ! empty($joins)) {
             $sql .= " " . implode(" ", $joins);
         }
 
-        // Add filters
+        // Add card type filter
         if ($cardType !== null) {
             $conditions[] = "c.type = ?";
             $params[] = $cardType->value;
         }
 
+        // Add active filter
         $conditions[] = "c.active = ?";
         $params[] = $active;
-        
+
         // Add search conditions
-        if ($searchQuery !== null) {
-            $searchWords = preg_split('/\s+/', $searchQuery, -1, PREG_SPLIT_NO_EMPTY);
-            if (!empty($searchWords)) {
-                $searchConditions = [];
-                foreach ($searchWords as $word) {
-                    $searchConditions[] = "c.copy LIKE ?";
-                    $params[] = '%' . $word . '%';
-                }
-                // Match if ANY search word is found
-                $conditions[] = "(" . implode(" OR ", $searchConditions) . ")";
-            }
-        }
+        $searchConditions = self::buildSearchConditions($searchQuery, $params);
+        $conditions = array_merge($conditions, $searchConditions);
 
-        // Add WHERE clause (conditions array will always have at least one item)
+        // Add WHERE clause
         $sql .= " WHERE " . implode(' AND ', $conditions);
-
-        // Add ordering and pagination
         $sql .= " ORDER BY {$orderBy}";
 
         // Only add LIMIT if limit > 0 (0 means no limit)
@@ -383,42 +442,19 @@ class Card
 
         $cards = Database::fetchAll($sql, $params);
 
-        // Build count query (same filters but no LIMIT/OFFSET)
-        $countSql = "SELECT COUNT(DISTINCT c.card_id) as total FROM cards c";
+        // Build count query using same helper methods
         $countParams = [];
-        $countConditions = [];
-        $countJoins = [];
+        $countTagFilters = self::buildTagFilters($tagId, $noTags, $excludeTagId, $countParams);
+        $countPackFilters = self::buildPackFilters($packId, $noPacks, $packActive, $countParams);
 
-        if ($tagId !== null) {
-            $countJoins[] = "INNER JOIN cards_to_tags ct ON c.card_id = ct.card_id";
-            $countConditions[] = "ct.tag_id = ?";
-            $countParams[] = $tagId;
-        } elseif ($noTags) {
-            $countJoins[] = "LEFT JOIN cards_to_tags ct ON c.card_id = ct.card_id";
-            $countConditions[] = "ct.card_id IS NULL";
-        } elseif ($excludeTagId !== null) {
-            $countJoins[] = "LEFT JOIN cards_to_tags ct_exclude ON c.card_id = ct_exclude.card_id AND ct_exclude.tag_id = ?";
-            $countConditions[] = "ct_exclude.card_id IS NULL";
-            $countParams[] = $excludeTagId;
-        }
+        $countJoins = array_merge($countTagFilters['joins'], $countPackFilters['joins']);
+        $countConditions = array_merge(
+            $countTagFilters['conditions'],
+            $countPackFilters['conditions']
+        );
 
-        if ($packId !== null || $noPacks || $packActive !== null) {
-            if ($packId !== null) {
-                $countJoins[] = "INNER JOIN cards_to_packs cp ON c.card_id = cp.card_id";
-                $countConditions[] = "cp.pack_id = ?";
-                $countParams[] = $packId;
-            } elseif ($noPacks) {
-                $countJoins[] = "LEFT JOIN cards_to_packs cp ON c.card_id = cp.card_id";
-                $countConditions[] = "cp.card_id IS NULL";
-            } elseif ($packActive !== null) {
-                $countJoins[] = "INNER JOIN cards_to_packs cp ON c.card_id = cp.card_id";
-                $countJoins[] = "INNER JOIN packs p ON cp.pack_id = p.pack_id";
-                $countConditions[] = "p.active = ?";
-                $countParams[] = $packActive;
-            }
-        }
-
-        if (!empty($countJoins)) {
+        $countSql = "SELECT COUNT(DISTINCT c.card_id) as total FROM cards c";
+        if ( ! empty($countJoins)) {
             $countSql .= " " . implode(" ", $countJoins);
         }
 
@@ -429,21 +465,11 @@ class Card
 
         $countConditions[] = "c.active = ?";
         $countParams[] = $active;
-        
-        // Add search conditions to count query
-        if ($searchQuery !== null) {
-            $searchWords = preg_split('/\s+/', $searchQuery, -1, PREG_SPLIT_NO_EMPTY);
-            if (!empty($searchWords)) {
-                $searchConditions = [];
-                foreach ($searchWords as $word) {
-                    $searchConditions[] = "c.copy LIKE ?";
-                    $countParams[] = '%' . $word . '%';
-                }
-                $countConditions[] = "(" . implode(" OR ", $searchConditions) . ")";
-            }
-        }
 
-        // Add WHERE clause (countConditions array will always have at least one item)
+        // Add search conditions to count query
+        $countSearchConditions = self::buildSearchConditions($searchQuery, $countParams);
+        $countConditions = array_merge($countConditions, $countSearchConditions);
+
         $countSql .= " WHERE " . implode(' AND ', $countConditions);
 
         $countResult = Database::fetchOne($countSql, $countParams);

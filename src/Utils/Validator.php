@@ -13,6 +13,7 @@ use CAH\Constants\ValidationRules;
  */
 class Validator
 {
+    /** @var array<string, string> */
     private array $errors = [];
 
     /**
@@ -150,7 +151,7 @@ class Validator
      *
      * @param mixed $value
      * @param string $fieldName
-     * @param array $allowedValues
+     * @param array<int, mixed> $allowedValues
      * @return self
      */
     public function in(mixed $value, string $fieldName, array $allowedValues): self
@@ -190,7 +191,7 @@ class Validator
     /**
      * Get validation errors
      *
-     * @return array
+     * @return array<string, string>
      */
     public function getErrors(): array
     {
@@ -201,7 +202,7 @@ class Validator
      * Validate and sanitize a player name
      *
      * @param string $name Raw player name input
-     * @return array ['valid' => bool, 'name' => string, 'error' => string|null]
+     * @return array{valid: bool, name: string, error: string|null}
      */
     public static function validatePlayerName(string $name): array
     {
@@ -235,8 +236,14 @@ class Validator
         // - Bidirectional text override characters (U+202A-U+202E)
         // - Line/Paragraph separators (U+2028-U+2029)
         // - Byte Order Mark (U+FEFF)
-        if (preg_match('/[\x00-\x1F\x7F-\x9F\x{200B}-\x{200F}\x{202A}-\x{202E}\x{2028}\x{2029}\x{FEFF}]/u', $sanitized)) {
-            return ['valid' => false, 'name' => $sanitized, 'error' => 'Player name contains invalid characters'];
+        $invalidCharsPattern = '/[\x00-\x1F\x7F-\x9F\x{200B}-\x{200F}' .
+            '\x{202A}-\x{202E}\x{2028}\x{2029}\x{FEFF}]/u';
+        if (preg_match($invalidCharsPattern, $sanitized)) {
+            return [
+                'valid' => false,
+                'name' => $sanitized,
+                'error' => 'Player name contains invalid characters'
+            ];
         }
 
         return ['valid' => true, 'name' => $sanitized, 'error' => null];
@@ -245,8 +252,8 @@ class Validator
     /**
      * Validate and normalize an array of card IDs
      *
-     * @param array $cardIds Raw card IDs from input
-     * @return array ['valid' => bool, 'card_ids' => int[], 'error' => string|null]
+     * @param array<int, mixed> $cardIds Raw card IDs from input
+     * @return array{valid: bool, card_ids: array<int>, error: string|null}
      */
     public static function validateCardIds(array $cardIds): array
     {
@@ -275,7 +282,7 @@ class Validator
      * Validate and normalize a game code
      *
      * @param string $code Raw game code input
-     * @return array ['valid' => bool, 'code' => string, 'error' => string|null]
+     * @return array{valid: bool, code: string, error: string|null}
      */
     public static function validateGameCode(string $code): array
     {
@@ -297,7 +304,11 @@ class Validator
         // Allow only alphanumeric characters
         $pattern = '/^[A-Z0-9]{' . ValidationRules::GAME_CODE_LENGTH . '}$/';
         if ( ! preg_match($pattern, $normalized)) {
-            return ['valid' => false, 'code' => $normalized, 'error' => 'Game code must contain only letters and numbers'];
+            return [
+                'valid' => false,
+                'code' => $normalized,
+                'error' => 'Game code must contain only letters and numbers'
+            ];
         }
 
         return ['valid' => true, 'code' => $normalized, 'error' => null];
@@ -306,9 +317,9 @@ class Validator
     /**
      * Validate array has required keys
      *
-     * @param array $data Array to validate
-     * @param array $requiredKeys Required keys that must be present and non-empty
-     * @return array ['valid' => bool, 'error' => string|null]
+     * @param array<string, mixed> $data Array to validate
+     * @param array<int, string> $requiredKeys Required keys that must be present and non-empty
+     * @return array{valid: bool, error: string|null}
      */
     public static function validateArray(array $data, array $requiredKeys): array
     {
@@ -328,8 +339,8 @@ class Validator
     /**
      * Validate game settings
      *
-     * @param array $settings Game settings to validate
-     * @return array ['valid' => bool, 'error' => string|null]
+     * @param array<string, mixed> $settings Game settings to validate
+     * @return array{valid: bool, error: string|null}
      */
     public static function validateGameSettings(array $settings): array
     {

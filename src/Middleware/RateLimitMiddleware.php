@@ -22,9 +22,14 @@ use Slim\Psr7\Response;
  */
 class RateLimitMiddleware implements MiddlewareInterface
 {
+    /** @var array<string, int> */
     private readonly array $failedConfig;
+    /** @var array<string, int> */
     private readonly array $createConfig;
 
+    /**
+     * @param array<string, array<string, int>> $rateLimitConfig
+     */
     public function __construct(array $rateLimitConfig = [])
     {
         $this->failedConfig = array_merge([
@@ -87,7 +92,7 @@ class RateLimitMiddleware implements MiddlewareInterface
         if ($isApiEndpoint && $response->getStatusCode() === 404) {
             $hasValidSession = isset($_SESSION[\CAH\Constants\SessionKeys::PLAYER_ID])
                 && isset($_SESSION[\CAH\Constants\SessionKeys::GAME_ID]);
-            
+
             if ( ! $hasValidSession) {
                 RateLimitService::recordAttempt($clientIp, RateLimitAction::FAILED_GAME_CODE);
             }

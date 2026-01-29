@@ -339,12 +339,12 @@ async function syncCardTagsAndPacks(cardId, selectedTagIds, selectedPackIds) {
             : [];
         
         // Determine which tags to add and remove
-        const tagsToAdd = selectedTagIds.filter(id => !currentTagIds.includes(id));
-        const tagsToRemove = currentTagIds.filter(id => !selectedTagIds.includes(id));
+        const tagsToAdd = selectedTagIds.filter(id => ! currentTagIds.includes(id));
+        const tagsToRemove = currentTagIds.filter(id => ! selectedTagIds.includes(id));
         
         // Determine which packs to add and remove
-        const packsToAdd = selectedPackIds.filter(id => !currentPackIds.includes(id));
-        const packsToRemove = currentPackIds.filter(id => !selectedPackIds.includes(id));
+        const packsToAdd = selectedPackIds.filter(id => ! currentPackIds.includes(id));
+        const packsToRemove = currentPackIds.filter(id => ! selectedPackIds.includes(id));
         
         // Execute all changes in parallel
         const promises = [];

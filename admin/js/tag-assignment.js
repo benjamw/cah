@@ -83,7 +83,7 @@ function setupTagAssignmentListeners() {
     
     // Apply filters
     applyFiltersBtn.addEventListener('click', () => {
-        if (!currentTagId) {
+        if ( ! currentTagId) {
             alert('Please select a tag first');
             return;
         }
@@ -118,7 +118,7 @@ function setupTagAssignmentListeners() {
 }
 
 async function loadTagAssignment() {
-    if (!currentTagId) return;
+    if ( ! currentTagId) return;
     
     const cardsContainer = document.getElementById('tag-assignment-cards');
     cardsContainer.innerHTML = '<div class="info-message">Loading cards...</div>';
@@ -146,7 +146,7 @@ async function loadTagAssignment() {
         }
 
         const response = await apiRequest(`/admin/cards/list?${params}`);
-        if (!response.success) {
+        if ( ! response.success) {
             cardsContainer.innerHTML = '<div class="error-message">Failed to load cards</div>';
             return;
         }
@@ -228,7 +228,7 @@ export async function toggleCardTag(cardId, tagId, add) {
             // Revert checkbox
             const checkbox = document.querySelector(`.tag-assignment-card[data-card-id="${cardId}"] input[type="checkbox"]`);
             if (checkbox) {
-                checkbox.checked = !add;
+                checkbox.checked = ! add;
             }
         }
     } catch (error) {
@@ -236,8 +236,7 @@ export async function toggleCardTag(cardId, tagId, add) {
         // Revert checkbox
         const checkbox = document.querySelector(`.tag-assignment-card[data-card-id="${cardId}"] input[type="checkbox"]`);
         if (checkbox) {
-            checkbox.checked = !add;
+            checkbox.checked = ! add;
         }
     }
 }
-

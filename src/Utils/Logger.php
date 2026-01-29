@@ -48,6 +48,9 @@ class Logger
 
     /**
      * Log a warning message
+     *
+     * @param string $message
+     * @param array<string, mixed> $context
      */
     public static function warning(string $message, array $context = []): void
     {
@@ -56,6 +59,9 @@ class Logger
 
     /**
      * Log an error message
+     *
+     * @param string $message
+     * @param array<string, mixed> $context
      */
     public static function error(string $message, array $context = []): void
     {
@@ -64,6 +70,9 @@ class Logger
 
     /**
      * Log an info message
+     *
+     * @param string $message
+     * @param array<string, mixed> $context
      */
     public static function info(string $message, array $context = []): void
     {
@@ -72,6 +81,9 @@ class Logger
 
     /**
      * Log a debug message
+     *
+     * @param string $message
+     * @param array<string, mixed> $context
      */
     public static function debug(string $message, array $context = []): void
     {

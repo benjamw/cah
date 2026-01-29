@@ -19,57 +19,90 @@ class GameViewService
      * - Current prompt card
      * - Submissions
      *
-     * @param array $playerData Game player data
-     * @return array Player data with hydrated cards
+     * @param array<string, mixed> $playerData Game player data
+     * @return array<string, mixed> Player data with hydrated cards
      */
     public static function hydrateCards(array $playerData): array
     {
-        // Collect all card IDs we need to fetch
+        $cardIds = self::collectCardIds($playerData);
+        $cardMap = self::buildCardMap($cardIds, $playerData);
+
+        $playerData = self::hydratePlayerHands($playerData, $cardMap);
+        $playerData = self::hydratePromptCard($playerData, $cardMap);
+        $playerData = self::hydrateSubmissions($playerData, $cardMap);
+
+        return $playerData;
+    }
+
+    /**
+     * Collect all card IDs from player data
+     *
+     * @param array<string, mixed> $playerData Game player data
+     * @return array<int> Unique card IDs
+     */
+    private static function collectCardIds(array $playerData): array
+    {
         $cardIds = [];
 
-        // Player hands
         foreach ($playerData['players'] as $player) {
-            if (!empty($player['hand'])) {
+            if ( ! empty($player['hand'])) {
                 $cardIds = array_merge($cardIds, $player['hand']);
             }
         }
 
-        // Current prompt card
-        if (!empty($playerData['current_prompt_card'])) {
+        if ( ! empty($playerData['current_prompt_card'])) {
             $cardIds[] = $playerData['current_prompt_card'];
         }
 
-        // Submissions
-        if (!empty($playerData['submissions'])) {
+        if ( ! empty($playerData['submissions'])) {
             foreach ($playerData['submissions'] as $submission) {
-                if (!empty($submission['cards'])) {
+                if ( ! empty($submission['cards'])) {
                     $cardIds = array_merge($cardIds, $submission['cards']);
                 }
             }
         }
 
-        // Fetch all cards in one query
-        $cardIds = array_unique($cardIds);
+        return array_unique($cardIds);
+    }
+
+    /**
+     * Build a card map from card IDs
+     *
+     * @param array<int> $cardIds Card IDs to fetch
+     * @param array<string, mixed> $playerData Game player data for logging
+     * @return array<int, array<string, mixed>> Cards indexed by ID
+     */
+    private static function buildCardMap(array $cardIds, array $playerData): array
+    {
         $cards = Card::getByIds($cardIds);
 
-        // Index cards by ID for quick lookup
         $cardMap = [];
         foreach ($cards as $card) {
             $cardMap[$card['card_id']] = $card;
         }
 
-        // Check for missing cards and log warnings
         $missingCardIds = array_diff($cardIds, array_keys($cardMap));
-        if (!empty($missingCardIds)) {
+        if ( ! empty($missingCardIds)) {
             \CAH\Utils\Logger::warning('Missing cards during hydration', [
                 'missing_card_ids' => $missingCardIds,
                 'game_state' => $playerData['state'] ?? 'unknown',
             ]);
         }
 
-        // Hydrate player hands
+        return $cardMap;
+    }
+
+    /**
+     * Hydrate player hands with card data
+     *
+     * @param array<string, mixed> $playerData Game player data
+     * @param array<int, array<string, mixed>> $cardMap Cards indexed by ID
+     * @return array<string, mixed> Player data with hydrated hands
+     */
+    private static function hydratePlayerHands(array $playerData, array $cardMap): array
+    {
         foreach ($playerData['players'] as &$player) {
-            if (!empty($player['hand'])) {
+            if ( ! empty($player['hand'])) {
                 $player['hand'] = array_map(
                     fn($id) => $cardMap[$id] ?? ['card_id' => $id, 'copy' => 'Unknown'],
                     $player['hand']
@@ -78,17 +111,39 @@ class GameViewService
         }
         unset($player);
 
-        // Hydrate current prompt card
-        if (!empty($playerData['current_prompt_card'])) {
+        return $playerData;
+    }
+
+    /**
+     * Hydrate current prompt card with card data
+     *
+     * @param array<string, mixed> $playerData Game player data
+     * @param array<int, array<string, mixed>> $cardMap Cards indexed by ID
+     * @return array<string, mixed> Player data with hydrated prompt card
+     */
+    private static function hydratePromptCard(array $playerData, array $cardMap): array
+    {
+        if ( ! empty($playerData['current_prompt_card'])) {
             $promptCardId = $playerData['current_prompt_card'];
             $playerData['current_prompt_card'] = $cardMap[$promptCardId]
                 ?? ['card_id' => $promptCardId, 'copy' => 'Unknown'];
         }
 
-        // Hydrate submissions
-        if (!empty($playerData['submissions'])) {
+        return $playerData;
+    }
+
+    /**
+     * Hydrate submissions with card data
+     *
+     * @param array<string, mixed> $playerData Game player data
+     * @param array<int, array<string, mixed>> $cardMap Cards indexed by ID
+     * @return array<string, mixed> Player data with hydrated submissions
+     */
+    private static function hydrateSubmissions(array $playerData, array $cardMap): array
+    {
+        if ( ! empty($playerData['submissions'])) {
             foreach ($playerData['submissions'] as &$submission) {
-                if (!empty($submission['cards'])) {
+                if ( ! empty($submission['cards'])) {
                     $submission['cards'] = array_map(
                         fn($id) => $cardMap[$id] ?? ['card_id' => $id, 'copy' => 'Unknown'],
                         $submission['cards']
@@ -105,10 +160,10 @@ class GameViewService
      * Filters out all other player's hands except the current player's
      * Also filters submissions until all players have submitted (Czar should not see partial submissions)
      *
-     * @param array $playerData Game player data
+     * @param array<string, mixed> $playerData Game player data
      * @param string $playerId Game player UUID
      *
-     * @return array Player data with filtered cards
+     * @return array<string, mixed> Player data with filtered cards
      */
     public static function filterHands(array $playerData, string $playerId): array
     {
@@ -122,7 +177,7 @@ class GameViewService
         // Hide submissions from everyone until all players have submitted (or forced early review)
         if (isset($playerData['submissions'])) {
             $isCzar = $playerData['current_czar_id'] === $playerId;
-            $forcedReview = !empty($playerData['forced_early_review']);
+            $forcedReview = ! empty($playerData['forced_early_review']);
 
             // Count expected submissions (exclude czar, Rando auto-submits, exclude paused players)
             $activePlayers = array_filter(
@@ -134,7 +189,7 @@ class GameViewService
             $actualSubmissions = count($playerData['submissions']);
 
             // Only show submissions if all players have submitted OR czar forced early review
-            if ($actualSubmissions < $expectedSubmissions && !$forcedReview) {
+            if ($actualSubmissions < $expectedSubmissions && ! $forcedReview) {
                 // For czar: show count but hide content
                 if ($isCzar) {
                     $playerData['submissions'] = array_map(
@@ -168,14 +223,14 @@ class GameViewService
     /**
      * Add a toast notification to the game state
      *
-     * @param array $playerData Game player data
+     * @param array<string, mixed> $playerData Game player data
      * @param string $message Toast message
      * @param string|null $icon Optional emoji/icon
-     * @return array Updated player data
+     * @return array<string, mixed> Updated player data
      */
     public static function addToast(array &$playerData, string $message, ?string $icon = null): array
     {
-        if (!isset($playerData['toasts'])) {
+        if ( ! isset($playerData['toasts'])) {
             $playerData['toasts'] = [];
         }
 
@@ -200,12 +255,12 @@ class GameViewService
     /**
      * Remove toasts older than 30 seconds
      *
-     * @param array $playerData Game player data
-     * @return array Updated player data
+     * @param array<string, mixed> $playerData Game player data
+     * @return array<string, mixed> Updated player data
      */
     public static function cleanExpiredToasts(array $playerData): array
     {
-        if (!isset($playerData['toasts']) || empty($playerData['toasts'])) {
+        if ( ! isset($playerData['toasts']) || empty($playerData['toasts'])) {
             return $playerData;
         }
 
@@ -214,7 +269,7 @@ class GameViewService
 
         $playerData['toasts'] = array_values(array_filter(
             $playerData['toasts'],
-            fn($toast): bool => ($now - $toast['created_at']) < $maxAge
+            fn($toast): bool => ( $now - $toast['created_at'] ) < $maxAge
         ));
 
         return $playerData;

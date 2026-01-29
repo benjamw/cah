@@ -18,7 +18,7 @@ class Pack
      * Get a pack by ID
      *
      * @param int $packId
-     * @return array|null Pack data or null if not found
+     * @return array<string, mixed>|null Pack data or null if not found
      */
     public static function find(int $packId): ?array
     {
@@ -35,8 +35,8 @@ class Pack
     /**
      * Get multiple packs by IDs
      *
-     * @param array $packIds Array of pack IDs
-     * @return array Array of pack data
+     * @param array<int> $packIds Array of pack IDs
+     * @return array<int, array<string, mixed>> Array of pack data
      */
     public static function findMany(array $packIds): array
     {
@@ -57,7 +57,7 @@ class Pack
     /**
      * Get all packs
      *
-     * @return array Array of pack data
+     * @return array<int, array<string, mixed>> Array of pack data
      */
     public static function getAll(): array
     {
@@ -72,7 +72,7 @@ class Pack
     /**
      * Get all active packs
      *
-     * @return array Array of pack data
+     * @return array<int, array<string, mixed>> Array of pack data
      */
     public static function getAllActive(): array
     {
@@ -90,7 +90,7 @@ class Pack
      * Only counts active cards
      *
      * @param bool|null $activeOnly If true, only active packs. If false, only inactive. If null, all packs.
-     * @return array Array of pack data with card counts
+     * @return array<int, array<string, mixed>> Array of pack data with card counts
      */
     public static function getAllWithCounts(?bool $activeOnly = null): array
     {
@@ -105,13 +105,16 @@ class Pack
 
         $responseType = CardType::RESPONSE->value;
         $promptType = CardType::PROMPT->value;
-        
+
         $sql = "
             SELECT
                 p.*,
-                COUNT(DISTINCT CASE WHEN c.type = '{$responseType}' AND c.active = 1 THEN c.card_id END) as response_card_count,
-                COUNT(DISTINCT CASE WHEN c.type = '{$promptType}' AND c.active = 1 THEN c.card_id END) as prompt_card_count,
-                COUNT(DISTINCT CASE WHEN c.active = 1 THEN c.card_id END) as total_card_count
+                COUNT(DISTINCT CASE WHEN c.type = '{$responseType}' AND c.active = 1
+                    THEN c.card_id END) as response_card_count,
+                COUNT(DISTINCT CASE WHEN c.type = '{$promptType}' AND c.active = 1
+                    THEN c.card_id END) as prompt_card_count,
+                COUNT(DISTINCT CASE WHEN c.active = 1
+                    THEN c.card_id END) as total_card_count
             FROM packs p
             LEFT JOIN cards_to_packs cp ON p.pack_id = cp.pack_id
             LEFT JOIN cards c ON cp.card_id = c.card_id
@@ -182,7 +185,7 @@ class Pack
      * Update a pack
      *
      * @param int $packId
-     * @param array $data Associative array of fields to update
+     * @param array<string, mixed> $data Associative array of fields to update
      * @return int Number of affected rows
      */
     public static function update(int $packId, array $data): int
@@ -232,7 +235,7 @@ class Pack
     /**
      * Bulk toggle pack active status (idempotent)
      *
-     * @param array $packIds Array of pack IDs
+     * @param array<int> $packIds Array of pack IDs
      * @param bool $active Active status to set
      * @return int Number of affected rows
      */
@@ -243,7 +246,7 @@ class Pack
         }
 
         // Ensure all IDs are integers
-        $packIds = array_map('intval', $packIds);
+        $packIds = array_map(intval(...), $packIds);
         $packIds = array_unique($packIds);
 
         $placeholders = implode(',', array_fill(0, count($packIds), '?'));
@@ -301,7 +304,7 @@ class Pack
      * Add multiple packs to a single card
      *
      * @param int $cardId
-     * @param array $packIds Array of pack IDs
+     * @param array<int> $packIds Array of pack IDs
      * @return int Number of packs successfully added
      */
     public static function addMultiplePacksToCard(int $cardId, array $packIds): int
@@ -323,7 +326,7 @@ class Pack
     /**
      * Add a single pack to multiple cards (bulk operation)
      *
-     * @param array $cardIds Array of card IDs
+     * @param array<int> $cardIds Array of card IDs
      * @param int $packId
      * @return int Number of cards successfully added to pack
      */
@@ -387,7 +390,7 @@ class Pack
      * Get all packs for a card
      *
      * @param int $cardId
-     * @return array Array of pack data
+     * @return array<int, array<string, mixed>> Array of pack data
      */
     public static function getCardPacks(int $cardId): array
     {
@@ -406,7 +409,7 @@ class Pack
      * Get packs for multiple cards (batch fetch to avoid N+1 queries)
      *
      * @param array<int> $cardIds Array of card IDs
-     * @return array<int, array> Associative array mapping card_id => array of packs
+     * @return array<int, array<int, array<string, mixed>>> Associative array mapping card_id => array of packs
      */
     public static function getCardPacksForMultipleCards(array $cardIds): array
     {

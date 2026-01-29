@@ -131,7 +131,7 @@ class GameController
 
             // Hydrate card IDs with full card data
             $gameState = GameService::hydrateCards($gameState);
-            
+
             // Filter out other players' hands
             $gameState = GameService::filterHands($gameState, $playerId);
 
@@ -183,7 +183,7 @@ class GameController
             // Clean up expired toasts before hydrating and returning
             $playerData = $game['player_data'];
             $playerData = GameService::cleanExpiredToasts($playerData);
-            
+
             // Hydrate card IDs with full card data
             $playerData = GameService::hydrateCards($playerData);
             $playerData = GameService::filterHands($playerData, $request->getAttributes()['player_id']);
@@ -193,7 +193,8 @@ class GameController
             $promptCardsRemaining = count($game['draw_pile']['prompt'] ?? []);
 
             // Add Last-Modified header
-            $response = $response->withHeader('Last-Modified', gmdate('D, d M Y H:i:s', strtotime((string) $game['updated_at'])) . ' GMT');
+            $lastModified = gmdate('D, d M Y H:i:s', strtotime((string) $game['updated_at'])) . ' GMT';
+            $response = $response->withHeader('Last-Modified', $lastModified);
 
             return JsonResponse::success($response, [
                 'game_id' => $game['game_id'],
@@ -229,7 +230,7 @@ class GameController
 
             // Hydrate card IDs with full card data
             $gameState = GameService::hydrateCards($gameState);
-            
+
             // Filter out other players' hands
             $gameState = GameService::filterHands($gameState, $playerId);
 
@@ -259,7 +260,7 @@ class GameController
 
             // Hydrate card IDs with full card data
             $gameState = GameService::hydrateCards($gameState);
-            
+
             // Filter out other players' hands
             $gameState = GameService::filterHands($gameState, $playerId);
 
@@ -294,7 +295,7 @@ class GameController
 
             // Hydrate card IDs with full card data
             $gameState = GameService::hydrateCards($gameState);
-            
+
             // Filter out other players' hands
             $gameState = GameService::filterHands($gameState, $playerId);
 
@@ -326,7 +327,7 @@ class GameController
 
             // Hydrate card IDs with full card data
             $gameState = GameService::hydrateCards($gameState);
-            
+
             // Filter out other players' hands
             $gameState = GameService::filterHands($gameState, $playerId);
 
@@ -358,7 +359,7 @@ class GameController
 
             // Hydrate card IDs with full card data
             $gameState = GameService::hydrateCards($gameState);
-            
+
             // Filter out other players' hands
             $gameState = GameService::filterHands($gameState, $playerId);
 
@@ -471,7 +472,7 @@ class GameController
 
             // Hydrate card IDs with full card data
             $gameState = GameService::hydrateCards($gameState);
-            
+
             // Filter out other players' hands
             $gameState = GameService::filterHands($gameState, $playerId);
 
@@ -491,6 +492,8 @@ class GameController
 
     /**
      * View game details (public endpoint)
+     *
+     * @param array<string, string> $args Route arguments
      */
     public function viewGame(Request $request, Response $response, array $args): Response
     {

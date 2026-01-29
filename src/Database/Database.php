@@ -20,12 +20,13 @@ use CAH\Exceptions\DatabaseException;
 class Database
 {
     private static ?PDO $connection = null;
+    /** @var array<string, mixed> */
     private static array $config = [];
 
     /**
      * Initialize database configuration
      *
-     * @param array $config Database configuration array
+     * @param array<string, mixed> $config Database configuration array
      */
     public static function init(array $config): void
     {
@@ -92,7 +93,7 @@ class Database
      * Execute a query and return the statement
      *
      * @param string $sql SQL query
-     * @param array $params Query parameters
+     * @param array<int|string, mixed> $params Query parameters
      * @return \PDOStatement
      */
     public static function query(string $sql, array $params = []): \PDOStatement
@@ -107,8 +108,8 @@ class Database
      * Fetch a single row
      *
      * @param string $sql SQL query
-     * @param array $params Query parameters
-     * @return array|false
+     * @param array<int|string, mixed> $params Query parameters
+     * @return array<string, mixed>|false
      */
     public static function fetchOne(string $sql, array $params = []): array|false
     {
@@ -120,8 +121,8 @@ class Database
      * Fetch all rows
      *
      * @param string $sql SQL query
-     * @param array $params Query parameters
-     * @return array
+     * @param array<int|string, mixed> $params Query parameters
+     * @return array<int, array<string, mixed>>
      */
     public static function fetchAll(string $sql, array $params = []): array
     {
@@ -133,7 +134,7 @@ class Database
      * Execute an INSERT/UPDATE/DELETE query
      *
      * @param string $sql SQL query
-     * @param array $params Query parameters
+     * @param array<int|string, mixed> $params Query parameters
      * @return int Number of affected rows
      */
     public static function execute(string $sql, array $params = []): int

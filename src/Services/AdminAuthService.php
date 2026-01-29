@@ -19,7 +19,7 @@ class AdminAuthService
      * @param string $password Password to verify
      * @param string $ipAddress Client IP address
      * @param string|null $userAgent Client user agent
-     * @return array|null ['token' => string, 'expires_at' => string] or null on failure
+     * @return array<string, string>|null ['token' => string, 'expires_at' => string] or null on failure
      */
     public static function login(string $password, string $ipAddress, ?string $userAgent = null): ?array
     {
@@ -66,11 +66,13 @@ class AdminAuthService
      */
     public static function verifyToken(string $token): bool
     {
-        $sql = "SELECT session_id, expires_at 
-                FROM admin_sessions 
-                WHERE token = :token 
-                AND expires_at > NOW()
-                LIMIT 1";
+        $sql = "
+            SELECT session_id, expires_at 
+            FROM admin_sessions 
+            WHERE token = :token 
+            AND expires_at > NOW()
+            LIMIT 1
+        ";
 
         $session = Database::fetchOne($sql, ['token' => $token]);
 
@@ -105,14 +107,16 @@ class AdminAuthService
     /**
      * Get all active sessions (for debugging/admin panel)
      *
-     * @return array
+     * @return array<int, array<string, mixed>>
      */
     public static function getActiveSessions(): array
     {
-        $sql = "SELECT session_id, ip_address, user_agent, created_at, expires_at 
-                FROM admin_sessions 
-                WHERE expires_at > NOW()
-                ORDER BY created_at DESC";
+        $sql = "
+            SELECT session_id, ip_address, user_agent, created_at, expires_at 
+            FROM admin_sessions 
+            WHERE expires_at > NOW()
+            ORDER BY created_at DESC
+        ";
 
         return Database::fetchAll($sql);
     }

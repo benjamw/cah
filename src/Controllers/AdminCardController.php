@@ -23,6 +23,88 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 class AdminCardController
 {
     /**
+     * Parse tag filter parameters from query params
+     *
+     * @param array<string, mixed> $queryParams Query parameters
+     * @return array{tag_id: ?int, no_tags: bool, exclude_tag_id: ?int}
+     */
+    private function parseTagFilters(array $queryParams): array
+    {
+        $tagIdParam = $queryParams['tag_id'] ?? null;
+        $excludeTagIdParam = $queryParams['exclude_tag_id'] ?? null;
+
+        $tagId = null;
+        $noTags = false;
+        $excludeTagId = null;
+
+        if ($tagIdParam !== null) {
+            if ($tagIdParam === 'none' || $tagIdParam === '0') {
+                $noTags = true;
+            } else {
+                $tagId = (int) $tagIdParam;
+            }
+        }
+
+        if ($excludeTagIdParam !== null) {
+            $excludeTagId = (int) $excludeTagIdParam;
+        }
+
+        return ['tag_id' => $tagId, 'no_tags' => $noTags, 'exclude_tag_id' => $excludeTagId];
+    }
+
+    /**
+     * Parse pack filter parameters from query params
+     *
+     * @param array<string, mixed> $queryParams Query parameters
+     * @return array{pack_id: ?int, no_packs: bool, pack_active: ?bool}
+     */
+    private function parsePackFilters(array $queryParams): array
+    {
+        $packIdParam = $queryParams['pack_id'] ?? null;
+        $packActiveParam = $queryParams['pack_active'] ?? null;
+
+        $packId = null;
+        $noPacks = false;
+        $packActive = null;
+
+        if ($packIdParam !== null) {
+            if ($packIdParam === 'none' || $packIdParam === '0') {
+                $noPacks = true;
+            } else {
+                $packId = (int) $packIdParam;
+            }
+        }
+
+        if ($packActiveParam !== null && $packActiveParam !== '') {
+            $packActive = (bool) ( (int) $packActiveParam );
+        }
+
+        return ['pack_id' => $packId, 'no_packs' => $noPacks, 'pack_active' => $packActive];
+    }
+
+    /**
+     * Parse and validate card type from query params
+     *
+     * @param array<string, mixed> $queryParams Query parameters
+     * @return ?CardType Card type enum or null
+     * @throws ValidationException If card type is invalid
+     */
+    private function parseCardType(array $queryParams): ?CardType
+    {
+        $cardType = $queryParams['type'] ?? null;
+        if ($cardType === null) {
+            return null;
+        }
+
+        $cardTypeEnum = CardType::tryFrom($cardType);
+        if ($cardTypeEnum === null) {
+            throw new ValidationException('Invalid card type. Must be "response" or "prompt"');
+        }
+
+        return $cardTypeEnum;
+    }
+
+    /**
      * List cards with filtering and pagination
      */
     public function listCards(Request $request, Response $response): Response
@@ -30,49 +112,13 @@ class AdminCardController
         try {
             $queryParams = $request->getQueryParams();
 
-            $cardType = $queryParams['type'] ?? null;
-            $tagIdParam = $queryParams['tag_id'] ?? null;
-            $excludeTagIdParam = $queryParams['exclude_tag_id'] ?? null;
-            $packIdParam = $queryParams['pack_id'] ?? null;
-            $packActiveParam = $queryParams['pack_active'] ?? null;
+            // Parse filter parameters
+            $tagFilters = $this->parseTagFilters($queryParams);
+            $packFilters = $this->parsePackFilters($queryParams);
+            $cardTypeEnum = $this->parseCardType($queryParams);
+
+            // Parse search query
             $searchQuery = $queryParams['search'] ?? null;
-            
-            $tagId = null;
-            $noTags = false;
-            $excludeTagId = null;
-            $packId = null;
-            $noPacks = false;
-            $packActive = null;
-
-            if ($tagIdParam !== null) {
-                if ($tagIdParam === 'none' || $tagIdParam === '0') {
-                    $noTags = true;
-                } else {
-                    $tagId = (int) $tagIdParam;
-                }
-            }
-            
-            if ($excludeTagIdParam !== null) {
-                $excludeTagId = (int) $excludeTagIdParam;
-            }
-
-            if ($packIdParam !== null) {
-                if ($packIdParam === 'none' || $packIdParam === '0') {
-                    $noPacks = true;
-                } else {
-                    $packId = (int) $packIdParam;
-                }
-            }
-
-            if ($packActiveParam !== null && $packActiveParam !== '') {
-                $packActive = (bool) ( (int) $packActiveParam );
-            }
-
-            $active = isset($queryParams['active']) ? (bool) ( (int) $queryParams['active'] ) : true;
-            $limit = isset($queryParams['limit']) ? (int) $queryParams['limit'] : 100;
-            $offset = isset($queryParams['offset']) ? (int) $queryParams['offset'] : 0;
-            
-            // Trim and validate search query
             if ($searchQuery !== null) {
                 $searchQuery = trim($searchQuery);
                 if ($searchQuery === '') {
@@ -80,19 +126,15 @@ class AdminCardController
                 }
             }
 
-            // Validate and convert card type to enum
-            $cardTypeEnum = null;
-            if ($cardType !== null) {
-                $cardTypeEnum = CardType::tryFrom($cardType);
-                if ($cardTypeEnum === null) {
-                    throw new ValidationException('Invalid card type. Must be "response" or "prompt"');
-                }
-            }
+            // Parse pagination parameters
+            $active = isset($queryParams['active']) ? (bool) ( (int) $queryParams['active'] ) : true;
+            $limit = isset($queryParams['limit']) ? (int) $queryParams['limit'] : 100;
+            $offset = isset($queryParams['offset']) ? (int) $queryParams['offset'] : 0;
 
+            // Validate pagination
             if ($limit < 0 || $limit > 10000) {
                 throw new ValidationException('Limit must be between 0 and 10000 (0 = no limit)');
             }
-
             if ($offset < 0) {
                 throw new ValidationException('Offset must be non-negative');
             }
@@ -100,12 +142,12 @@ class AdminCardController
             // Use Card model to handle the complex query logic
             $result = Card::listWithFilters(
                 $cardTypeEnum,
-                $tagId,
-                $noTags,
-                $excludeTagId,
-                $packId,
-                $noPacks,
-                $packActive,
+                $tagFilters['tag_id'],
+                $tagFilters['no_tags'],
+                $tagFilters['exclude_tag_id'],
+                $packFilters['pack_id'],
+                $packFilters['no_packs'],
+                $packFilters['pack_active'],
                 $searchQuery,
                 $active,
                 $limit,
@@ -181,6 +223,8 @@ class AdminCardController
 
     /**
      * Edit a card
+     *
+     * @param array<string, string> $args Route arguments
      */
     public function editCard(Request $request, Response $response, array $args): Response
     {
@@ -220,6 +264,8 @@ class AdminCardController
 
     /**
      * Delete a card
+     *
+     * @param array<string, string> $args Route arguments
      */
     public function deleteCard(Request $request, Response $response, array $args): Response
     {
@@ -244,6 +290,8 @@ class AdminCardController
 
     /**
      * Get all tags for a specific card
+     *
+     * @param array<string, string> $args Route arguments
      */
     public function getCardTags(Request $request, Response $response, array $args): Response
     {
@@ -268,6 +316,8 @@ class AdminCardController
 
     /**
      * Add a tag to a card
+     *
+     * @param array<string, string> $args Route arguments
      */
     public function addCardTag(Request $request, Response $response, array $args): Response
     {
@@ -300,6 +350,8 @@ class AdminCardController
 
     /**
      * Remove a tag from a card
+     *
+     * @param array<string, string> $args Route arguments
      */
     public function removeCardTag(Request $request, Response $response, array $args): Response
     {
@@ -320,6 +372,8 @@ class AdminCardController
 
     /**
      * Get all packs for a specific card
+     *
+     * @param array<string, string> $args Route arguments
      */
     public function getCardPacks(Request $request, Response $response, array $args): Response
     {
@@ -344,6 +398,8 @@ class AdminCardController
 
     /**
      * Add a pack to a card
+     *
+     * @param array<string, string> $args Route arguments
      */
     public function addCardPack(Request $request, Response $response, array $args): Response
     {
@@ -376,6 +432,8 @@ class AdminCardController
 
     /**
      * Remove a pack from a card
+     *
+     * @param array<string, string> $args Route arguments
      */
     public function removeCardPack(Request $request, Response $response, array $args): Response
     {

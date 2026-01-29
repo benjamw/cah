@@ -23,7 +23,7 @@ use Slim\Psr7\Response;
 class CsrfMiddleware implements MiddlewareInterface
 {
     /**
-     * @param array $exemptPaths Paths that don't require CSRF protection (e.g., ['/api/admin/login'])
+     * @param array<int, string> $exemptPaths Paths that don't require CSRF protection (e.g., ['/api/admin/login'])
      */
     public function __construct(private readonly array $exemptPaths = [])
     {

@@ -19,8 +19,8 @@ class RateLimitService
      *
      * @param string $ipAddress Client IP address
      * @param string $action Action being performed (e.g., 'create_game', 'join_game')
-     * @param array $config Rate limit config ['max_attempts', 'window_minutes', 'lockout_minutes']
-     * @return array ['allowed' => bool, 'retry_after' => int|null]
+     * @param array<string, int> $config Rate limit config ['max_attempts', 'window_minutes', 'lockout_minutes']
+     * @return array{allowed: bool, retry_after: int|null}
      */
     public static function check(string $ipAddress, string $action, array $config): array
     {
@@ -39,7 +39,7 @@ class RateLimitService
         if ($record) {
             // Check if currently locked out
             if ($record['locked_until'] !== null) {
-                $lockedUntil = strtotime($record['locked_until']);
+                $lockedUntil = strtotime((string) $record['locked_until']);
                 if ($lockedUntil > time()) {
                     return [
                         'allowed' => false,

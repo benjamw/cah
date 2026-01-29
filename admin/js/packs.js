@@ -265,7 +265,7 @@ async function bulkTogglePacks(active) {
     const packIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.dataset.packId));
     const action = active ? 'activate' : 'deactivate';
     
-    if (!confirm(`Are you sure you want to ${action} ${packIds.length} pack(s)?`)) {
+    if ( ! confirm(`Are you sure you want to ${action} ${packIds.length} pack(s)?`)) {
         return;
     }
     

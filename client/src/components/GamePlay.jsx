@@ -67,7 +67,7 @@ function GamePlay({ gameData, onLeaveGame }) {
     }
     pollIntervalRef.current = setInterval(fetchFn, pollIntervalTimeRef.current);
     
-    console.log(`Polling slowed to ${pollIntervalTimeRef.current / 1000}s due to errors`);
+    // Polling slowed due to errors - interval is now pollIntervalTimeRef.current
   }, []);
 
   const stopPolling = useCallback(() => {
@@ -126,7 +126,7 @@ function GamePlay({ gameData, onLeaveGame }) {
         // Handle toasts from backend
         if (transformedState.toasts && Array.isArray(transformedState.toasts)) {
           const seenToasts = seenToastsRef.current;
-          const newToasts = transformedState.toasts.filter(toast => !seenToasts.includes(toast.id));
+          const newToasts = transformedState.toasts.filter(toast => ! seenToasts.includes(toast.id));
           
           if (newToasts.length > 0) {
             // Show the first new toast (FIFO)
