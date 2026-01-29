@@ -5,9 +5,9 @@
 
 import { getAuthToken } from './api.js';
 import { initAuth, setupAuthListeners, showLoginScreen, showAdminScreen, isAuthenticated } from './auth.js';
-import { initCards, setupCardsListeners, loadCards, loadTagsFilter, editCard, deleteCard } from './cards.js';
+import { initCards, setupCardsListeners, loadCards, loadTagsFilter, loadPacksFilter, editCard, deleteCard } from './cards.js';
 import { initTags, setupTagsListeners, loadTags, editTag, toggleTag, deleteTag } from './tags.js';
-import { initPacks, setupPacksListeners, loadPacks, editPack, togglePack, deletePack } from './packs.js';
+import { initPacks, setupPacksListeners, loadPacks, editPack, togglePack, deletePack, updateBulkActionButtons } from './packs.js';
 import { initGames, loadGames, deleteGame } from './games.js';
 import { loadTagAssignmentPage, toggleCardTag } from './tag-assignment.js';
 import { hideModal } from './utils.js';
@@ -87,6 +87,7 @@ function switchSection(section) {
     // Load data for the section
     if (section === 'cards') {
         loadTagsFilter();
+        loadPacksFilter();
         loadCards();
     } else if (section === 'tags') {
         loadTags();
@@ -108,6 +109,7 @@ window.deleteTag = deleteTag;
 window.editPack = editPack;
 window.togglePack = togglePack;
 window.deletePack = deletePack;
+window.updateBulkActionButtons = updateBulkActionButtons;
 window.deleteGame = deleteGame;
 window.toggleCardTag = toggleCardTag;
 

@@ -201,6 +201,7 @@ $app->delete('/api/admin/tags/delete/{tagId}', [AdminTagController::class, 'dele
 $app->post('/api/admin/packs/create', [AdminPackController::class, 'createPack'])->add(new AdminAuthMiddleware());
 $app->put('/api/admin/packs/edit/{packId}', [AdminPackController::class, 'editPack'])->add(new AdminAuthMiddleware());
 $app->put('/api/admin/packs/toggle/{packId}', [AdminPackController::class, 'togglePack'])->add(new AdminAuthMiddleware());
+$app->put('/api/admin/packs/bulk-toggle', [AdminPackController::class, 'bulkTogglePack'])->add(new AdminAuthMiddleware());
 $app->delete('/api/admin/packs/delete/{packId}', [AdminPackController::class, 'deletePack'])->add(new AdminAuthMiddleware());
 $app->get('/api/admin/games/list', [AdminGameController::class, 'listGames'])->add(new AdminAuthMiddleware());
 $app->delete('/api/admin/games/delete/{gameId}', [AdminGameController::class, 'deleteGame'])->add(new AdminAuthMiddleware());

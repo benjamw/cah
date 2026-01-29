@@ -334,4 +334,85 @@ class PlayerManagementTest extends TestCase
         // Submissions should still exist (minus the removed player's submission)
         $this->assertNotEmpty($result['submissions'], 'Other submissions should remain');
     }
+
+    public function testLeavingDuringPreGameDoesNotEndGame(): void
+    {
+        // Create game with 3 players
+        $createResult = GameService::createGame('Creator', [TEST_TAG_ID]);
+        $gameId = $createResult['game_id'];
+        $creatorId = $createResult['player_id'];
+
+        $player2 = GameService::joinGame($gameId, 'Player Two');
+        $player3 = GameService::joinGame($gameId, 'Player Three');
+
+        // Verify game is in waiting state with 3 players
+        $game = Game::find($gameId);
+        $this->assertEquals('waiting', $game['player_data']['state']);
+        $this->assertCount(3, $game['player_data']['players']);
+
+        // Player 2 leaves during pre-game (drops to 2 players, below minimum of 3)
+        $result = GameService::leaveGame($gameId, $player2['player_id']);
+
+        // Game should NOT end - should still be in waiting state
+        $this->assertEquals('waiting', $result['state'], 'Game should remain in waiting state');
+        $this->assertArrayNotHasKey('end_reason', $result, 'Game should not have an end reason');
+        $this->assertCount(2, $result['players'], 'Should have 2 players remaining');
+
+        // Verify player 2 is gone
+        $playerIds = array_column($result['players'], 'id');
+        $this->assertNotContains($player2['player_id'], $playerIds);
+        $this->assertContains($creatorId, $playerIds);
+        $this->assertContains($player3['player_id'], $playerIds);
+    }
+
+    public function testPreGameStillRequiresMinPlayersToStartAfterPlayerLeaves(): void
+    {
+        // Create game with 3 players
+        $createResult = GameService::createGame('Creator', [TEST_TAG_ID]);
+        $gameId = $createResult['game_id'];
+        $creatorId = $createResult['player_id'];
+
+        $player2 = GameService::joinGame($gameId, 'Player Two');
+        $player3 = GameService::joinGame($gameId, 'Player Three');
+
+        // Player 3 leaves (drops to 2 players, below minimum of 3)
+        GameService::leaveGame($gameId, $player3['player_id']);
+
+        // Verify only 2 players remain
+        $game = Game::find($gameId);
+        $this->assertCount(2, $game['player_data']['players']);
+        $this->assertEquals('waiting', $game['player_data']['state']);
+
+        // Try to start game with only 2 players - should fail
+        $this->expectException(ValidationException::class);
+        $this->expectExceptionMessage('Need at least 3 players to start');
+
+        GameService::startGame($gameId, $creatorId);
+    }
+
+    public function testLeavingDuringActiveGameEndsGameIfBelowMinimum(): void
+    {
+        // Create game with exactly 3 players (minimum)
+        $createResult = GameService::createGame('Creator', [TEST_TAG_ID]);
+        $gameId = $createResult['game_id'];
+        $creatorId = $createResult['player_id'];
+
+        $player2 = GameService::joinGame($gameId, 'Player Two');
+        $player3 = GameService::joinGame($gameId, 'Player Three');
+
+        // Start the game
+        GameService::startGame($gameId, $creatorId);
+
+        // Verify game is playing
+        $game = Game::find($gameId);
+        $this->assertEquals('playing', $game['player_data']['state']);
+
+        // Player 2 leaves during active game (drops to 2 players, below minimum)
+        $result = GameService::leaveGame($gameId, $player2['player_id']);
+
+        // Game SHOULD end - too few players during active gameplay
+        $this->assertEquals('finished', $result['state'], 'Game should end due to too few players');
+        $this->assertEquals('too_few_players', $result['end_reason'], 'End reason should be too_few_players');
+        $this->assertCount(2, $result['players'], 'Should have 2 players remaining');
+    }
 }

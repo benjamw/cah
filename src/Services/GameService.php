@@ -600,7 +600,7 @@ class GameService
             fn($p): bool => empty($p['is_rando'])
         );
 
-        if (count($eligiblePlayers) < $minPlayers && $playerData['state'] !== GameState::FINISHED->value) {
+        if (count($eligiblePlayers) < $minPlayers && $playerData['state'] === GameState::PLAYING->value) {
             // End the game due to too few players
             $playerData['state'] = GameState::FINISHED->value;
             $playerData['finished_at'] = ( new \DateTime() )->format('Y-m-d H:i:s');

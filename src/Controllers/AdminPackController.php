@@ -144,4 +144,40 @@ class AdminPackController
             return JsonResponse::error($response, $e->getMessage(), 500);
         }
     }
+
+    /**
+     * Bulk toggle pack active status (idempotent)
+     */
+    public function bulkTogglePack(Request $request, Response $response): Response
+    {
+        try {
+            $data = $request->getParsedBody() ?? [];
+
+            $validator = ( new Validator() )
+                ->required($data['pack_ids'] ?? null, 'pack_ids')
+                ->required($data['active'] ?? null, 'active');
+
+            if ($validator->fails()) {
+                throw new ValidationException('Validation failed', $validator->getErrors());
+            }
+
+            $packIds = $data['pack_ids'];
+            if ( ! is_array($packIds) || empty($packIds)) {
+                throw new ValidationException('pack_ids must be a non-empty array');
+            }
+
+            $active = (bool) $data['active'];
+            $affected = Pack::setActiveBulk($packIds, $active);
+
+            return JsonResponse::success($response, [
+                'pack_ids' => $packIds,
+                'active' => $active,
+                'updated_count' => $affected,
+            ]);
+        } catch (ValidationException $e) {
+            return JsonResponse::validationError($response, $e->getErrors(), $e->getMessage());
+        } catch (\Exception $e) {
+            return JsonResponse::error($response, $e->getMessage(), 500);
+        }
+    }
 }

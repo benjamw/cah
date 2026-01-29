@@ -7,6 +7,7 @@ import { escapeQuotes } from './utils.js';
 
 // DOM elements (initialized in initPacks)
 let packsList, createPackModal, createPackForm, savePackBtn;
+let selectAllPacksCheckbox, bulkActivateBtn, bulkDeactivateBtn, bulkControlsDiv;
 
 /**
  * Initialize packs module DOM elements
@@ -16,6 +17,10 @@ export function initPacks() {
     createPackModal = document.getElementById('create-pack-modal');
     createPackForm = document.getElementById('create-pack-form');
     savePackBtn = document.getElementById('save-pack-btn');
+    selectAllPacksCheckbox = document.getElementById('select-all-packs');
+    bulkActivateBtn = document.getElementById('bulk-activate-packs-btn');
+    bulkDeactivateBtn = document.getElementById('bulk-deactivate-packs-btn');
+    bulkControlsDiv = document.querySelector('.pack-bulk-controls');
 }
 
 /**
@@ -34,6 +39,17 @@ export function setupPacksListeners() {
     });
 
     savePackBtn.addEventListener('click', handleSavePack);
+    
+    // Select all checkbox
+    selectAllPacksCheckbox.addEventListener('change', (e) => {
+        const checkboxes = document.querySelectorAll('.pack-checkbox');
+        checkboxes.forEach(cb => cb.checked = e.target.checked);
+        updateBulkActionButtons();
+    });
+    
+    // Bulk action buttons
+    bulkActivateBtn.addEventListener('click', () => bulkTogglePacks(true));
+    bulkDeactivateBtn.addEventListener('click', () => bulkTogglePacks(false));
 }
 
 /**
@@ -58,8 +74,12 @@ export async function loadPacks() {
 function renderPacks(packs) {
     if (packs.length === 0) {
         packsList.innerHTML = '<div class="loading">No packs found</div>';
+        bulkControlsDiv.style.display = 'none';
         return;
     }
+
+    // Show bulk controls if we have packs
+    bulkControlsDiv.style.display = 'block';
 
     packsList.innerHTML = packs.map(pack => {
         const releaseDate = pack.release_date ? new Date(pack.release_date).toLocaleDateString() : 'N/A';
@@ -68,17 +88,20 @@ function renderPacks(packs) {
         
         return `
             <div class="pack-item" data-id="${pack.pack_id}">
-                <div class="item-info">
-                    <div class="item-title">
-                        <span class="badge badge-${isActive ? 'active' : 'inactive'}">
-                            ${isActive ? 'Active' : 'Inactive'}
-                        </span>
-                        ${pack.name} ${version}
-                    </div>
-                    <div class="item-meta">
-                        Response Cards: ${pack.response_card_count || 0} |
-                        Prompt Cards: ${pack.prompt_card_count || 0} |
-                        Released: ${releaseDate}
+                <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                    <input type="checkbox" class="pack-checkbox" data-pack-id="${pack.pack_id}" onchange="updateBulkActionButtons()">
+                    <div class="item-info" style="flex: 1;">
+                        <div class="item-title">
+                            <span class="badge badge-${isActive ? 'active' : 'inactive'}">
+                                ${isActive ? 'Active' : 'Inactive'}
+                            </span>
+                            ${pack.name} ${version}
+                        </div>
+                        <div class="item-meta">
+                            Response Cards: ${pack.response_card_count || 0} |
+                            Prompt Cards: ${pack.prompt_card_count || 0} |
+                            Released: ${releaseDate}
+                        </div>
                     </div>
                 </div>
                 <div class="item-actions">
@@ -91,6 +114,10 @@ function renderPacks(packs) {
             </div>
         `;
     }).join('');
+    
+    // Reset checkbox states
+    selectAllPacksCheckbox.checked = false;
+    updateBulkActionButtons();
 }
 
 /**
@@ -210,5 +237,62 @@ export async function deletePack(packId) {
         }
     } catch (error) {
         alert(error.message || 'Error deleting pack');
+    }
+}
+
+/**
+ * Update visibility of bulk action buttons based on checkbox selection
+ */
+export function updateBulkActionButtons() {
+    const selectedCheckboxes = document.querySelectorAll('.pack-checkbox:checked');
+    const hasSelection = selectedCheckboxes.length > 0;
+    
+    bulkActivateBtn.style.display = hasSelection ? 'inline-block' : 'none';
+    bulkDeactivateBtn.style.display = hasSelection ? 'inline-block' : 'none';
+}
+
+/**
+ * Bulk toggle pack active status (idempotent)
+ */
+async function bulkTogglePacks(active) {
+    const selectedCheckboxes = document.querySelectorAll('.pack-checkbox:checked');
+    
+    if (selectedCheckboxes.length === 0) {
+        alert('Please select at least one pack');
+        return;
+    }
+    
+    const packIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.dataset.packId));
+    const action = active ? 'activate' : 'deactivate';
+    
+    if (!confirm(`Are you sure you want to ${action} ${packIds.length} pack(s)?`)) {
+        return;
+    }
+    
+    try {
+        // Disable bulk buttons during request
+        bulkActivateBtn.disabled = true;
+        bulkDeactivateBtn.disabled = true;
+        
+        const data = await apiRequest('/admin/packs/bulk-toggle', {
+            method: 'PUT',
+            body: JSON.stringify({
+                pack_ids: packIds,
+                active: active
+            })
+        });
+        
+        if (data.success) {
+            // Success - reload packs without scrolling to top
+            await loadPacks();
+            alert(`Successfully ${action}d ${data.data.updated_count} pack(s)`);
+        } else {
+            alert(data.message || `Failed to ${action} packs`);
+        }
+    } catch (error) {
+        alert(error.message || `Error ${action}ing packs`);
+    } finally {
+        bulkActivateBtn.disabled = false;
+        bulkDeactivateBtn.disabled = false;
     }
 }

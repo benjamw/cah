@@ -31,8 +31,14 @@ class AdminCardController
 
             $cardType = $queryParams['type'] ?? null;
             $tagIdParam = $queryParams['tag_id'] ?? null;
+            $packIdParam = $queryParams['pack_id'] ?? null;
+            $packActiveParam = $queryParams['pack_active'] ?? null;
+            
             $tagId = null;
             $noTags = false;
+            $packId = null;
+            $noPacks = false;
+            $packActive = null;
 
             if ($tagIdParam !== null) {
                 if ($tagIdParam === 'none' || $tagIdParam === '0') {
@@ -40,6 +46,18 @@ class AdminCardController
                 } else {
                     $tagId = (int) $tagIdParam;
                 }
+            }
+
+            if ($packIdParam !== null) {
+                if ($packIdParam === 'none' || $packIdParam === '0') {
+                    $noPacks = true;
+                } else {
+                    $packId = (int) $packIdParam;
+                }
+            }
+
+            if ($packActiveParam !== null && $packActiveParam !== '') {
+                $packActive = (bool) ( (int) $packActiveParam );
             }
 
             $active = isset($queryParams['active']) ? (bool) ( (int) $queryParams['active'] ) : true;
@@ -60,7 +78,7 @@ class AdminCardController
             }
 
             // Use Card model to handle the complex query logic
-            $result = Card::listWithFilters($cardType, $tagId, $noTags, $active, $limit, $offset);
+            $result = Card::listWithFilters($cardType, $tagId, $noTags, $packId, $noPacks, $packActive, $active, $limit, $offset);
             $cards = $result['cards'];
             $total = $result['total'];
 

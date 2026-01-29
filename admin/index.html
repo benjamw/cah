@@ -72,6 +72,20 @@
                             </select>
                         </div>
                         <div class="filter-group">
+                            <label for="card-pack-filter">Packs</label>
+                            <select id="card-pack-filter" multiple size="4">
+                                <option value="">Loading packs...</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="card-pack-status-filter">Pack Status</label>
+                            <select id="card-pack-status-filter">
+                                <option value="">All Cards</option>
+                                <option value="1">Active Packs Only</option>
+                                <option value="0">Inactive Packs Only</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
                             <label for="card-limit-filter">Show</label>
                             <select id="card-limit-filter">
                                 <option value="50">50</option>
@@ -115,8 +129,17 @@
                     <div class="section-header">
                         <h2>Manage Packs</h2>
                         <div class="actions">
+                            <button id="bulk-activate-packs-btn" class="btn btn-success" style="display: none;">Activate Selected</button>
+                            <button id="bulk-deactivate-packs-btn" class="btn btn-secondary" style="display: none;">Deactivate Selected</button>
                             <button id="create-pack-btn" class="btn btn-primary">Create Pack</button>
                         </div>
+                    </div>
+
+                    <div class="pack-bulk-controls" style="margin-bottom: 15px; display: none;">
+                        <label style="cursor: pointer;">
+                            <input type="checkbox" id="select-all-packs" style="margin-right: 5px;">
+                            Select All
+                        </label>
                     </div>
 
                     <div id="packs-list" class="data-list">
@@ -206,8 +229,8 @@
                     <div class="form-group">
                         <label for="edit-card-type">Type</label>
                         <select id="edit-card-type" name="type" required>
-                            <option value="response">White</option>
-                            <option value="prompt">Black</option>
+                            <option value="response">Response (White)</option>
+                            <option value="prompt">Prompt (Black)</option>
                         </select>
                     </div>
                     <div class="form-group">

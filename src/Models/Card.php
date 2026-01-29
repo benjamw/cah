@@ -268,24 +268,52 @@ class Card
         ?string $cardType,
         ?int $tagId,
         bool $noTags,
+        ?int $packId,
+        bool $noPacks,
+        ?bool $packActive,
         bool $active,
         int $limit,
         int $offset
     ): array {
         // Build main query
-        $sql = "SELECT c.* FROM cards c";
+        $sql = "SELECT DISTINCT c.* FROM cards c";
         $params = [];
         $conditions = [];
+        $joins = [];
 
         // Join with tags if filtering by tag
         if ($tagId !== null) {
-            $sql .= " INNER JOIN cards_to_tags ct ON c.card_id = ct.card_id";
+            $joins[] = "INNER JOIN cards_to_tags ct ON c.card_id = ct.card_id";
             $conditions[] = "ct.tag_id = ?";
             $params[] = $tagId;
         } elseif ($noTags) {
             // Filter for cards with no tags using LEFT JOIN
-            $sql .= " LEFT JOIN cards_to_tags ct ON c.card_id = ct.card_id";
+            $joins[] = "LEFT JOIN cards_to_tags ct ON c.card_id = ct.card_id";
             $conditions[] = "ct.card_id IS NULL";
+        }
+
+        // Join with packs if filtering by pack or pack status
+        if ($packId !== null || $noPacks || $packActive !== null) {
+            if ($packId !== null) {
+                $joins[] = "INNER JOIN cards_to_packs cp ON c.card_id = cp.card_id";
+                $conditions[] = "cp.pack_id = ?";
+                $params[] = $packId;
+            } elseif ($noPacks) {
+                // Filter for cards with no packs using LEFT JOIN
+                $joins[] = "LEFT JOIN cards_to_packs cp ON c.card_id = cp.card_id";
+                $conditions[] = "cp.card_id IS NULL";
+            } elseif ($packActive !== null) {
+                // Filter by pack active status
+                $joins[] = "INNER JOIN cards_to_packs cp ON c.card_id = cp.card_id";
+                $joins[] = "INNER JOIN packs p ON cp.pack_id = p.pack_id";
+                $conditions[] = "p.active = ?";
+                $params[] = $packActive;
+            }
+        }
+
+        // Add joins to SQL
+        if (!empty($joins)) {
+            $sql .= " " . implode(" ", $joins);
         }
 
         // Add filters
@@ -316,14 +344,35 @@ class Card
         $countSql = "SELECT COUNT(DISTINCT c.card_id) as total FROM cards c";
         $countParams = [];
         $countConditions = [];
+        $countJoins = [];
 
         if ($tagId !== null) {
-            $countSql .= " INNER JOIN cards_to_tags ct ON c.card_id = ct.card_id";
+            $countJoins[] = "INNER JOIN cards_to_tags ct ON c.card_id = ct.card_id";
             $countConditions[] = "ct.tag_id = ?";
             $countParams[] = $tagId;
         } elseif ($noTags) {
-            $countSql .= " LEFT JOIN cards_to_tags ct ON c.card_id = ct.card_id";
+            $countJoins[] = "LEFT JOIN cards_to_tags ct ON c.card_id = ct.card_id";
             $countConditions[] = "ct.card_id IS NULL";
+        }
+
+        if ($packId !== null || $noPacks || $packActive !== null) {
+            if ($packId !== null) {
+                $countJoins[] = "INNER JOIN cards_to_packs cp ON c.card_id = cp.card_id";
+                $countConditions[] = "cp.pack_id = ?";
+                $countParams[] = $packId;
+            } elseif ($noPacks) {
+                $countJoins[] = "LEFT JOIN cards_to_packs cp ON c.card_id = cp.card_id";
+                $countConditions[] = "cp.card_id IS NULL";
+            } elseif ($packActive !== null) {
+                $countJoins[] = "INNER JOIN cards_to_packs cp ON c.card_id = cp.card_id";
+                $countJoins[] = "INNER JOIN packs p ON cp.pack_id = p.pack_id";
+                $countConditions[] = "p.active = ?";
+                $countParams[] = $packActive;
+            }
+        }
+
+        if (!empty($countJoins)) {
+            $countSql .= " " . implode(" ", $countJoins);
         }
 
         if ($cardType !== null) {

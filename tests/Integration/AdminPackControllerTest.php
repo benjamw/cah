@@ -380,4 +380,220 @@ class AdminPackControllerTest extends TestCase
         // Cleanup
         Database::execute("DELETE FROM cards WHERE card_id = ?", [$cardId]);
     }
+
+    /**
+     * Test bulk toggle activates multiple packs
+     */
+    public function testBulkToggleActivatesPacks(): void
+    {
+        $pack1Id = Pack::create('AdminTest Bulk Pack 1', '1.0', null, null, false);
+        $pack2Id = Pack::create('AdminTest Bulk Pack 2', '1.0', null, null, false);
+        $pack3Id = Pack::create('AdminTest Bulk Pack 3', '1.0', null, null, false);
+
+        $request = $this->createJsonRequest('PUT', '/admin/packs/bulk-toggle', [
+            'pack_ids' => [$pack1Id, $pack2Id, $pack3Id],
+            'active' => true
+        ]);
+        $response = $this->responseFactory->createResponse();
+
+        $result = $this->controller->bulkTogglePack($request, $response);
+
+        $this->assertEquals(200, $result->getStatusCode());
+
+        $json = $this->getJsonResponse($result);
+        $this->assertTrue($json['success']);
+        $this->assertTrue($json['data']['active']);
+        $this->assertEquals(3, $json['data']['updated_count']);
+
+        // Verify all packs are now active
+        $pack1 = Pack::find($pack1Id);
+        $pack2 = Pack::find($pack2Id);
+        $pack3 = Pack::find($pack3Id);
+        $this->assertEquals(1, $pack1['active']);
+        $this->assertEquals(1, $pack2['active']);
+        $this->assertEquals(1, $pack3['active']);
+    }
+
+    /**
+     * Test bulk toggle deactivates multiple packs
+     */
+    public function testBulkToggleDeactivatesPacks(): void
+    {
+        $pack1Id = Pack::create('AdminTest Bulk Deactivate 1', '1.0', null, null, true);
+        $pack2Id = Pack::create('AdminTest Bulk Deactivate 2', '1.0', null, null, true);
+
+        $request = $this->createJsonRequest('PUT', '/admin/packs/bulk-toggle', [
+            'pack_ids' => [$pack1Id, $pack2Id],
+            'active' => false
+        ]);
+        $response = $this->responseFactory->createResponse();
+
+        $result = $this->controller->bulkTogglePack($request, $response);
+
+        $this->assertEquals(200, $result->getStatusCode());
+
+        $json = $this->getJsonResponse($result);
+        $this->assertTrue($json['success']);
+        $this->assertFalse($json['data']['active']);
+        $this->assertEquals(2, $json['data']['updated_count']);
+
+        // Verify all packs are now inactive
+        $pack1 = Pack::find($pack1Id);
+        $pack2 = Pack::find($pack2Id);
+        $this->assertEquals(0, $pack1['active']);
+        $this->assertEquals(0, $pack2['active']);
+    }
+
+    /**
+     * Test bulk toggle is idempotent (activating already active packs)
+     */
+    public function testBulkToggleIsIdempotentActivate(): void
+    {
+        $pack1Id = Pack::create('AdminTest Idempotent 1', '1.0', null, null, true);
+        $pack2Id = Pack::create('AdminTest Idempotent 2', '1.0', null, null, true);
+
+        $request = $this->createJsonRequest('PUT', '/admin/packs/bulk-toggle', [
+            'pack_ids' => [$pack1Id, $pack2Id],
+            'active' => true
+        ]);
+        $response = $this->responseFactory->createResponse();
+
+        // First call - packs are already active
+        $result = $this->controller->bulkTogglePack($request, $response);
+
+        $this->assertEquals(200, $result->getStatusCode());
+
+        $json = $this->getJsonResponse($result);
+        $this->assertTrue($json['success']);
+        $this->assertTrue($json['data']['active']);
+        // Updated count may be 0 since they were already active (idempotent)
+        $this->assertGreaterThanOrEqual(0, $json['data']['updated_count']);
+
+        // Verify packs are still active
+        $pack1 = Pack::find($pack1Id);
+        $pack2 = Pack::find($pack2Id);
+        $this->assertEquals(1, $pack1['active']);
+        $this->assertEquals(1, $pack2['active']);
+    }
+
+    /**
+     * Test bulk toggle is idempotent (deactivating already inactive packs)
+     */
+    public function testBulkToggleIsIdempotentDeactivate(): void
+    {
+        $pack1Id = Pack::create('AdminTest Idempotent Inactive 1', '1.0', null, null, false);
+        $pack2Id = Pack::create('AdminTest Idempotent Inactive 2', '1.0', null, null, false);
+
+        $request = $this->createJsonRequest('PUT', '/admin/packs/bulk-toggle', [
+            'pack_ids' => [$pack1Id, $pack2Id],
+            'active' => false
+        ]);
+        $response = $this->responseFactory->createResponse();
+
+        $result = $this->controller->bulkTogglePack($request, $response);
+
+        $this->assertEquals(200, $result->getStatusCode());
+
+        $json = $this->getJsonResponse($result);
+        $this->assertTrue($json['success']);
+        $this->assertFalse($json['data']['active']);
+        // Updated count may be 0 since they were already inactive (idempotent)
+        $this->assertGreaterThanOrEqual(0, $json['data']['updated_count']);
+
+        // Verify packs are still inactive
+        $pack1 = Pack::find($pack1Id);
+        $pack2 = Pack::find($pack2Id);
+        $this->assertEquals(0, $pack1['active']);
+        $this->assertEquals(0, $pack2['active']);
+    }
+
+    /**
+     * Test bulk toggle with mixed active states
+     */
+    public function testBulkToggleWithMixedStates(): void
+    {
+        $pack1Id = Pack::create('AdminTest Mixed Active', '1.0', null, null, true);
+        $pack2Id = Pack::create('AdminTest Mixed Inactive', '1.0', null, null, false);
+        $pack3Id = Pack::create('AdminTest Mixed Active 2', '1.0', null, null, true);
+
+        $request = $this->createJsonRequest('PUT', '/admin/packs/bulk-toggle', [
+            'pack_ids' => [$pack1Id, $pack2Id, $pack3Id],
+            'active' => false
+        ]);
+        $response = $this->responseFactory->createResponse();
+
+        $result = $this->controller->bulkTogglePack($request, $response);
+
+        $this->assertEquals(200, $result->getStatusCode());
+
+        $json = $this->getJsonResponse($result);
+        $this->assertTrue($json['success']);
+
+        // Verify all packs are now inactive (idempotent behavior)
+        $pack1 = Pack::find($pack1Id);
+        $pack2 = Pack::find($pack2Id);
+        $pack3 = Pack::find($pack3Id);
+        $this->assertEquals(0, $pack1['active']);
+        $this->assertEquals(0, $pack2['active']);
+        $this->assertEquals(0, $pack3['active']);
+    }
+
+    /**
+     * Test bulk toggle with empty pack_ids array fails validation
+     */
+    public function testBulkToggleWithEmptyArrayFails(): void
+    {
+        $request = $this->createJsonRequest('PUT', '/admin/packs/bulk-toggle', [
+            'pack_ids' => [],
+            'active' => true
+        ]);
+        $response = $this->responseFactory->createResponse();
+
+        $result = $this->controller->bulkTogglePack($request, $response);
+
+        $this->assertEquals(422, $result->getStatusCode());
+
+        $json = $this->getJsonResponse($result);
+        $this->assertFalse($json['success']);
+    }
+
+    /**
+     * Test bulk toggle without pack_ids fails validation
+     */
+    public function testBulkToggleWithoutPackIdsFails(): void
+    {
+        $request = $this->createJsonRequest('PUT', '/admin/packs/bulk-toggle', [
+            'active' => true
+        ]);
+        $response = $this->responseFactory->createResponse();
+
+        $result = $this->controller->bulkTogglePack($request, $response);
+
+        $this->assertEquals(422, $result->getStatusCode());
+
+        $json = $this->getJsonResponse($result);
+        $this->assertFalse($json['success']);
+        $this->assertArrayHasKey('errors', $json);
+    }
+
+    /**
+     * Test bulk toggle without active field fails validation
+     */
+    public function testBulkToggleWithoutActiveFails(): void
+    {
+        $packId = Pack::create('AdminTest Missing Active', '1.0', null, null, true);
+
+        $request = $this->createJsonRequest('PUT', '/admin/packs/bulk-toggle', [
+            'pack_ids' => [$packId]
+        ]);
+        $response = $this->responseFactory->createResponse();
+
+        $result = $this->controller->bulkTogglePack($request, $response);
+
+        $this->assertEquals(422, $result->getStatusCode());
+
+        $json = $this->getJsonResponse($result);
+        $this->assertFalse($json['success']);
+        $this->assertArrayHasKey('errors', $json);
+    }
 }

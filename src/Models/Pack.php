@@ -226,6 +226,34 @@ class Pack
     }
 
     /**
+     * Bulk toggle pack active status (idempotent)
+     *
+     * @param array $packIds Array of pack IDs
+     * @param bool $active Active status to set
+     * @return int Number of affected rows
+     */
+    public static function setActiveBulk(array $packIds, bool $active): int
+    {
+        if (empty($packIds)) {
+            return 0;
+        }
+
+        // Ensure all IDs are integers
+        $packIds = array_map('intval', $packIds);
+        $packIds = array_unique($packIds);
+
+        $placeholders = implode(',', array_fill(0, count($packIds), '?'));
+        $sql = "
+            UPDATE packs
+            SET active = ?
+            WHERE pack_id IN ($placeholders)
+        ";
+
+        $params = [$active ? 1 : 0, ...$packIds];
+        return Database::execute($sql, $params);
+    }
+
+    /**
      * Delete a pack (hard delete)
      *
      * @param int $packId
