@@ -177,6 +177,9 @@ $app->post('/api/player/leave', [PlayerController::class, 'leave'])->add(new Aut
 $app->post('/api/cards/get', [CardController::class, 'getByIds'])->add(new AuthMiddleware());
 $app->post('/api/cards/tag', [CardController::class, 'updateCardTag'])->add(new AuthMiddleware());
 
+// Card routes - Public (no auth required)
+$app->get('/api/cards/random-pairing', [CardController::class, 'getRandomPairing']);
+
 // Tag routes
 $app->get('/api/tags/list', [TagController::class, 'list']);
 

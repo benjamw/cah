@@ -246,3 +246,10 @@ export async function removeCardTag(cardId, tagId) {
     }),
   });
 }
+
+// Get random card pairing (prompt + responses)
+export async function getRandomPairing() {
+  return apiRequest('/cards/random-pairing', {
+    method: 'GET',
+  });
+}

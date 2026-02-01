@@ -480,4 +480,84 @@ class Card
             'total' => $total,
         ];
     }
+
+    /**
+     * Get a random active prompt card from active packs
+     *
+     * @param bool $activePacksOnly If true, only include cards from active packs
+     * @return array<string, mixed>|null Random prompt card or null if none found
+     */
+    public static function getRandomPromptCard(bool $activePacksOnly = true): ?array
+    {
+        $sql = "
+            SELECT DISTINCT c.*
+            FROM cards c
+            WHERE c.active = 1
+                AND c.type = 'prompt'
+        ";
+        
+        if ($activePacksOnly) {
+            $sql .= "
+                AND (
+                    EXISTS (
+                        SELECT 1
+                        FROM cards_to_packs cp
+                        INNER JOIN packs p ON cp.pack_id = p.pack_id
+                        WHERE cp.card_id = c.card_id
+                            AND p.active = 1
+                    )
+                    OR NOT EXISTS (
+                        SELECT 1
+                        FROM cards_to_packs cp
+                        WHERE cp.card_id = c.card_id
+                    )
+                )
+            ";
+        }
+        
+        $sql .= " ORDER BY RAND() LIMIT 1";
+        
+        $result = Database::fetchOne($sql, []);
+        return $result ?: null;
+    }
+
+    /**
+     * Get random active response cards from active packs
+     *
+     * @param int $count Number of random cards to retrieve
+     * @param bool $activePacksOnly If true, only include cards from active packs
+     * @return array<array<string, mixed>> Array of random response cards
+     */
+    public static function getRandomResponseCards(int $count, bool $activePacksOnly = true): array
+    {
+        $sql = "
+            SELECT DISTINCT c.*
+            FROM cards c
+            WHERE c.active = 1
+                AND c.type = 'response'
+        ";
+        
+        if ($activePacksOnly) {
+            $sql .= "
+                AND (
+                    EXISTS (
+                        SELECT 1
+                        FROM cards_to_packs cp
+                        INNER JOIN packs p ON cp.pack_id = p.pack_id
+                        WHERE cp.card_id = c.card_id
+                            AND p.active = 1
+                    )
+                    OR NOT EXISTS (
+                        SELECT 1
+                        FROM cards_to_packs cp
+                        WHERE cp.card_id = c.card_id
+                    )
+                )
+            ";
+        }
+        
+        $sql .= " ORDER BY RAND() LIMIT ?";
+        
+        return Database::fetchAll($sql, [$count]);
+    }
 }

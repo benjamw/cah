@@ -192,6 +192,21 @@ h3 {
   background-color: #5a6268;
 }
 
+.btn-text {
+  background-color: transparent;
+  color: var(--color-text);
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-decoration: none;
+  margin-top: var(--spacing-md);
+}
+
+.btn-text:hover:not(:disabled) {
+  background-color: transparent;
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
 .btn-danger {
   background-color: var(--color-danger);
   color: var(--color-white);
@@ -2129,5 +2144,44 @@ h3 {
 .tag-chip-loading {
   font-size: 12px;
   margin-left: 4px;
+}
+
+/* Random Pairing Styles */
+.random-pairing {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--spacing-lg);
+  text-align: center;
+}
+
+.random-pairing h1 {
+  margin-bottom: var(--spacing-xl);
+  color: var(--color-text);
+}
+
+.random-pairing-display {
+  margin-bottom: var(--spacing-xl);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+}
+
+.random-pairing-display .card-submission {
+  width: 100%;
+  max-width: 600px;
+  font-size: 1.2rem;
+  padding: var(--spacing-xl);
+}
+
+.random-pairing-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.random-pairing-actions .btn {
+  min-width: 150px;
 }
 

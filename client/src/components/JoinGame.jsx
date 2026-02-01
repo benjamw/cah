@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { joinGame } from '../utils/api';
 import LateJoin from './LateJoin';
 
-function JoinGame({ onGameJoined, onSwitchToCreate, playerName, setPlayerName }) {
+function JoinGame({ onGameJoined, onSwitchToCreate, onSwitchToRandom, playerName, setPlayerName }) {
   const [gameId, setGameId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -124,6 +124,15 @@ function JoinGame({ onGameJoined, onSwitchToCreate, playerName, setPlayerName })
         disabled={loading}
       >
         Create New Game
+      </button>
+
+      <button
+        type="button"
+        className="btn btn-text"
+        onClick={onSwitchToRandom}
+        disabled={loading}
+      >
+        Show random pairing
       </button>
     </div>
   );

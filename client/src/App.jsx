@@ -2,12 +2,13 @@ import { useState, useEffect } from 'react';
 import JoinGame from './components/JoinGame';
 import CreateGame from './components/CreateGame';
 import GamePlay from './components/GamePlay';
+import RandomPairing from './components/RandomPairing';
 import { getStoredGameData, storeGameData, clearGameData } from './utils/storage';
 import { getGameState } from './utils/api';
 
 function App() {
   const [gameData, setGameData] = useState(null);
-  const [view, setView] = useState('join'); // 'join', 'create', 'game'
+  const [view, setView] = useState('join'); // 'join', 'create', 'game', 'random'
   const [loading, setLoading] = useState(true);
   const [playerName, setPlayerName] = useState(''); // Shared name between join and create
 
@@ -74,6 +75,7 @@ function App() {
         <JoinGame
           onGameJoined={handleGameJoined}
           onSwitchToCreate={() => setView('create')}
+          onSwitchToRandom={() => setView('random')}
           playerName={playerName}
           setPlayerName={setPlayerName}
         />
@@ -84,6 +86,11 @@ function App() {
           onSwitchToJoin={() => setView('join')}
           playerName={playerName}
           setPlayerName={setPlayerName}
+        />
+      )}
+      {view === 'random' && (
+        <RandomPairing
+          onBack={() => setView('join')}
         />
       )}
       {view === 'game' && gameData && (
