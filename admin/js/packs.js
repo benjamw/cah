@@ -95,7 +95,9 @@ function renderPacks(packs) {
                             <span class="badge badge-${isActive ? 'active' : 'inactive'}">
                                 ${isActive ? 'Active' : 'Inactive'}
                             </span>
-                            ${pack.name} ${version}
+                            <a href="#" class="pack-name-link" onclick="event.preventDefault(); switchToCardsWithPackFilter(${pack.pack_id});" title="View cards in this pack">
+                                ${pack.name} ${version}
+                            </a>
                         </div>
                         <div class="item-meta">
                             Response Cards: ${pack.response_card_count || 0} |

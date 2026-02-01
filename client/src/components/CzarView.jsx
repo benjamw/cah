@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrophy } from '@fortawesome/free-solid-svg-icons';
+import { faTrophy, faTag, faBoxArchive } from '@fortawesome/free-solid-svg-icons';
 import { pickWinner, setNextCzar, forceEarlyReview } from '../utils/api';
 import CardSwiper from './CardSwiper';
 
-function CzarView({ gameState, gameData, promptCard, responseCards, showToast }) {
+function CzarView({ gameState, gameData, promptCard, responseCards, showToast, onOpenTagEditor }) {
   const [currentSubmissionIndex, setCurrentSubmissionIndex] = useState(0);
   const [selecting, setSelecting] = useState(false);
   const [error, setError] = useState('');
@@ -213,9 +213,53 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast })
               {promptCard.choices > 1 && (
                 <div className="card-pick">Pick {promptCard.choices}</div>
               )}
+              
+              {onOpenTagEditor && (
+                <button
+                  className="card-tag-btn"
+                  onClick={() => onOpenTagEditor(promptCard)}
+                  title="Edit tags for this card"
+                  aria-label="Edit tags"
+                >
+                  <FontAwesomeIcon icon={faTag} />
+                </button>
+              )}
+              
+              {promptCard.packs && promptCard.packs.length > 0 && (
+                <button
+                  className="card-packs-btn-prompt"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const btn = e.currentTarget;
+                    const display = btn.nextElementSibling;
+                    if (display) {
+                      display.classList.toggle('hidden');
+                    }
+                  }}
+                  title="View packs this card belongs to"
+                  aria-label="View packs"
+                >
+                  <FontAwesomeIcon icon={faBoxArchive} />
+                </button>
+              )}
+              
+              {promptCard.packs && promptCard.packs.length > 0 && (
+                <div className="card-packs-display-prompt hidden">
+                  <div className="card-packs-header">
+                    <strong>Card packs containing this card:</strong>
+                  </div>
+                  <div className="card-packs-list">
+                    {promptCard.packs.map((pack, index) => (
+                      <div key={index} className="card-pack-item">
+                        {pack.name} {pack.version && `(${pack.version})`}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="card card-empty">No black card available</div>
+            <div className="card card-empty">No prompt card available</div>
           )}
         </div>
       )}
@@ -253,6 +297,7 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast })
               onCardSelect={null}
               cardType="response"
               disabled={true}
+              onOpenTagEditor={onOpenTagEditor}
             />
           </div>
         </>
@@ -318,6 +363,7 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast })
               onCardSelect={null}
               cardType="response"
               disabled={true}
+              onOpenTagEditor={onOpenTagEditor}
             />
           </div>
         </>

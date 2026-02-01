@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPause, faPlay, faRobot, faCircleXmark, faRightFromBracket } from '@fortawesome/free-solid-svg-icons';
+import { faPause, faPlay, faRobot, faCircleXmark, faRightFromBracket, faTag, faBoxArchive } from '@fortawesome/free-solid-svg-icons';
 import CardSwiper from './CardSwiper';
 import CardSelector from './CardSelector';
 import CzarView from './CzarView';
+import CardTagEditor from './CardTagEditor';
 import { removePlayer, transferHost, leaveGame, placeSkippedPlayer, voteSkipCzar, togglePlayerPause, refreshHand } from '../utils/api';
 
 function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
@@ -17,6 +18,8 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
   const [votingToSkip, setVotingToSkip] = useState(false);
   const [pausing, setPausing] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [tagEditorCard, setTagEditorCard] = useState(null);
+  const [cardTagsMap, setCardTagsMap] = useState({});
   
   const currentPlayer = gameState.players?.find(
     (p) => p.id === gameData.playerId
@@ -44,6 +47,9 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
   const hasSkippedPlayers = gameState.skipped_players && gameState.skipped_players.ids.length > 0;
   const shouldShowSkippedModal = hasSkippedPlayers && gameData.isCreator && ! showSkippedPlayerModal;
 
+  // Get all response cards (player's hand)
+  const allResponseCards = currentPlayer?.hand || [];
+
   useEffect(() => {
     if (shouldShowSkippedModal) {
       setShowSkippedPlayerModal(true);
@@ -68,11 +74,21 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
     }
   }, [gameData.gameId, gameState.current_round, hasSubmitted]);
 
+  // Load initial tags for all cards
+  useEffect(() => {
+    const tagsMap = {};
+    allResponseCards.forEach(card => {
+      if (card.tags) {
+        tagsMap[card.card_id] = card.tags;
+      }
+    });
+    setCardTagsMap(tagsMap);
+  }, [allResponseCards]);
+
   // Filter out submitted cards from the hand
-  const allWhiteCards = currentPlayer?.hand || [];
   const responseCards = hasSubmitted 
-    ? allWhiteCards.filter(card => ! submittedCardIds.includes(card.card_id))
-    : allWhiteCards;
+    ? allResponseCards.filter(card => ! submittedCardIds.includes(card.card_id))
+    : allResponseCards;
     
   const blanksNeeded = promptCard?.choices || 1;
 
@@ -276,6 +292,32 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
     }
   };
 
+  const handleOpenTagEditor = (card) => {
+    // Merge card with current tags from state if available
+    const cardWithTags = {
+      ...card,
+      tags: cardTagsMap[card.card_id] || card.tags || []
+    };
+    setTagEditorCard(cardWithTags);
+  };
+
+  const handleCloseTagEditor = () => {
+    setTagEditorCard(null);
+  };
+
+  const handleTagsUpdated = (cardId, newTags) => {
+    // Update the local tags map
+    setCardTagsMap(prev => ({
+      ...prev,
+      [cardId]: newTags
+    }));
+
+    // Show success toast
+    if (showToast) {
+      showToast('Card tags updated!');
+    }
+  };
+
   const handleTransferAndLeave = async (newHostId) => {
     setTransferring(true);
     try {
@@ -300,8 +342,9 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
             gameState={gameState}
             gameData={gameData}
             promptCard={promptCard}
-            responseCards={allWhiteCards}
+            responseCards={allResponseCards}
             showToast={showToast}
+            onOpenTagEditor={handleOpenTagEditor}
           />
         <Scoreboard 
           players={gameState.players || []} 
@@ -361,6 +404,14 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
             placing={placingPlayer}
           />
         )}
+        
+        {tagEditorCard && (
+          <CardTagEditor
+            card={tagEditorCard}
+            onClose={handleCloseTagEditor}
+            onTagsUpdated={handleTagsUpdated}
+          />
+        )}
       </>
     );
   }
@@ -377,7 +428,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
 
         <CardSelector
           selectedCards={selectedCards}
-          responseCards={allWhiteCards}
+          responseCards={allResponseCards}
           onCardSelect={handleCardSelect}
           onCardReorder={handleCardReorder}
           blanksNeeded={blanksNeeded}
@@ -396,6 +447,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
             disabled={hasSubmitted}
             onRefreshHand={handleRefreshHand}
             refreshing={refreshing}
+            onOpenTagEditor={handleOpenTagEditor}
           />
         </div>
 
@@ -416,6 +468,48 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
               <div className="card-content" dangerouslySetInnerHTML={{ __html: formatCardText(promptCard.copy) }} />
               {blanksNeeded > 1 && (
                 <div className="card-pick">Pick {blanksNeeded}</div>
+              )}
+              
+              <button
+                className="card-tag-btn"
+                onClick={() => handleOpenTagEditor(promptCard)}
+                title="Edit tags for this card"
+                aria-label="Edit tags"
+              >
+                <FontAwesomeIcon icon={faTag} />
+              </button>
+              
+              {promptCard.packs && promptCard.packs.length > 0 && (
+                <button
+                  className="card-packs-btn-prompt"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const btn = e.currentTarget;
+                    const display = btn.nextElementSibling;
+                    if (display) {
+                      display.classList.toggle('hidden');
+                    }
+                  }}
+                  title="View packs this card belongs to"
+                  aria-label="View packs"
+                >
+                  <FontAwesomeIcon icon={faBoxArchive} />
+                </button>
+              )}
+              
+              {promptCard.packs && promptCard.packs.length > 0 && (
+                <div className="card-packs-display-prompt hidden">
+                  <div className="card-packs-header">
+                    <strong>Card packs containing this card:</strong>
+                  </div>
+                  <div className="card-packs-list">
+                    {promptCard.packs.map((pack, index) => (
+                      <div key={index} className="card-pack-item">
+                        {pack.name} {pack.version && `(${pack.version})`}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
           ) : (
@@ -481,6 +575,14 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
           onPlacePlayer={handlePlaceSkippedPlayer}
           onCancel={() => setShowSkippedPlayerModal(false)}
           placing={placingPlayer}
+        />
+      )}
+
+      {tagEditorCard && (
+        <CardTagEditor
+          card={tagEditorCard}
+          onClose={handleCloseTagEditor}
+          onTagsUpdated={handleTagsUpdated}
         />
       )}
     </div>

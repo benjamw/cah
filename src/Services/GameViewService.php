@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace CAH\Services;
 
 use CAH\Models\Card;
+use CAH\Models\Pack;
+use CAH\Models\Tag;
 
 /**
  * View and presentation helpers for game state.
@@ -76,9 +78,19 @@ class GameViewService
     {
         $cards = Card::getByIds($cardIds);
 
+        // Fetch tags for all cards in one query
+        $tagsByCardId = Tag::getCardTagsForMultipleCards($cardIds);
+
+        // Fetch packs for all cards in one query
+        $packsByCardId = Pack::getCardPacksForMultipleCards($cardIds);
+
         $cardMap = [];
         foreach ($cards as $card) {
-            $cardMap[$card['card_id']] = $card;
+            $cardId = $card['card_id'];
+            $card['tags'] = $tagsByCardId[$cardId] ?? [];
+            $card['packs'] = $packsByCardId[$cardId] ?? [];
+
+            $cardMap[$cardId] = $card;
         }
 
         $missingCardIds = array_diff($cardIds, array_keys($cardMap));

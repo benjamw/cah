@@ -305,9 +305,32 @@ body {
     font-size: 1.1rem;
 }
 
+.pack-name-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.pack-name-link:hover {
+    color: var(--primary-dark);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
 .item-meta {
     color: var(--secondary-color);
     font-size: 0.875rem;
+}
+
+.pack-count-display {
+    cursor: help;
+    text-decoration: underline dotted;
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.pack-count-display:hover {
+    color: var(--primary-dark);
 }
 
 .item-actions {

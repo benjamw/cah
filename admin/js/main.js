@@ -5,7 +5,7 @@
 
 import { getAuthToken } from './api.js';
 import { initAuth, setupAuthListeners, showLoginScreen, showAdminScreen, isAuthenticated } from './auth.js';
-import { initCards, setupCardsListeners, loadCards, loadTagsFilter, loadPacksFilter, editCard, deleteCard } from './cards.js';
+import { initCards, setupCardsListeners, loadCards, loadTagsFilter, loadPacksFilter, editCard, deleteCard, setPackFilter } from './cards.js';
 import { initTags, setupTagsListeners, loadTags, editTag, toggleTag, deleteTag } from './tags.js';
 import { initPacks, setupPacksListeners, loadPacks, editPack, togglePack, deletePack, updateBulkActionButtons } from './packs.js';
 import { initGames, loadGames, deleteGame } from './games.js';
@@ -100,6 +100,17 @@ function switchSection(section) {
     }
 }
 
+/**
+ * Switch to cards section and apply pack filter
+ */
+export function switchToCardsWithPackFilter(packId) {
+    switchSection('cards');
+    // Give filters time to load, then set the pack filter
+    setTimeout(() => {
+        setPackFilter(packId);
+    }, 100);
+}
+
 // Expose functions to window for inline onclick handlers
 window.editCard = editCard;
 window.deleteCard = deleteCard;
@@ -112,6 +123,7 @@ window.deletePack = deletePack;
 window.updateBulkActionButtons = updateBulkActionButtons;
 window.deleteGame = deleteGame;
 window.toggleCardTag = toggleCardTag;
+window.switchToCardsWithPackFilter = switchToCardsWithPackFilter;
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', init);

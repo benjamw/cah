@@ -160,11 +160,13 @@ class AdminCardController
             $cardIds = array_column($cards, 'card_id');
             $cardIds = array_map(intval(...), $cardIds);
             $tagsByCardId = Tag::getCardTagsForMultipleCards($cardIds);
+            $packsByCardId = Pack::getCardPacksForMultipleCards($cardIds, false); // Get all packs, not just active
 
-            // Attach tags to each card
+            // Attach tags and packs to each card
             foreach ($cards as &$card) {
                 $cardId = (int) $card['card_id'];
                 $card['tags'] = $tagsByCardId[$cardId] ?? [];
+                $card['packs'] = $packsByCardId[$cardId] ?? [];
             }
 
             return JsonResponse::success($response, [

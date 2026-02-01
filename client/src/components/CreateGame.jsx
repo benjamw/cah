@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createGame, getTags } from '../utils/api';
+import { getCachedTags, setCachedTags } from '../utils/tagCache';
 
 function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }) {
   const [maxPlayers, setMaxPlayers] = useState(20);
@@ -31,6 +32,18 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
   useEffect(() => {
     // Load available tags
     setTagsLoading(true);
+    
+    // Check cache first
+    const cachedTags = getCachedTags();
+    if (cachedTags) {
+      setTags(cachedTags);
+      // Select all tags by default
+      setSelectedTags(cachedTags.map((tag) => tag.tag_id));
+      setTagsLoading(false);
+      return;
+    }
+    
+    // Cache miss - fetch from API
     getTags()
       .then((response) => {
         if (response.success && response.data && response.data.tags) {
@@ -38,6 +51,8 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
           setTags(tagList);
           // Select all tags by default
           setSelectedTags(tagList.map((tag) => tag.tag_id));
+          // Store in cache for future use
+          setCachedTags(tagList);
         }
       })
       .catch((err) => {

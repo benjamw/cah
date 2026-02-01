@@ -95,6 +95,27 @@ export function setupCardsListeners() {
 }
 
 /**
+ * Set pack filter and reload cards
+ */
+export function setPackFilter(packId) {
+    // Select the pack in the filter dropdown
+    const packOptions = Array.from(cardPackFilter.options);
+    packOptions.forEach(opt => opt.selected = false);
+    
+    const targetOption = packOptions.find(opt => opt.value === String(packId));
+    if (targetOption) {
+        targetOption.selected = true;
+    }
+    
+    // Update current filters
+    currentFilters.packs = [String(packId)];
+    currentPage = 1;
+    
+    // Reload cards with the new filter
+    loadCards();
+}
+
+/**
  * Load tags for the filter dropdown
  */
 export async function loadTagsFilter() {
@@ -185,7 +206,14 @@ function renderCards(cards) {
         return;
     }
 
-    cardsList.innerHTML = cards.map(card => `
+    cardsList.innerHTML = cards.map(card => {
+        const packCount = card.packs?.length || 0;
+        const packNames = card.packs?.map(p => {
+            const version = p.version ? ` (${p.version})` : '';
+            return `${p.name}${version}`;
+        }).join(', ') || 'None';
+        
+        return `
         <div class="card-item" data-id="${card.card_id}">
             <div class="item-info">
                 <div class="item-title">
@@ -198,7 +226,10 @@ function renderCards(cards) {
                 <div class="item-meta">
                     ID: ${card.card_id} |
                     ${card.choices ? `Choices: ${card.choices} | ` : ''}
-                    Tags: ${card.tags?.map(t => t.name).join(', ') || 'None'}
+                    Tags: ${card.tags?.map(t => t.name).join(', ') || 'None'} |
+                    <span class="pack-count-display" title="${packNames}">
+                        Packs: ${packCount}
+                    </span>
                 </div>
             </div>
             <div class="item-actions">
@@ -206,7 +237,8 @@ function renderCards(cards) {
                 <button class="btn btn-small btn-danger" onclick="deleteCard(${card.card_id})">Delete</button>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function updatePagination(total) {

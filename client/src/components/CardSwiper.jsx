@@ -1,14 +1,36 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowsRotate } from '@fortawesome/free-solid-svg-icons';
+import { faArrowsRotate, faTag, faBoxArchive } from '@fortawesome/free-solid-svg-icons';
 
-function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, onRefreshHand, refreshing }) {
+function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, onRefreshHand, refreshing, onOpenTagEditor }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
+  const [showPacks, setShowPacks] = useState(false);
   const containerRef = useRef(null);
+  const packsDisplayRef = useRef(null);
 
   const minSwipeDistance = 50;
+
+  // Close packs display when clicking outside
+  useEffect(() => {
+    if (!showPacks) return;
+
+    const handleClickOutside = (event) => {
+      if (packsDisplayRef.current && !packsDisplayRef.current.contains(event.target)) {
+        // Check if the click was on the packs button
+        const packsButton = event.target.closest('.card-packs-btn');
+        if (!packsButton) {
+          setShowPacks(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showPacks]);
 
   const onTouchStart = (e) => {
     setTouchEnd(null);
@@ -85,7 +107,50 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
         {currentCard.choices > 1 && (
           <div className="card-pick">Pick {currentCard.choices}</div>
         )}
+        
+        {onOpenTagEditor && (
+          <button
+            className="card-tag-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenTagEditor(currentCard);
+            }}
+            title="Edit tags for this card"
+            aria-label="Edit tags"
+          >
+            <FontAwesomeIcon icon={faTag} />
+          </button>
+        )}
+        
+        {currentCard.packs && currentCard.packs.length > 0 && (
+          <button
+            className="card-packs-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowPacks(!showPacks);
+            }}
+            title="View packs this card belongs to"
+            aria-label="View packs"
+          >
+            <FontAwesomeIcon icon={faBoxArchive} />
+          </button>
+        )}
       </div>
+
+      {showPacks && currentCard.packs && (
+        <div className="card-packs-display" ref={packsDisplayRef}>
+          <div className="card-packs-header">
+            <strong>Card packs containing this card:</strong>
+          </div>
+          <div className="card-packs-list">
+            {currentCard.packs.map((pack, index) => (
+              <div key={index} className="card-pack-item">
+                {pack.name} {pack.version && `(${pack.version})`}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="card-controls-row">
         {cards.length > 1 && (

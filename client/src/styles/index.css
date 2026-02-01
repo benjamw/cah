@@ -1746,3 +1746,388 @@ h3 {
   gap: var(--spacing-sm);
   margin-top: var(--spacing-xl);
 }
+
+/* Card Tag Button */
+.card-tag-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: var(--color-primary);
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.czar-view .card-prompt .card-tag-btn,
+.prompt-card-section .card-tag-btn {
+  color: var(--color-white);
+  background-color: var(--color-gray-dark);
+}
+
+.card-tag-btn:hover {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  transform: scale(1.1);
+}
+
+.czar-view .card-prompt .card-tag-btn:hover,
+.prompt-card-section .card-tag-btn:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+  color: var(--color-white);
+}
+
+.card-tag-btn:active {
+  transform: scale(0.95);
+}
+
+/* Card Packs Button */
+.card-packs-btn {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: var(--color-secondary);
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.card-packs-btn:hover {
+  background-color: var(--color-secondary);
+  color: var(--color-white);
+  transform: scale(1.1);
+}
+
+.card-packs-btn:active {
+  transform: scale(0.95);
+}
+
+/* Card Packs Button for Prompt Cards */
+.card-packs-btn-prompt {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background-color: rgba(0, 0, 0, 0.6);
+  color: var(--color-white);
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  z-index: 10;
+}
+
+.card-packs-btn-prompt:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+.card-packs-btn-prompt:active {
+  transform: scale(0.95);
+}
+
+/* Card Packs Display */
+.card-packs-display {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background-color: var(--color-gray-light);
+  border-radius: var(--border-radius);
+  border: 2px solid var(--color-gray-medium);
+}
+
+/* Card Packs Display for Prompt Cards */
+.card-packs-display-prompt {
+  position: absolute;
+  bottom: 50px;
+  left: 8px;
+  right: 8px;
+  padding: var(--spacing-md);
+  background-color: rgba(255, 255, 255, 0.98);
+  border-radius: var(--border-radius);
+  border: 2px solid var(--color-gray-medium);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 9;
+  transition: all 0.2s ease;
+}
+
+.card-packs-display-prompt.hidden {
+  display: none;
+}
+
+.card-packs-header {
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-gray-dark);
+  font-size: 14px;
+}
+
+.card-packs-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.card-pack-item {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--color-white);
+  border-radius: 4px;
+  font-size: 14px;
+  color: var(--color-gray-dark);
+  border-left: 3px solid var(--color-secondary);
+}
+
+.hidden {
+  display: none;
+}
+
+.card {
+  position: relative;
+}
+
+/* Tag Editor Modal */
+.tag-editor-modal {
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  width: 90%;
+}
+
+.tag-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 2px solid var(--color-gray-medium);
+}
+
+.tag-editor-header h3 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--color-gray-dark);
+}
+
+.modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--color-gray-dark);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.modal-close-btn:hover {
+  background-color: var(--color-gray-light);
+  color: var(--color-black);
+}
+
+.tag-editor-card-preview {
+  margin-bottom: var(--spacing-lg);
+}
+
+.tag-editor-done-button-top {
+  margin-bottom: var(--spacing-lg);
+  display: flex;
+  justify-content: center;
+}
+
+.card-preview {
+  min-height: 120px;
+  padding: var(--spacing-md);
+}
+
+.card-content-small {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Tag Search Box */
+.tag-search-box {
+  position: relative;
+  margin-bottom: var(--spacing-lg);
+}
+
+.tag-search-input {
+  width: 100%;
+  padding: 12px 40px 12px 40px;
+  border: 2px solid var(--color-gray-medium);
+  border-radius: var(--border-radius);
+  font-size: 16px;
+  transition: border-color 0.2s ease;
+}
+
+.tag-search-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.tag-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-gray-dark);
+  pointer-events: none;
+}
+
+.tag-search-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--color-gray-dark);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.tag-search-clear:hover {
+  background-color: var(--color-gray-light);
+  color: var(--color-black);
+}
+
+/* Tag Editor Sections */
+.tag-editor-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.tag-editor-section h4 {
+  margin-bottom: var(--spacing-md);
+  color: var(--color-gray-dark);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.tag-editor-empty {
+  padding: var(--spacing-lg);
+  text-align: center;
+  color: var(--color-gray-dark);
+  font-style: italic;
+  background-color: var(--color-gray-light);
+  border-radius: var(--border-radius);
+}
+
+/* Tag Chips */
+.tag-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.tag-chip-active {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border-color: var(--color-primary);
+}
+
+.tag-chip-add {
+  background-color: var(--color-gray-light);
+  color: var(--color-gray-dark);
+  border-color: var(--color-gray-medium);
+  cursor: pointer;
+}
+
+.tag-chip-add:hover:not(:disabled) {
+  background-color: var(--color-primary);
+  color: var(--color-white);
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.tag-chip-add:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.tag-chip-name {
+  flex: 1;
+}
+
+.tag-chip-icon {
+  font-size: 12px;
+}
+
+.tag-chip-remove {
+  background: none;
+  border: none;
+  color: var(--color-white);
+  cursor: pointer;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.tag-chip-remove:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.tag-chip-remove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tag-chip-loading {
+  font-size: 12px;
+  margin-left: 4px;
+}
+

@@ -408,17 +408,23 @@ class Tag
      * Get all tags for a card
      *
      * @param int $cardId
+     * @param bool $activeOnly If true (default), only return active tags
      * @return array<int, array<string, mixed>> Array of tag data
      */
-    public static function getCardTags(int $cardId): array
+    public static function getCardTags(int $cardId, bool $activeOnly = true): array
     {
         $sql = "
             SELECT t.*
             FROM tags t
             INNER JOIN cards_to_tags ct ON t.tag_id = ct.tag_id
             WHERE ct.card_id = ?
-            ORDER BY t.name ASC
         ";
+        
+        if ($activeOnly) {
+            $sql .= " AND t.active = 1";
+        }
+        
+        $sql .= " ORDER BY t.name ASC";
 
         return Database::fetchAll($sql, [$cardId]);
     }
@@ -427,9 +433,10 @@ class Tag
      * Get tags for multiple cards (batch fetch to avoid N+1 queries)
      *
      * @param array<int> $cardIds Array of card IDs
+     * @param bool $activeOnly If true (default), only return active tags
      * @return array<int, array<int, array<string, mixed>>> Associative array mapping card_id => array of tags
      */
-    public static function getCardTagsForMultipleCards(array $cardIds): array
+    public static function getCardTagsForMultipleCards(array $cardIds, bool $activeOnly = true): array
     {
         if (empty($cardIds)) {
             return [];
@@ -441,8 +448,13 @@ class Tag
             FROM tags t
             INNER JOIN cards_to_tags ct ON t.tag_id = ct.tag_id
             WHERE ct.card_id IN ({$placeholders})
-            ORDER BY ct.card_id, t.name ASC
         ";
+        
+        if ($activeOnly) {
+            $sql .= " AND t.active = 1";
+        }
+        
+        $sql .= " ORDER BY ct.card_id, t.name ASC";
 
         $results = Database::fetchAll($sql, $cardIds);
 

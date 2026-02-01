@@ -175,6 +175,7 @@ $app->post('/api/player/leave', [PlayerController::class, 'leave'])->add(new Aut
 
 // Card routes - Protected (auth required)
 $app->post('/api/cards/get', [CardController::class, 'getByIds'])->add(new AuthMiddleware());
+$app->post('/api/cards/tag', [CardController::class, 'updateCardTag'])->add(new AuthMiddleware());
 
 // Tag routes
 $app->get('/api/tags/list', [TagController::class, 'list']);

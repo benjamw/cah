@@ -390,17 +390,23 @@ class Pack
      * Get all packs for a card
      *
      * @param int $cardId
+     * @param bool $activeOnly If true (default), only return active packs
      * @return array<int, array<string, mixed>> Array of pack data
      */
-    public static function getCardPacks(int $cardId): array
+    public static function getCardPacks(int $cardId, bool $activeOnly = true): array
     {
         $sql = "
             SELECT p.*
             FROM packs p
             INNER JOIN cards_to_packs cp ON p.pack_id = cp.pack_id
             WHERE cp.card_id = ?
-            ORDER BY p.name ASC, p.version ASC
         ";
+        
+        if ($activeOnly) {
+            $sql .= " AND p.active = 1";
+        }
+        
+        $sql .= " ORDER BY p.name ASC, p.version ASC";
 
         return Database::fetchAll($sql, [$cardId]);
     }
@@ -409,9 +415,10 @@ class Pack
      * Get packs for multiple cards (batch fetch to avoid N+1 queries)
      *
      * @param array<int> $cardIds Array of card IDs
+     * @param bool $activeOnly If true (default), only return active packs
      * @return array<int, array<int, array<string, mixed>>> Associative array mapping card_id => array of packs
      */
-    public static function getCardPacksForMultipleCards(array $cardIds): array
+    public static function getCardPacksForMultipleCards(array $cardIds, bool $activeOnly = true): array
     {
         if (empty($cardIds)) {
             return [];
@@ -423,8 +430,13 @@ class Pack
             FROM packs p
             INNER JOIN cards_to_packs cp ON p.pack_id = cp.pack_id
             WHERE cp.card_id IN ({$placeholders})
-            ORDER BY cp.card_id, p.name ASC, p.version ASC
         ";
+        
+        if ($activeOnly) {
+            $sql .= " AND p.active = 1";
+        }
+        
+        $sql .= " ORDER BY cp.card_id, p.name ASC, p.version ASC";
 
         $results = Database::fetchAll($sql, $cardIds);
 
