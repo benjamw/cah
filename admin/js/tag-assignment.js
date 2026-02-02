@@ -20,12 +20,10 @@ let totalCards = 0;
  * Load the tag assignment page
  */
 export async function loadTagAssignmentPage() {
-    const tagSelect = document.getElementById('tag-assignment-select');
+    let tagSelect = document.getElementById('tag-assignment-select');
     const cardsContainer = document.getElementById('tag-assignment-cards');
+    const quickFiltersDiv = document.getElementById('tag-assignment-quick-filters');
     
-    // Setup event listeners
-    setupTagAssignmentListeners();
-
     // Clear existing options except the first one
     tagSelect.innerHTML = '<option value="">-- Select a tag --</option>';
 
@@ -46,6 +44,12 @@ export async function loadTagAssignmentPage() {
         console.error('Error loading tags:', error);
     }
 
+    // Setup event listeners AFTER populating the select
+    setupTagAssignmentListeners();
+
+    // Hide quick filters initially
+    quickFiltersDiv.style.display = 'none';
+
     // Reset the cards container
     cardsContainer.innerHTML = '<div class="info-message">Select a tag to view and manage card assignments</div>';
     
@@ -63,6 +67,7 @@ function setupTagAssignmentListeners() {
     const prevPageBtn = document.getElementById('tag-assignment-prev-page');
     const nextPageBtn = document.getElementById('tag-assignment-next-page');
     const searchInput = document.getElementById('tag-assignment-search');
+    const quickFiltersDiv = document.getElementById('tag-assignment-quick-filters');
     
     // Remove old listeners by cloning elements
     const newTagSelect = tagSelect.cloneNode(true);
@@ -74,10 +79,68 @@ function setupTagAssignmentListeners() {
         if (tagId) {
             currentTagId = parseInt(tagId);
             currentPage = 1;
+            quickFiltersDiv.style.display = 'block';
             loadTagAssignment();
         } else {
             currentTagId = null;
+            quickFiltersDiv.style.display = 'none';
             document.getElementById('tag-assignment-cards').innerHTML = '<div class="info-message">Select a tag to view and manage card assignments</div>';
+        }
+    });
+    
+    // Quick filter buttons
+    document.getElementById('tag-assignment-show-all').addEventListener('click', () => {
+        setQuickFilter('');
+    });
+    
+    document.getElementById('tag-assignment-show-tagged').addEventListener('click', () => {
+        setQuickFilter('tagged');
+    });
+    
+    document.getElementById('tag-assignment-show-untagged').addEventListener('click', () => {
+        setQuickFilter('untagged');
+    });
+    
+    // Bulk untag button
+    document.getElementById('tag-assignment-bulk-untag').addEventListener('click', async () => {
+        if (!currentTagId) return;
+        
+        const taggedCards = document.querySelectorAll('.tag-assignment-card.has-tag');
+        if (taggedCards.length === 0) {
+            alert('No tagged cards on this page to untag');
+            return;
+        }
+        
+        const confirmMsg = `Remove this tag from ${taggedCards.length} card(s) on this page?`;
+        if (!confirm(confirmMsg)) return;
+        
+        let successCount = 0;
+        let failCount = 0;
+        
+        for (const cardEl of taggedCards) {
+            const cardId = parseInt(cardEl.dataset.cardId);
+            try {
+                const data = await apiRequest(`/admin/cards/${cardId}/tags/${currentTagId}`, {
+                    method: 'DELETE'
+                });
+                if (data.success) {
+                    successCount++;
+                    cardEl.classList.remove('has-tag');
+                    const checkbox = cardEl.querySelector('input[type="checkbox"]');
+                    if (checkbox) checkbox.checked = false;
+                } else {
+                    failCount++;
+                }
+            } catch (error) {
+                failCount++;
+            }
+        }
+        
+        alert(`Bulk untag complete!\nSuccess: ${successCount}\nFailed: ${failCount}`);
+        
+        // Reload the page if we're filtering by tagged only
+        if (currentFilters.status === 'tagged') {
+            loadTagAssignment();
         }
     });
     
@@ -93,6 +156,7 @@ function setupTagAssignmentListeners() {
         currentFilters.limit = parseInt(document.getElementById('tag-assignment-limit-filter').value);
         itemsPerPage = currentFilters.limit;
         currentPage = 1;
+        updateQuickFilterButtons();
         loadTagAssignment();
     });
     
@@ -115,6 +179,28 @@ function setupTagAssignmentListeners() {
         currentPage++;
         loadTagAssignment();
     });
+}
+
+/**
+ * Set quick filter and reload
+ */
+function setQuickFilter(status) {
+    if (!currentTagId) return;
+    
+    currentFilters.status = status;
+    document.getElementById('tag-assignment-status-filter').value = status;
+    currentPage = 1;
+    updateQuickFilterButtons();
+    loadTagAssignment();
+}
+
+/**
+ * Update quick filter button active states
+ */
+function updateQuickFilterButtons() {
+    document.getElementById('tag-assignment-show-all').classList.toggle('active', currentFilters.status === '');
+    document.getElementById('tag-assignment-show-tagged').classList.toggle('active', currentFilters.status === 'tagged');
+    document.getElementById('tag-assignment-show-untagged').classList.toggle('active', currentFilters.status === 'untagged');
 }
 
 async function loadTagAssignment() {
@@ -160,8 +246,22 @@ async function loadTagAssignment() {
             return;
         }
 
+        // Sort cards: tagged cards first, then untagged
+        const sortedCards = cards.sort((a, b) => {
+            const aHasTag = a.tags && a.tags.some(t => t.tag_id === currentTagId);
+            const bHasTag = b.tags && b.tags.some(t => t.tag_id === currentTagId);
+            if (aHasTag && !bHasTag) return -1;
+            if (!aHasTag && bHasTag) return 1;
+            return 0;
+        });
+
+        // Count tagged vs untagged in current page
+        const taggedCount = sortedCards.filter(card => 
+            card.tags && card.tags.some(t => t.tag_id === currentTagId)
+        ).length;
+
         // Render cards with checkboxes
-        cardsContainer.innerHTML = cards.map(card => {
+        cardsContainer.innerHTML = sortedCards.map(card => {
             const hasTag = card.tags && card.tags.some(t => t.tag_id === currentTagId);
             return `
                 <div class="tag-assignment-card ${hasTag ? 'has-tag' : ''}" data-card-id="${card.card_id}">
@@ -175,6 +275,14 @@ async function loadTagAssignment() {
                 </div>
             `;
         }).join('');
+        
+        // Add count indicator
+        if (currentFilters.status === '') {
+            const countInfo = document.createElement('div');
+            countInfo.className = 'tag-count-info';
+            countInfo.innerHTML = `<strong>On this page:</strong> ${taggedCount} with tag, ${cards.length - taggedCount} without tag`;
+            cardsContainer.insertBefore(countInfo, cardsContainer.firstChild);
+        }
         
         updatePagination();
     } catch (error) {
