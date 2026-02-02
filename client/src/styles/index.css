@@ -620,29 +620,30 @@ h3 {
   font-weight: 500;
 }
 
-.btn-remove-player {
-  width: 28px;
-  height: 28px;
+/* Unified remove icon button - transparent with red icon */
+.btn-remove-icon {
+  width: 24px;
+  height: 24px;
   border: none;
-  background-color: var(--color-danger);
-  color: var(--color-white);
-  border-radius: 50%;
-  font-size: 20px;
-  line-height: 1;
+  background-color: transparent;
+  color: var(--color-danger);
+  font-size: 26px;
   cursor: pointer;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+  padding: 0;
+  line-height: 1;
 }
 
-.btn-remove-player:hover:not(:disabled) {
-  background-color: #c82333;
+.btn-remove-icon:hover:not(:disabled) {
+  color: #c82333;
   transform: scale(1.1);
 }
 
-.btn-remove-player:disabled {
+.btn-remove-icon:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
@@ -1014,20 +1015,6 @@ h3 {
   line-height: 1.4;
 }
 
-.remove-card-btn-mini {
-  width: 24px;
-  height: 24px;
-  border: none;
-  background-color: transparent;
-  color: var(--color-danger);
-  font-size: 26px;
-  cursor: pointer;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .drag-hint-small {
   text-align: center;
   font-size: 11px;
@@ -1081,23 +1068,6 @@ h3 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.remove-card-btn {
-  width: 24px;
-  height: 24px;
-  border: none;
-  background-color: var(--color-danger);
-  color: var(--color-white);
-  border-radius: 50%;
-  font-size: 18px;
-  line-height: 1;
-  cursor: pointer;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 0 0.1em 0;
 }
 
 .empty-selection {
@@ -1409,33 +1379,6 @@ h3 {
   cursor: not-allowed;
 }
 
-.btn-remove-inline {
-  width: 32px;
-  height: 32px;
-  border: none;
-  background-color: var(--color-danger);
-  color: var(--color-white);
-  border-radius: 50%;
-  font-size: 14px;
-  line-height: 1;
-  cursor: pointer;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.btn-remove-inline:hover:not(:disabled) {
-  background-color: #c82333;
-  transform: scale(1.1);
-}
-
-.btn-remove-inline:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
 .czar-badge {
   display: flex;
   align-items: center;
@@ -1732,12 +1675,16 @@ h3 {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
+  gap: var(--spacing-md);
 }
 
 .player-name-score .player-name {
   font-weight: 600;
   font-size: 16px;
   color: var(--color-gray-dark);
+  flex: 1;
+  text-align: left;
 }
 
 .scoreboard-item.winner .player-name-score .player-name {

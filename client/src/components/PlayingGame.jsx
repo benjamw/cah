@@ -345,6 +345,8 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
             responseCards={allResponseCards}
             showToast={showToast}
             onOpenTagEditor={handleOpenTagEditor}
+            onRefreshHand={handleRefreshHand}
+            refreshing={refreshing}
           />
         <Scoreboard 
           players={gameState.players || []} 
@@ -709,7 +711,7 @@ function PlayerManagement({ players, gameData, onRemovePlayer, onTogglePause, re
                 )}
                 {player.id !== gameData.playerId && (
                   <button
-                    className="btn-remove-inline"
+                    className="btn-remove-icon"
                     onClick={() => onRemovePlayer(player.id)}
                     disabled={removing === player.id}
                     aria-label="Remove player"

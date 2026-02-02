@@ -167,7 +167,7 @@ function CardSelector({
                       {card.copy}
                     </div>
                     <button
-                      className="remove-card-btn-mini"
+                      className="btn-remove-icon"
                       onClick={() => handleRemoveCard(cardId)}
                       aria-label="Remove card"
                     >

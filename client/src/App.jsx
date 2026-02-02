@@ -10,7 +10,25 @@ function App() {
   const [gameData, setGameData] = useState(null);
   const [view, setView] = useState('join'); // 'join', 'create', 'game', 'random'
   const [loading, setLoading] = useState(true);
-  const [playerName, setPlayerName] = useState(''); // Shared name between join and create
+  // Load saved player name from localStorage, default to empty string
+  const [playerName, setPlayerName] = useState(() => {
+    try {
+      return localStorage.getItem('cah_player_name') || '';
+    } catch {
+      return '';
+    }
+  });
+
+  // Save player name to localStorage whenever it changes
+  useEffect(() => {
+    if (playerName) {
+      try {
+        localStorage.setItem('cah_player_name', playerName);
+      } catch (err) {
+        console.error('Failed to save player name:', err);
+      }
+    }
+  }, [playerName]);
 
   useEffect(() => {
     let mounted = true;

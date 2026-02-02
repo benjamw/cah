@@ -113,7 +113,7 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
                 </div>
                 {gameData.isCreator && ! player.is_creator && (
                   <button
-                    className="btn-remove-player"
+                    className="btn-remove-icon"
                     onClick={() => handleRemovePlayer(player.id)}
                     disabled={removing === player.id}
                     aria-label="Remove player"

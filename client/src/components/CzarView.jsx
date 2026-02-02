@@ -4,7 +4,7 @@ import { faTrophy, faTag, faBoxArchive } from '@fortawesome/free-solid-svg-icons
 import { pickWinner, setNextCzar, forceEarlyReview } from '../utils/api';
 import CardSwiper from './CardSwiper';
 
-function CzarView({ gameState, gameData, promptCard, responseCards, showToast, onOpenTagEditor }) {
+function CzarView({ gameState, gameData, promptCard, responseCards, showToast, onOpenTagEditor, onRefreshHand, refreshing }) {
   const [currentSubmissionIndex, setCurrentSubmissionIndex] = useState(0);
   const [selecting, setSelecting] = useState(false);
   const [error, setError] = useState('');
@@ -297,6 +297,8 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
               onCardSelect={null}
               cardType="response"
               disabled={true}
+              onRefreshHand={onRefreshHand}
+              refreshing={refreshing}
               onOpenTagEditor={onOpenTagEditor}
             />
           </div>
@@ -363,6 +365,8 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
               onCardSelect={null}
               cardType="response"
               disabled={true}
+              onRefreshHand={onRefreshHand}
+              refreshing={refreshing}
               onOpenTagEditor={onOpenTagEditor}
             />
           </div>
