@@ -9,6 +9,11 @@ import { escapeQuotes } from './utils.js';
 let packsList, createPackModal, createPackForm, savePackBtn;
 let selectAllPacksCheckbox, bulkActivateBtn, bulkDeactivateBtn, bulkControlsDiv;
 
+// Pagination state
+let currentPage = 1;
+let itemsPerPage = 20;
+let allPacks = [];
+
 /**
  * Initialize packs module DOM elements
  */
@@ -28,17 +33,10 @@ export function initPacks() {
  */
 export function setupPacksListeners() {
     document.getElementById('create-pack-btn').addEventListener('click', () => {
-        document.getElementById('pack-modal-title').textContent = 'Create Pack';
-        document.getElementById('pack-id').value = '';
-        document.getElementById('pack-name').value = '';
-        document.getElementById('pack-version').value = '';
-        document.getElementById('pack-release-date').value = '';
-        document.getElementById('pack-data').value = '';
-        document.getElementById('pack-active').checked = true;
-        createPackModal.classList.add('active');
+        const returnUrl = window.location.pathname + window.location.search;
+        const createUrl = `/admin/edit-pack.html?return=${encodeURIComponent(returnUrl)}`;
+        window.location.href = createUrl;
     });
-
-    savePackBtn.addEventListener('click', handleSavePack);
     
     // Select all checkbox
     selectAllPacksCheckbox.addEventListener('change', (e) => {
@@ -50,6 +48,26 @@ export function setupPacksListeners() {
     // Bulk action buttons
     bulkActivateBtn.addEventListener('click', () => bulkTogglePacks(true));
     bulkDeactivateBtn.addEventListener('click', () => bulkTogglePacks(false));
+    
+    // Pagination
+    document.querySelectorAll('.pagination-prev').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderPacks(allPacks);
+            }
+        });
+    });
+    
+    document.querySelectorAll('.pagination-next').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const totalPages = Math.ceil(allPacks.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderPacks(allPacks);
+            }
+        });
+    });
 }
 
 /**
@@ -62,7 +80,9 @@ export async function loadPacks() {
         const data = await apiRequest('/packs/list-all');
 
         if (data.success) {
-            renderPacks(data.data.packs);
+            allPacks = data.data.packs;
+            currentPage = 1;
+            renderPacks(allPacks);
         } else {
             packsList.innerHTML = '<div class="loading">Failed to load packs</div>';
         }
@@ -75,13 +95,19 @@ function renderPacks(packs) {
     if (packs.length === 0) {
         packsList.innerHTML = '<div class="loading">No packs found</div>';
         bulkControlsDiv.style.display = 'none';
+        updatePagination(0);
         return;
     }
 
     // Show bulk controls if we have packs
     bulkControlsDiv.style.display = 'block';
 
-    packsList.innerHTML = packs.map(pack => {
+    // Paginate
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedPacks = packs.slice(startIndex, endIndex);
+
+    packsList.innerHTML = paginatedPacks.map(pack => {
         const releaseDate = pack.release_date ? new Date(pack.release_date).toLocaleDateString() : 'N/A';
         const version = pack.version ? (pack.version.toLowerCase().startsWith('v') ? pack.version : `v${pack.version}`) : '';
         const isActive = pack.active === 1 || pack.active === '1' || pack.active === true;
@@ -95,7 +121,7 @@ function renderPacks(packs) {
                             <span class="badge badge-${isActive ? 'active' : 'inactive'}">
                                 ${isActive ? 'Active' : 'Inactive'}
                             </span>
-                            <a href="#" class="pack-name-link" onclick="event.preventDefault(); switchToCardsWithPackFilter(${pack.pack_id});" title="View cards in this pack">
+                            <a href="/admin/cards.html?pack=${pack.pack_id}" class="pack-name-link" title="View cards in this pack">
                                 ${pack.name} ${version}
                             </a>
                         </div>
@@ -107,7 +133,7 @@ function renderPacks(packs) {
                     </div>
                 </div>
                 <div class="item-actions">
-                    <button class="btn btn-small btn-primary" onclick="editPack(${pack.pack_id}, '${escapeQuotes(pack.name)}', '${escapeQuotes(pack.version || '')}', '${pack.release_date || ''}', '${escapeQuotes(pack.data || '')}', ${isActive})">Edit</button>
+                    <button class="btn btn-small btn-primary" onclick="editPack(${pack.pack_id})">Edit</button>
                     <button class="btn btn-small btn-secondary" onclick="togglePack(${pack.pack_id}, ${!isActive})">
                         ${isActive ? 'Deactivate' : 'Activate'}
                     </button>
@@ -120,28 +146,34 @@ function renderPacks(packs) {
     // Reset checkbox states
     selectAllPacksCheckbox.checked = false;
     updateBulkActionButtons();
+    updatePagination(packs.length);
+}
+
+function updatePagination(total) {
+    const totalPages = Math.ceil(total / itemsPerPage);
+    const pageText = `Page ${currentPage} of ${totalPages} (${total} packs)`;
+    const prevDisabled = currentPage <= 1;
+    const nextDisabled = currentPage >= totalPages || total === 0;
+    
+    // Update all pagination controls
+    document.querySelectorAll('.pagination-info').forEach(el => {
+        el.textContent = pageText;
+    });
+    document.querySelectorAll('.pagination-prev').forEach(btn => {
+        btn.disabled = prevDisabled;
+    });
+    document.querySelectorAll('.pagination-next').forEach(btn => {
+        btn.disabled = nextDisabled;
+    });
 }
 
 /**
- * Edit a pack - opens modal with pack data
+ * Edit a pack - navigate to edit page
  */
-export function editPack(packId, name, version, releaseDate, data, active) {
-    document.getElementById('pack-modal-title').textContent = 'Edit Pack';
-    document.getElementById('pack-id').value = packId;
-    document.getElementById('pack-name').value = name;
-    document.getElementById('pack-version').value = version;
-    
-    if (releaseDate && releaseDate !== 'null') {
-        const date = new Date(releaseDate);
-        const localDatetime = date.toISOString().slice(0, 16);
-        document.getElementById('pack-release-date').value = localDatetime;
-    } else {
-        document.getElementById('pack-release-date').value = '';
-    }
-    
-    document.getElementById('pack-data').value = data === 'null' ? '' : data;
-    document.getElementById('pack-active').checked = active;
-    createPackModal.classList.add('active');
+export function editPack(packId) {
+    const returnUrl = window.location.pathname + window.location.search;
+    const editUrl = `/admin/edit-pack.html?id=${packId}&return=${encodeURIComponent(returnUrl)}`;
+    window.location.href = editUrl;
 }
 
 async function handleSavePack() {

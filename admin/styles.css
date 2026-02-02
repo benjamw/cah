@@ -714,3 +714,116 @@ body {
     font-size: 0.95rem;
     grid-column: 1 / -1;
 }
+
+/* Clickable pack and tag names */
+.pack-name-link,
+.tag-name-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.pack-name-link:hover,
+.tag-name-link:hover {
+    color: #1d4ed8;
+    text-decoration: underline;
+}
+
+/* Edit Pages */
+.edit-page-container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.edit-form {
+    background: var(--card-bg);
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+}
+
+.edit-form .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.edit-form .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.edit-form .form-group input[type="text"],
+.edit-form .form-group input[type="datetime-local"],
+.edit-form .form-group textarea,
+.edit-form .form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.edit-form .form-group input:focus,
+.edit-form .form-group textarea:focus,
+.edit-form .form-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.edit-form .form-group small {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--secondary-color);
+    font-size: 0.875rem;
+}
+
+/* Checkbox labels should be inline */
+.edit-form .form-group label:has(input[type="checkbox"]),
+.form-group label:has(input[type="checkbox"]) {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    margin-bottom: 0;
+}
+
+.edit-form .form-group input[type="checkbox"],
+.form-group input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    cursor: pointer;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.status-message.success {
+    background: #dcfce7;
+    color: #166534;
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin-top: 1rem;
+}
+
+.status-message.error {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin-top: 1rem;
+}
+
+/* Pagination spacing */
+.pagination-top {
+    margin-bottom: 1rem;
+}
+
+.pagination-bottom {
+    margin-top: 1rem;
+}

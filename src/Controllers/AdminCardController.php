@@ -224,6 +224,34 @@ class AdminCardController
     }
 
     /**
+     * Get a single card by ID with its tags and packs
+     *
+     * @param array<string, string> $args Route arguments
+     */
+    public function getCard(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $cardId = (int) $args['cardId'];
+
+            $card = Card::getById($cardId);
+            if ( ! $card) {
+                return JsonResponse::notFound($response, 'Card not found');
+            }
+
+            // Get card's tags and packs
+            $tags = Tag::getCardTags($cardId, false); // Get all tags, not just active
+            $packs = Pack::getCardPacks($cardId, false); // Get all packs, not just active
+
+            $card['tags'] = $tags;
+            $card['packs'] = $packs;
+
+            return JsonResponse::success($response, ['card' => $card]);
+        } catch (\Exception $e) {
+            return JsonResponse::error($response, $e->getMessage(), 500);
+        }
+    }
+
+    /**
      * Edit a card
      *
      * @param array<string, string> $args Route arguments
@@ -254,6 +282,46 @@ class AdminCardController
             }
 
             $affected = Card::update($cardId, $updateData);
+
+            // Handle tags update if provided
+            if (isset($data['tags']) && is_array($data['tags'])) {
+                // Get current tags
+                $currentTags = Tag::getCardTags($cardId, false); // Get all tags, not just active
+                $currentTagIds = array_column($currentTags, 'tag_id');
+                $newTagIds = array_map('intval', $data['tags']);
+                
+                // Remove tags that are no longer selected
+                $tagsToRemove = array_diff($currentTagIds, $newTagIds);
+                foreach ($tagsToRemove as $tagId) {
+                    Tag::removeFromCard($cardId, $tagId);
+                }
+                
+                // Add new tags
+                $tagsToAdd = array_diff($newTagIds, $currentTagIds);
+                foreach ($tagsToAdd as $tagId) {
+                    Tag::addToCard($cardId, $tagId);
+                }
+            }
+
+            // Handle packs update if provided
+            if (isset($data['packs']) && is_array($data['packs'])) {
+                // Get current packs
+                $currentPacks = Pack::getCardPacks($cardId, false); // Get all packs, not just active
+                $currentPackIds = array_column($currentPacks, 'pack_id');
+                $newPackIds = array_map('intval', $data['packs']);
+                
+                // Remove packs that are no longer selected
+                $packsToRemove = array_diff($currentPackIds, $newPackIds);
+                foreach ($packsToRemove as $packId) {
+                    Pack::removeFromCard($cardId, $packId);
+                }
+                
+                // Add new packs
+                $packsToAdd = array_diff($newPackIds, $currentPackIds);
+                foreach ($packsToAdd as $packId) {
+                    Pack::addToCard($cardId, $packId);
+                }
+            }
 
             return JsonResponse::success($response, [
                 'card_id' => $cardId,

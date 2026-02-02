@@ -4,25 +4,37 @@
 
 import { apiRequest, getApiBaseUrl, getAuthToken } from './api.js';
 import { hideModal } from './utils.js';
+import { createStateManager } from './url-state.js';
 
-// State
-let currentPage = 1;
-let itemsPerPage = 50;
-let currentFilters = {
+// State schema for URL parameters
+const STATE_SCHEMA = {
+    page: { type: 'int', default: 1 },
+    type: { type: 'string', default: '' },
+    active: { type: 'string', default: '1' },
+    tag: { type: 'array', default: [] },
+    pack: { type: 'array', default: [] },
+    packStatus: { type: 'string', default: '' },
+    search: { type: 'string', default: '' },
+    limit: { type: 'int', default: 50 }
+};
+
+// State defaults (values to exclude from URL if they match)
+const STATE_DEFAULTS = {
+    page: 1,
     type: '',
     active: '1',
-    tags: [],
-    packs: [],
     packStatus: '',
     search: '',
     limit: 50
 };
 
+// Create state manager
+const stateManager = createStateManager(STATE_SCHEMA, { defaults: STATE_DEFAULTS });
+
 // DOM elements (initialized in initCards)
 let cardsList, cardTypeFilter, cardActiveFilter, cardTagsFilter, cardPackFilter, cardPackStatusFilter, cardSearchFilter, cardLimitFilter;
-let prevPageBtn, nextPageBtn, pageInfo;
 let importModal, uploadCsvBtn, csvFileInput, importStatus, importCardType, importFormatInfo;
-let editCardModal, saveCardBtn;
+let editCardModalElement, saveCardBtn;
 
 /**
  * Initialize cards module DOM elements
@@ -36,16 +48,14 @@ export function initCards() {
     cardPackStatusFilter = document.getElementById('card-pack-status-filter');
     cardSearchFilter = document.getElementById('card-search-filter');
     cardLimitFilter = document.getElementById('card-limit-filter');
-    prevPageBtn = document.getElementById('prev-page');
-    nextPageBtn = document.getElementById('next-page');
-    pageInfo = document.getElementById('page-info');
+    
     importModal = document.getElementById('import-modal');
     uploadCsvBtn = document.getElementById('upload-csv-btn');
     csvFileInput = document.getElementById('csv-file');
     importStatus = document.getElementById('import-status');
     importCardType = document.getElementById('import-card-type');
     importFormatInfo = document.getElementById('import-format-info');
-    editCardModal = document.getElementById('edit-card-modal');
+    editCardModalElement = document.getElementById('edit-card-modal');
     saveCardBtn = document.getElementById('save-card-btn');
 }
 
@@ -54,15 +64,16 @@ export function initCards() {
  */
 export function setupCardsListeners() {
     document.getElementById('apply-filters-btn').addEventListener('click', () => {
-        currentFilters.type = cardTypeFilter.value;
-        currentFilters.active = cardActiveFilter.value;
-        currentFilters.tags = Array.from(cardTagsFilter.selectedOptions).map(opt => opt.value).filter(v => v);
-        currentFilters.packs = Array.from(cardPackFilter.selectedOptions).map(opt => opt.value).filter(v => v);
-        currentFilters.packStatus = cardPackStatusFilter.value;
-        currentFilters.search = cardSearchFilter.value.trim();
-        currentFilters.limit = parseInt(cardLimitFilter.value);
-        itemsPerPage = currentFilters.limit;
-        currentPage = 1;
+        stateManager.set({
+            type: cardTypeFilter.value,
+            active: cardActiveFilter.value,
+            tag: Array.from(cardTagsFilter.selectedOptions).map(opt => opt.value).filter(v => v),
+            pack: Array.from(cardPackFilter.selectedOptions).map(opt => opt.value).filter(v => v),
+            packStatus: cardPackStatusFilter.value,
+            search: cardSearchFilter.value.trim(),
+            limit: parseInt(cardLimitFilter.value),
+            page: 1
+        });
         loadCards();
     });
     
@@ -73,16 +84,23 @@ export function setupCardsListeners() {
         }
     });
 
-    prevPageBtn.addEventListener('click', () => {
-        if (currentPage > 1) {
-            currentPage--;
-            loadCards();
-        }
+    // Pagination (handles all pagination controls via class selectors)
+    document.querySelectorAll('.pagination-prev').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const state = stateManager.get();
+            if (state.page > 1) {
+                stateManager.setValue('page', state.page - 1);
+                loadCards();
+            }
+        });
     });
 
-    nextPageBtn.addEventListener('click', () => {
-        currentPage++;
-        loadCards();
+    document.querySelectorAll('.pagination-next').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const state = stateManager.get();
+            stateManager.setValue('page', state.page + 1);
+            loadCards();
+        });
     });
 
     document.getElementById('import-cards-btn').addEventListener('click', () => {
@@ -107,12 +125,23 @@ export function setPackFilter(packId) {
         targetOption.selected = true;
     }
     
-    // Update current filters
-    currentFilters.packs = [String(packId)];
-    currentPage = 1;
-    
-    // Reload cards with the new filter
+    // Update state and reload
+    stateManager.set({ pack: [String(packId)], page: 1 });
     loadCards();
+}
+
+/**
+ * Restore filters from URL state
+ */
+export function restoreFiltersFromURL() {
+    // Apply state to form elements
+    stateManager.applyToForm({
+        type: cardTypeFilter,
+        active: cardActiveFilter,
+        packStatus: cardPackStatusFilter,
+        search: cardSearchFilter,
+        limit: cardLimitFilter
+    });
 }
 
 /**
@@ -128,6 +157,14 @@ export async function loadTagsFilter() {
                 data.data.tags.map(tag =>
                     `<option value="${tag.tag_id}">${tag.name} (${tag.total_card_count || 0})</option>`
                 ).join('');
+            
+            // Restore tag selection from URL
+            const state = stateManager.get();
+            if (state.tag.length > 0) {
+                Array.from(cardTagsFilter.options).forEach(opt => {
+                    opt.selected = state.tag.includes(opt.value);
+                });
+            }
         }
     } catch (error) {
         cardTagsFilter.innerHTML = '<option value="">Error loading tags</option>';
@@ -149,6 +186,14 @@ export async function loadPacksFilter() {
                     const count = (pack.response_card_count || 0) + (pack.prompt_card_count || 0);
                     return `<option value="${pack.pack_id}">${pack.name}${version} (${count})</option>`;
                 }).join('');
+            
+            // Restore pack selection from URL
+            const state = stateManager.get();
+            if (state.pack.length > 0) {
+                Array.from(cardPackFilter.options).forEach(opt => {
+                    opt.selected = state.pack.includes(opt.value);
+                });
+            }
         }
     } catch (error) {
         cardPackFilter.innerHTML = '<option value="">Error loading packs</option>';
@@ -159,32 +204,33 @@ export async function loadPacksFilter() {
  * Load and display cards
  */
 export async function loadCards() {
+    const state = stateManager.get();
     cardsList.innerHTML = '<div class="loading">Loading cards...</div>';
 
     try {
-        const offset = (currentPage - 1) * itemsPerPage;
+        const offset = (state.page - 1) * state.limit;
         const params = new URLSearchParams({
-            limit: itemsPerPage.toString(),
+            limit: state.limit.toString(),
             offset: offset.toString()
         });
 
-        if (currentFilters.type) {
-            params.append('type', currentFilters.type);
+        if (state.type) {
+            params.append('type', state.type);
         }
-        if (currentFilters.active !== '') {
-            params.append('active', currentFilters.active);
+        if (state.active !== '') {
+            params.append('active', state.active);
         }
-        if (currentFilters.tags && currentFilters.tags.length > 0) {
-            params.append('tag_id', currentFilters.tags[0]);
+        if (state.tag && state.tag.length > 0) {
+            params.append('tag_id', state.tag[0]);
         }
-        if (currentFilters.packs && currentFilters.packs.length > 0) {
-            params.append('pack_id', currentFilters.packs[0]);
+        if (state.pack && state.pack.length > 0) {
+            params.append('pack_id', state.pack[0]);
         }
-        if (currentFilters.packStatus !== '') {
-            params.append('pack_active', currentFilters.packStatus);
+        if (state.packStatus !== '') {
+            params.append('pack_active', state.packStatus);
         }
-        if (currentFilters.search) {
-            params.append('search', currentFilters.search);
+        if (state.search) {
+            params.append('search', state.search);
         }
 
         const data = await apiRequest(`/admin/cards/list?${params}`);
@@ -242,17 +288,39 @@ function renderCards(cards) {
 }
 
 function updatePagination(total) {
-    const totalPages = Math.ceil(total / itemsPerPage);
-    pageInfo.textContent = `Page ${currentPage} of ${totalPages} (${total} cards)`;
-    prevPageBtn.disabled = currentPage <= 1;
-    nextPageBtn.disabled = currentPage >= totalPages;
+    const state = stateManager.get();
+    const totalPages = Math.ceil(total / state.limit);
+    const pageText = `Page ${state.page} of ${totalPages} (${total} cards)`;
+    const prevDisabled = state.page <= 1;
+    const nextDisabled = state.page >= totalPages;
+    
+    // Update all pagination controls
+    document.querySelectorAll('.pagination-info').forEach(el => {
+        el.textContent = pageText;
+    });
+    document.querySelectorAll('.pagination-prev').forEach(btn => {
+        btn.disabled = prevDisabled;
+    });
+    document.querySelectorAll('.pagination-next').forEach(btn => {
+        btn.disabled = nextDisabled;
+    });
 }
 
 /**
- * Edit a card - opens modal with card data
+ * Edit a card - navigate to edit page
  * @param {Object} card - Card data
  */
-export async function editCard(card) {
+export function editCard(card) {
+    // Build return URL with current query params
+    const returnUrl = window.location.pathname + window.location.search;
+    const editUrl = `/admin/edit-card.html?id=${card.card_id}&return=${encodeURIComponent(returnUrl)}`;
+    window.location.href = editUrl;
+}
+
+/**
+ * Legacy function for modal-based editing (kept for compatibility)
+ */
+export async function editCardModal(card) {
     document.getElementById('edit-card-id').value = card.card_id;
     document.getElementById('edit-card-text').value = card.copy;
     document.getElementById('edit-card-type').value = card.type;
@@ -261,7 +329,7 @@ export async function editCard(card) {
     // Load tags and packs for the select boxes
     await loadCardTagsAndPacks(card.card_id);
     
-    editCardModal.classList.add('active');
+    editCardModalElement.classList.add('active');
 }
 
 /**

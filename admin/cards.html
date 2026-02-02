@@ -86,14 +86,20 @@
                     </div>
                 </div>
 
+                <div class="pagination pagination-top">
+                    <button class="btn btn-secondary pagination-prev" disabled>Previous</button>
+                    <span class="pagination-info">Page 1</span>
+                    <button class="btn btn-secondary pagination-next">Next</button>
+                </div>
+
                 <div id="cards-list" class="data-list">
                     <div class="loading">Loading cards...</div>
                 </div>
 
-                <div class="pagination">
-                    <button id="prev-page" class="btn btn-secondary" disabled>Previous</button>
-                    <span id="page-info">Page 1</span>
-                    <button id="next-page" class="btn btn-secondary">Next</button>
+                <div class="pagination pagination-bottom">
+                    <button class="btn btn-secondary pagination-prev" disabled>Previous</button>
+                    <span class="pagination-info">Page 1</span>
+                    <button class="btn btn-secondary pagination-next">Next</button>
                 </div>
             </section>
         </main>
@@ -184,16 +190,19 @@
 
     <script type="module">
         import '/admin/auth-check.js';
-        import { initCards, setupCardsListeners, loadCards, loadTagsFilter, loadPacksFilter, editCard, deleteCard } from '/admin/js/cards.js';
+        import { initCards, setupCardsListeners, loadCards, loadTagsFilter, loadPacksFilter, restoreFiltersFromURL, editCard, deleteCard } from '/admin/js/cards.js';
         import { hideModal } from '/admin/js/utils.js';
 
         // Initialize cards module
         initCards();
         setupCardsListeners();
         
+        // Restore state from URL
+        restoreFiltersFromURL();
+        
         // Load initial data
-        loadTagsFilter();
-        loadPacksFilter();
+        await loadTagsFilter();
+        await loadPacksFilter();
         loadCards();
 
         // Setup modal close buttons

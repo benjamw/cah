@@ -7,11 +7,41 @@ import { apiRequest } from './api.js';
 // DOM elements (initialized in initGames)
 let gamesList;
 
+// Pagination state
+let currentPage = 1;
+let itemsPerPage = 20;
+let allGames = [];
+
 /**
  * Initialize games module DOM elements
  */
 export function initGames() {
     gamesList = document.getElementById('games-list');
+    setupPaginationListeners();
+}
+
+/**
+ * Setup pagination event listeners
+ */
+function setupPaginationListeners() {
+    document.querySelectorAll('.pagination-prev').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderGames(allGames);
+            }
+        });
+    });
+    
+    document.querySelectorAll('.pagination-next').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const totalPages = Math.ceil(allGames.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderGames(allGames);
+            }
+        });
+    });
 }
 
 /**
@@ -24,7 +54,9 @@ export async function loadGames() {
         const data = await apiRequest('/admin/games/list');
 
         if (data.success) {
-            renderGames(data.data.games);
+            allGames = data.data.games;
+            currentPage = 1;
+            renderGames(allGames);
         } else {
             gamesList.innerHTML = '<div class="loading">Failed to load games</div>';
         }
@@ -36,10 +68,16 @@ export async function loadGames() {
 function renderGames(games) {
     if (games.length === 0) {
         gamesList.innerHTML = '<div class="loading">No active games</div>';
+        updatePagination(0);
         return;
     }
 
-    gamesList.innerHTML = games.map(game => {
+    // Paginate
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedGames = games.slice(startIndex, endIndex);
+
+    gamesList.innerHTML = paginatedGames.map(game => {
         const playerData = typeof game.player_data === 'string'
             ? JSON.parse(game.player_data)
             : game.player_data;
@@ -66,6 +104,26 @@ function renderGames(games) {
             </div>
         `;
     }).join('');
+    
+    updatePagination(games.length);
+}
+
+function updatePagination(total) {
+    const totalPages = Math.ceil(total / itemsPerPage);
+    const pageText = `Page ${currentPage} of ${totalPages} (${total} games)`;
+    const prevDisabled = currentPage <= 1;
+    const nextDisabled = currentPage >= totalPages || total === 0;
+    
+    // Update all pagination controls
+    document.querySelectorAll('.pagination-info').forEach(el => {
+        el.textContent = pageText;
+    });
+    document.querySelectorAll('.pagination-prev').forEach(btn => {
+        btn.disabled = prevDisabled;
+    });
+    document.querySelectorAll('.pagination-next').forEach(btn => {
+        btn.disabled = nextDisabled;
+    });
 }
 
 /**

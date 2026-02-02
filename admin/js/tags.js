@@ -8,6 +8,11 @@ import { escapeQuotes } from './utils.js';
 // DOM elements (initialized in initTags)
 let tagsList, createTagModal, createTagForm, saveTagBtn;
 
+// Pagination state
+let currentPage = 1;
+let itemsPerPage = 50;
+let allTags = [];
+
 /**
  * Initialize tags module DOM elements
  */
@@ -23,15 +28,30 @@ export function initTags() {
  */
 export function setupTagsListeners() {
     document.getElementById('create-tag-btn').addEventListener('click', () => {
-        document.getElementById('tag-modal-title').textContent = 'Create Tag';
-        document.getElementById('tag-id').value = '';
-        document.getElementById('tag-name').value = '';
-        document.getElementById('tag-description').value = '';
-        document.getElementById('tag-active').checked = true;
-        createTagModal.classList.add('active');
+        const returnUrl = window.location.pathname + window.location.search;
+        const createUrl = `/admin/edit-tag.html?return=${encodeURIComponent(returnUrl)}`;
+        window.location.href = createUrl;
     });
-
-    saveTagBtn.addEventListener('click', handleSaveTag);
+    
+    // Pagination
+    document.querySelectorAll('.pagination-prev').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTags(allTags);
+            }
+        });
+    });
+    
+    document.querySelectorAll('.pagination-next').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const totalPages = Math.ceil(allTags.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTags(allTags);
+            }
+        });
+    });
 }
 
 /**
@@ -44,7 +64,9 @@ export async function loadTags() {
         const data = await apiRequest('/tags/list');
 
         if (data.success) {
-            renderTags(data.data.tags);
+            allTags = data.data.tags;
+            currentPage = 1;
+            renderTags(allTags);
         } else {
             tagsList.innerHTML = '<div class="loading">Failed to load tags</div>';
         }
@@ -56,10 +78,16 @@ export async function loadTags() {
 function renderTags(tags) {
     if (tags.length === 0) {
         tagsList.innerHTML = '<div class="loading">No tags found</div>';
+        updatePagination(0);
         return;
     }
 
-    tagsList.innerHTML = tags.map(tag => {
+    // Paginate
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const paginatedTags = tags.slice(startIndex, endIndex);
+
+    tagsList.innerHTML = paginatedTags.map(tag => {
         const isActive = tag.active === 1 || tag.active === '1' || tag.active === true;
         return `
             <div class="tag-item" data-id="${tag.tag_id}">
@@ -68,7 +96,9 @@ function renderTags(tags) {
                         <span class="badge badge-${isActive ? 'active' : 'inactive'}">
                             ${isActive ? 'Active' : 'Inactive'}
                         </span>
-                        ${tag.name}
+                        <a href="/admin/tag-assignment.html?tag=${tag.tag_id}" class="tag-name-link" title="Manage tag assignments">
+                            ${tag.name}
+                        </a>
                     </div>
                     <div class="item-meta">
                         ${tag.description || 'No description'} |
@@ -77,7 +107,7 @@ function renderTags(tags) {
                     </div>
                 </div>
                 <div class="item-actions">
-                    <button class="btn btn-small btn-primary" onclick="editTag(${tag.tag_id}, '${escapeQuotes(tag.name)}', '${escapeQuotes(tag.description || '')}', ${isActive})">Edit</button>
+                    <button class="btn btn-small btn-primary" onclick="editTag(${tag.tag_id})">Edit</button>
                     <button class="btn btn-small btn-secondary" onclick="toggleTag(${tag.tag_id}, ${!isActive})">
                         ${isActive ? 'Deactivate' : 'Activate'}
                     </button>
@@ -86,18 +116,35 @@ function renderTags(tags) {
             </div>
         `;
     }).join('');
+    
+    updatePagination(tags.length);
+}
+
+function updatePagination(total) {
+    const totalPages = Math.ceil(total / itemsPerPage);
+    const pageText = `Page ${currentPage} of ${totalPages} (${total} tags)`;
+    const prevDisabled = currentPage <= 1;
+    const nextDisabled = currentPage >= totalPages || total === 0;
+    
+    // Update all pagination controls
+    document.querySelectorAll('.pagination-info').forEach(el => {
+        el.textContent = pageText;
+    });
+    document.querySelectorAll('.pagination-prev').forEach(btn => {
+        btn.disabled = prevDisabled;
+    });
+    document.querySelectorAll('.pagination-next').forEach(btn => {
+        btn.disabled = nextDisabled;
+    });
 }
 
 /**
- * Edit a tag - opens modal with tag data
+ * Edit a tag - navigate to edit page
  */
-export function editTag(tagId, name, description, active) {
-    document.getElementById('tag-modal-title').textContent = 'Edit Tag';
-    document.getElementById('tag-id').value = tagId;
-    document.getElementById('tag-name').value = name;
-    document.getElementById('tag-description').value = description;
-    document.getElementById('tag-active').checked = active;
-    createTagModal.classList.add('active');
+export function editTag(tagId) {
+    const returnUrl = window.location.pathname + window.location.search;
+    const editUrl = `/admin/edit-tag.html?id=${tagId}&return=${encodeURIComponent(returnUrl)}`;
+    window.location.href = editUrl;
 }
 
 async function handleSaveTag() {

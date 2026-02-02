@@ -19,6 +19,27 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 class AdminPackController
 {
     /**
+     * Get a single pack by ID
+     *
+     * @param array<string, string> $args Route arguments
+     */
+    public function getPack(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $packId = (int) $args['packId'];
+
+            $pack = Pack::find($packId);
+            if ( ! $pack) {
+                return JsonResponse::notFound($response, 'Pack not found');
+            }
+
+            return JsonResponse::success($response, ['pack' => $pack]);
+        } catch (\Exception $e) {
+            return JsonResponse::error($response, $e->getMessage(), 500);
+        }
+    }
+
+    /**
      * Create a pack
      */
     public function createPack(Request $request, Response $response): Response

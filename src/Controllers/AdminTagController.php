@@ -19,6 +19,27 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 class AdminTagController
 {
     /**
+     * Get a single tag by ID
+     *
+     * @param array<string, string> $args Route arguments
+     */
+    public function getTag(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $tagId = (int) $args['tagId'];
+
+            $tag = Tag::find($tagId);
+            if ( ! $tag) {
+                return JsonResponse::notFound($response, 'Tag not found');
+            }
+
+            return JsonResponse::success($response, ['tag' => $tag]);
+        } catch (\Exception $e) {
+            return JsonResponse::error($response, $e->getMessage(), 500);
+        }
+    }
+
+    /**
      * Create a tag
      */
     public function createTag(Request $request, Response $response): Response
