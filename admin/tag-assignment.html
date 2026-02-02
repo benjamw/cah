@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tag Assignment - CAH Admin Panel</title>
+    <link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body>
+    <div id="app">
+        <header class="admin-header">
+            <h1>CAH Admin Panel</h1>
+            <button id="logout-btn" class="btn btn-secondary">Logout</button>
+        </header>
+
+        <nav class="admin-nav">
+            <a href="/admin/cards.html" class="nav-btn">Cards</a>
+            <a href="/admin/tags.html" class="nav-btn">Tags</a>
+            <a href="/admin/packs.html" class="nav-btn">Packs</a>
+            <a href="/admin/games.html" class="nav-btn">Games</a>
+            <a href="/admin/tag-assignment.html" class="nav-btn active">Tag Assignment</a>
+        </nav>
+
+        <main class="admin-content">
+            <section id="tag-assignment-section" class="content-section active">
+                <div class="section-header">
+                    <h2>Tag Assignment</h2>
+                </div>
+
+                <div class="tag-selector">
+                    <label for="tag-assignment-select">Select Tag:</label>
+                    <select id="tag-assignment-select">
+                        <option value="">-- Select a tag --</option>
+                    </select>
+                </div>
+
+                <div class="quick-filters" style="margin-top: 15px; display: none;" id="tag-assignment-quick-filters">
+                    <label style="font-weight: bold;">Quick Filters:</label>
+                    <button id="tag-assignment-show-all" class="btn btn-secondary btn-sm active">All Cards</button>
+                    <button id="tag-assignment-show-tagged" class="btn btn-secondary btn-sm">Only Tagged</button>
+                    <button id="tag-assignment-show-untagged" class="btn btn-secondary btn-sm">Only Untagged</button>
+                    <span style="margin-left: 20px;">
+                        <button id="tag-assignment-bulk-untag" class="btn btn-secondary btn-sm" title="Remove tag from all cards on current page that have it">Bulk Untag Page</button>
+                    </span>
+                </div>
+
+                <div class="filters" style="margin-top: 15px;">
+                    <div class="filter-group">
+                        <label for="tag-assignment-type-filter">Card Type</label>
+                        <select id="tag-assignment-type-filter">
+                            <option value="">All Types</option>
+                            <option value="response">White Cards</option>
+                            <option value="prompt">Black Cards</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="tag-assignment-search">Search Text</label>
+                        <input type="text" id="tag-assignment-search" placeholder="Search card text..." />
+                    </div>
+                    <div class="filter-group">
+                        <label for="tag-assignment-status-filter">Tag Status</label>
+                        <select id="tag-assignment-status-filter">
+                            <option value="">All Cards</option>
+                            <option value="tagged">Has Tag</option>
+                            <option value="untagged">No Tag</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="tag-assignment-limit-filter">Show</label>
+                        <select id="tag-assignment-limit-filter">
+                            <option value="50">50</option>
+                            <option value="100" selected>100</option>
+                            <option value="200">200</option>
+                            <option value="500">500</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <button id="tag-assignment-apply-filters-btn" class="btn btn-secondary">Apply Filters</button>
+                    </div>
+                </div>
+
+                <div id="tag-assignment-cards" class="card-grid">
+                    <div class="info-message">Select a tag to view and manage card assignments</div>
+                </div>
+
+                <div class="pagination" style="margin-top: 15px;">
+                    <button id="tag-assignment-prev-page" class="btn btn-secondary" disabled>Previous</button>
+                    <span id="tag-assignment-page-info">Page 1</span>
+                    <button id="tag-assignment-next-page" class="btn btn-secondary">Next</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script type="module">
+        import '/admin/auth-check.js';
+        import { loadTagAssignmentPage, toggleCardTag } from '/admin/js/tag-assignment.js';
+        import { editCard } from '/admin/js/cards.js';
+
+        // Initialize tag assignment page
+        loadTagAssignmentPage();
+
+        // Expose functions to window for inline onclick handlers
+        window.toggleCardTag = toggleCardTag;
+        window.editCard = editCard;
+    </script>
+</body>
+</html>

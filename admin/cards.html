@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cards - CAH Admin Panel</title>
+    <link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body>
+    <div id="app">
+        <header class="admin-header">
+            <h1>CAH Admin Panel</h1>
+            <button id="logout-btn" class="btn btn-secondary">Logout</button>
+        </header>
+
+        <nav class="admin-nav">
+            <a href="/admin/cards.html" class="nav-btn active">Cards</a>
+            <a href="/admin/tags.html" class="nav-btn">Tags</a>
+            <a href="/admin/packs.html" class="nav-btn">Packs</a>
+            <a href="/admin/games.html" class="nav-btn">Games</a>
+            <a href="/admin/tag-assignment.html" class="nav-btn">Tag Assignment</a>
+        </nav>
+
+        <main class="admin-content">
+            <!-- Cards Section -->
+            <section id="cards-section" class="content-section active">
+                <div class="section-header">
+                    <h2>Manage Cards</h2>
+                    <div class="actions">
+                        <button id="import-cards-btn" class="btn btn-primary">Import Cards</button>
+                    </div>
+                </div>
+
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="card-type-filter">Type</label>
+                        <select id="card-type-filter">
+                            <option value="">All Types</option>
+                            <option value="response">White Cards</option>
+                            <option value="prompt">Black Cards</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="card-active-filter">Status</label>
+                        <select id="card-active-filter">
+                            <option value="1">Active Only</option>
+                            <option value="0">Inactive Only</option>
+                            <option value="">All Cards</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="card-tags-filter">Tags</label>
+                        <select id="card-tags-filter" multiple size="4">
+                            <option value="">Loading tags...</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="card-pack-filter">Packs</label>
+                        <select id="card-pack-filter" multiple size="4">
+                            <option value="">Loading packs...</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="card-pack-status-filter">Pack Status</label>
+                        <select id="card-pack-status-filter">
+                            <option value="">All Cards</option>
+                            <option value="1">Active Packs Only</option>
+                            <option value="0">Inactive Packs Only</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="card-search-filter">Search Text</label>
+                        <input type="text" id="card-search-filter" placeholder="Search card text..." />
+                    </div>
+                    <div class="filter-group">
+                        <label for="card-limit-filter">Show</label>
+                        <select id="card-limit-filter">
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="200">200</option>
+                            <option value="500">500</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <button id="apply-filters-btn" class="btn btn-secondary">Apply Filters</button>
+                    </div>
+                </div>
+
+                <div id="cards-list" class="data-list">
+                    <div class="loading">Loading cards...</div>
+                </div>
+
+                <div class="pagination">
+                    <button id="prev-page" class="btn btn-secondary" disabled>Previous</button>
+                    <span id="page-info">Page 1</span>
+                    <button id="next-page" class="btn btn-secondary">Next</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Import Cards Modal -->
+    <div id="import-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Import Cards</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="import-card-type">Card Type</label>
+                    <select id="import-card-type" class="form-control">
+                        <option value="mixed">Mixed (CSV has type column)</option>
+                        <option value="response">White Cards Only</option>
+                        <option value="prompt">Black Cards Only</option>
+                    </select>
+                </div>
+                <div id="import-format-info">
+                    <p><strong>Mixed format:</strong> <code>type,text,tags</code></p>
+                    <p>Example: <code>response,"Card text",tag1,tag2</code></p>
+                </div>
+                <div class="form-group">
+                    <label for="csv-file">CSV File</label>
+                    <input type="file" id="csv-file" accept=".csv">
+                </div>
+                <div id="import-status" class="status-message"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="upload-csv-btn" class="btn btn-primary">Upload</button>
+                <button class="modal-close btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Card Modal -->
+    <div id="edit-card-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Card</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-card-form">
+                    <input type="hidden" id="edit-card-id" value="">
+                    <div class="form-group">
+                        <label for="edit-card-text">Card Text</label>
+                        <textarea id="edit-card-text" name="text" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-card-type">Type</label>
+                        <select id="edit-card-type" name="type" required>
+                            <option value="response">Response (White)</option>
+                            <option value="prompt">Prompt (Black)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-card-tags">Tags</label>
+                        <select id="edit-card-tags" name="tags" multiple size="6">
+                            <!-- Tags will be populated dynamically -->
+                        </select>
+                        <small>Hold Ctrl (Cmd on Mac) to select multiple tags</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-card-packs">Packs</label>
+                        <select id="edit-card-packs" name="packs" multiple size="6">
+                            <!-- Packs will be populated dynamically -->
+                        </select>
+                        <small>Hold Ctrl (Cmd on Mac) to select multiple packs</small>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="edit-card-active" name="active" checked>
+                            Active
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="save-card-btn" class="btn btn-primary">Save</button>
+                <button class="modal-close btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import '/admin/auth-check.js';
+        import { initCards, setupCardsListeners, loadCards, loadTagsFilter, loadPacksFilter, editCard, deleteCard } from '/admin/js/cards.js';
+        import { hideModal } from '/admin/js/utils.js';
+
+        // Initialize cards module
+        initCards();
+        setupCardsListeners();
+        
+        // Load initial data
+        loadTagsFilter();
+        loadPacksFilter();
+        loadCards();
+
+        // Setup modal close buttons
+        const modalCloseBtns = document.querySelectorAll('.modal-close');
+        modalCloseBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                hideModal('import-modal');
+                hideModal('edit-card-modal');
+            });
+        });
+
+        // Expose functions to window for inline onclick handlers
+        window.editCard = editCard;
+        window.deleteCard = deleteCard;
+    </script>
+</body>
+</html>

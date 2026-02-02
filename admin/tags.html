@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tags - CAH Admin Panel</title>
+    <link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body>
+    <div id="app">
+        <header class="admin-header">
+            <h1>CAH Admin Panel</h1>
+            <button id="logout-btn" class="btn btn-secondary">Logout</button>
+        </header>
+
+        <nav class="admin-nav">
+            <a href="/admin/cards.html" class="nav-btn">Cards</a>
+            <a href="/admin/tags.html" class="nav-btn active">Tags</a>
+            <a href="/admin/packs.html" class="nav-btn">Packs</a>
+            <a href="/admin/games.html" class="nav-btn">Games</a>
+            <a href="/admin/tag-assignment.html" class="nav-btn">Tag Assignment</a>
+        </nav>
+
+        <main class="admin-content">
+            <section id="tags-section" class="content-section active">
+                <div class="section-header">
+                    <h2>Manage Tags</h2>
+                    <div class="actions">
+                        <button id="create-tag-btn" class="btn btn-primary">Create Tag</button>
+                    </div>
+                </div>
+
+                <div id="tags-list" class="data-list">
+                    <div class="loading">Loading tags...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Create/Edit Tag Modal -->
+    <div id="create-tag-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="tag-modal-title">Create Tag</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="create-tag-form">
+                    <input type="hidden" id="tag-id" value="">
+                    <div class="form-group">
+                        <label for="tag-name">Tag Name</label>
+                        <input type="text" id="tag-name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tag-description">Description (optional)</label>
+                        <textarea id="tag-description" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="tag-active" name="active" checked>
+                            Active
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="save-tag-btn" class="btn btn-primary">Save</button>
+                <button class="modal-close btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import '/admin/auth-check.js';
+        import { initTags, setupTagsListeners, loadTags, editTag, toggleTag, deleteTag } from '/admin/js/tags.js';
+        import { hideModal } from '/admin/js/utils.js';
+
+        // Initialize tags module
+        initTags();
+        setupTagsListeners();
+        loadTags();
+
+        // Setup modal close buttons
+        const modalCloseBtns = document.querySelectorAll('.modal-close');
+        modalCloseBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                hideModal('create-tag-modal');
+            });
+        });
+
+        // Expose functions to window for inline onclick handlers
+        window.editTag = editTag;
+        window.toggleTag = toggleTag;
+        window.deleteTag = deleteTag;
+    </script>
+</body>
+</html>

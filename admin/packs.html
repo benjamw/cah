@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Packs - CAH Admin Panel</title>
+    <link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body>
+    <div id="app">
+        <header class="admin-header">
+            <h1>CAH Admin Panel</h1>
+            <button id="logout-btn" class="btn btn-secondary">Logout</button>
+        </header>
+
+        <nav class="admin-nav">
+            <a href="/admin/cards.html" class="nav-btn">Cards</a>
+            <a href="/admin/tags.html" class="nav-btn">Tags</a>
+            <a href="/admin/packs.html" class="nav-btn active">Packs</a>
+            <a href="/admin/games.html" class="nav-btn">Games</a>
+            <a href="/admin/tag-assignment.html" class="nav-btn">Tag Assignment</a>
+        </nav>
+
+        <main class="admin-content">
+            <section id="packs-section" class="content-section active">
+                <div class="section-header">
+                    <h2>Manage Packs</h2>
+                    <div class="actions">
+                        <button id="bulk-activate-packs-btn" class="btn btn-success" style="display: none;">Activate Selected</button>
+                        <button id="bulk-deactivate-packs-btn" class="btn btn-secondary" style="display: none;">Deactivate Selected</button>
+                        <button id="create-pack-btn" class="btn btn-primary">Create Pack</button>
+                    </div>
+                </div>
+
+                <div class="pack-bulk-controls" style="margin-bottom: 15px; display: none;">
+                    <label style="cursor: pointer;">
+                        <input type="checkbox" id="select-all-packs" style="margin-right: 5px;">
+                        Select All
+                    </label>
+                </div>
+
+                <div id="packs-list" class="data-list">
+                    <div class="loading">Loading packs...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Create/Edit Pack Modal -->
+    <div id="create-pack-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="pack-modal-title">Create Pack</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="create-pack-form">
+                    <input type="hidden" id="pack-id" value="">
+                    <div class="form-group">
+                        <label for="pack-name">Pack Name</label>
+                        <input type="text" id="pack-name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="pack-version">Version (optional)</label>
+                        <input type="text" id="pack-version" name="version">
+                    </div>
+                    <div class="form-group">
+                        <label for="pack-release-date">Release Date (optional)</label>
+                        <input type="datetime-local" id="pack-release-date" name="release_date">
+                    </div>
+                    <div class="form-group">
+                        <label for="pack-data">Additional Data (JSON, optional)</label>
+                        <textarea id="pack-data" name="data" rows="3" placeholder='{"key": "value"}'></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="pack-active" name="active" checked>
+                            Active
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="save-pack-btn" class="btn btn-primary">Save</button>
+                <button class="modal-close btn btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import '/admin/auth-check.js';
+        import { initPacks, setupPacksListeners, loadPacks, editPack, togglePack, deletePack, updateBulkActionButtons } from '/admin/js/packs.js';
+        import { hideModal } from '/admin/js/utils.js';
+
+        // Initialize packs module
+        initPacks();
+        setupPacksListeners();
+        loadPacks();
+
+        // Setup modal close buttons
+        const modalCloseBtns = document.querySelectorAll('.modal-close');
+        modalCloseBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                hideModal('create-pack-modal');
+            });
+        });
+
+        // Expose functions to window for inline onclick handlers
+        window.editPack = editPack;
+        window.togglePack = togglePack;
+        window.deletePack = deletePack;
+        window.updateBulkActionButtons = updateBulkActionButtons;
+    </script>
+</body>
+</html>

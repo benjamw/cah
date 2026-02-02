@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Games - CAH Admin Panel</title>
+    <link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body>
+    <div id="app">
+        <header class="admin-header">
+            <h1>CAH Admin Panel</h1>
+            <button id="logout-btn" class="btn btn-secondary">Logout</button>
+        </header>
+
+        <nav class="admin-nav">
+            <a href="/admin/cards.html" class="nav-btn">Cards</a>
+            <a href="/admin/tags.html" class="nav-btn">Tags</a>
+            <a href="/admin/packs.html" class="nav-btn">Packs</a>
+            <a href="/admin/games.html" class="nav-btn active">Games</a>
+            <a href="/admin/tag-assignment.html" class="nav-btn">Tag Assignment</a>
+        </nav>
+
+        <main class="admin-content">
+            <section id="games-section" class="content-section active">
+                <div class="section-header">
+                    <h2>Active Games</h2>
+                </div>
+
+                <div id="games-list" class="data-list">
+                    <div class="loading">Loading games...</div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script type="module">
+        import '/admin/auth-check.js';
+        import { initGames, loadGames, deleteGame } from '/admin/js/games.js';
+
+        // Initialize games module
+        initGames();
+        loadGames();
+
+        // Expose functions to window for inline onclick handlers
+        window.deleteGame = deleteGame;
+    </script>
+</body>
+</html>
