@@ -84,7 +84,7 @@
 
     <script type="module">
         import '/admin/auth-check.js';
-        import { initTags, setupTagsListeners, loadTags, editTag, toggleTag, deleteTag } from '/admin/js/tags.js';
+        import { initTags, setupTagsListeners, loadTags } from '/admin/js/tags.js';
         import { hideModal } from '/admin/js/utils.js';
 
         // Initialize tags module
@@ -99,11 +99,6 @@
                 hideModal('create-tag-modal');
             });
         });
-
-        // Expose functions to window for inline onclick handlers
-        window.editTag = editTag;
-        window.toggleTag = toggleTag;
-        window.deleteTag = deleteTag;
     </script>
 </body>
 </html>

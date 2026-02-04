@@ -18,6 +18,7 @@ let allGames = [];
 export function initGames() {
     gamesList = document.getElementById('games-list');
     setupPaginationListeners();
+    setupGameActionsListener();
 }
 
 /**
@@ -41,6 +42,25 @@ function setupPaginationListeners() {
                 renderGames(allGames);
             }
         });
+    });
+}
+
+/**
+ * Setup event delegation for game action buttons
+ */
+function setupGameActionsListener() {
+    gamesList.addEventListener('click', (e) => {
+        const button = e.target.closest('[data-action]');
+        if (!button) return;
+        
+        const action = button.dataset.action;
+        const gameId = button.dataset.gameId;
+        
+        if (action === 'view') {
+            viewGame(gameId);
+        } else if (action === 'delete') {
+            deleteGame(gameId);
+        }
     });
 }
 
@@ -99,7 +119,8 @@ function renderGames(games) {
                     </div>
                 </div>
                 <div class="item-actions">
-                    <button class="btn btn-small btn-danger" onclick="deleteGame('${game.game_id}')">Delete</button>
+                    <button class="btn btn-small btn-primary" data-action="view" data-game-id="${game.game_id}">View</button>
+                    <button class="btn btn-small btn-danger" data-action="delete" data-game-id="${game.game_id}">Delete</button>
                 </div>
             </div>
         `;
@@ -147,5 +168,12 @@ export async function deleteGame(gameId) {
     } catch (error) {
         alert(error.message || 'Error deleting game');
     }
+}
+
+/**
+ * View game details
+ */
+export function viewGame(gameId) {
+    window.location.href = `/admin/view-game.html?id=${gameId}`;
 }
 

@@ -190,7 +190,7 @@
 
     <script type="module">
         import '/admin/auth-check.js';
-        import { initCards, setupCardsListeners, loadCards, loadTagsFilter, loadPacksFilter, restoreFiltersFromURL, editCard, deleteCard } from '/admin/js/cards.js';
+        import { initCards, setupCardsListeners, loadCards, loadTagsFilter, loadPacksFilter, restoreFiltersFromURL } from '/admin/js/cards.js';
         import { hideModal } from '/admin/js/utils.js';
 
         // Initialize cards module
@@ -213,10 +213,6 @@
                 hideModal('edit-card-modal');
             });
         });
-
-        // Expose functions to window for inline onclick handlers
-        window.editCard = editCard;
-        window.deleteCard = deleteCard;
     </script>
 </body>
 </html>

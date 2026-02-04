@@ -32,6 +32,50 @@
                     </div>
                 </div>
 
+                <div class="filters">
+                    <div class="filter-group">
+                        <label for="pack-active-filter">Status</label>
+                        <select id="pack-active-filter">
+                            <option value="">All Packs</option>
+                            <option value="1">Active Only</option>
+                            <option value="0">Inactive Only</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="pack-search-filter">Search Name</label>
+                        <input type="text" id="pack-search-filter" placeholder="Search pack name..." />
+                    </div>
+                    <div class="filter-group">
+                        <label for="pack-sort-filter">Sort By</label>
+                        <select id="pack-sort-filter">
+                            <option value="name">Name</option>
+                            <option value="release_date">Release Date</option>
+                            <option value="white_cards">White Card Count</option>
+                            <option value="black_cards">Black Card Count</option>
+                            <option value="total_cards">Total Card Count</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="pack-sort-order-filter">Order</label>
+                        <select id="pack-sort-order-filter">
+                            <option value="asc">Ascending</option>
+                            <option value="desc">Descending</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="pack-limit-filter">Show</label>
+                        <select id="pack-limit-filter">
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="200">200</option>
+                            <option value="500">500</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <button id="apply-pack-filters-btn" class="btn btn-secondary">Apply Filters</button>
+                    </div>
+                </div>
+
                 <div class="pack-bulk-controls" style="margin-bottom: 15px; display: none;">
                     <label style="cursor: pointer;">
                         <input type="checkbox" id="select-all-packs" style="margin-right: 5px;">
@@ -78,7 +122,7 @@
                     </div>
                     <div class="form-group">
                         <label for="pack-release-date">Release Date (optional)</label>
-                        <input type="datetime-local" id="pack-release-date" name="release_date">
+                        <input type="date" id="pack-release-date" name="release_date">
                     </div>
                     <div class="form-group">
                         <label for="pack-data">Additional Data (JSON, optional)</label>
@@ -101,12 +145,17 @@
 
     <script type="module">
         import '/admin/auth-check.js';
-        import { initPacks, setupPacksListeners, loadPacks, editPack, togglePack, deletePack, updateBulkActionButtons } from '/admin/js/packs.js';
+        import { initPacks, setupPacksListeners, loadPacks, restoreFiltersFromURL } from '/admin/js/packs.js';
         import { hideModal } from '/admin/js/utils.js';
 
         // Initialize packs module
         initPacks();
         setupPacksListeners();
+        
+        // Restore state from URL
+        restoreFiltersFromURL();
+        
+        // Load initial data
         loadPacks();
 
         // Setup modal close buttons
@@ -116,12 +165,6 @@
                 hideModal('create-pack-modal');
             });
         });
-
-        // Expose functions to window for inline onclick handlers
-        window.editPack = editPack;
-        window.togglePack = togglePack;
-        window.deletePack = deletePack;
-        window.updateBulkActionButtons = updateBulkActionButtons;
     </script>
 </body>
 </html>

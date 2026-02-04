@@ -127,4 +127,29 @@ class AdminGameController
             return JsonResponse::error($response, $e->getMessage(), 500);
         }
     }
+
+    /**
+     * Get round history for a game
+     *
+     * @param array<string, string> $args Route arguments
+     */
+    public function getGameHistory(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $gameId = $args['gameId'];
+
+            $history = Game::getRoundHistory($gameId);
+
+            if ($history === null) {
+                return JsonResponse::notFound($response, 'Game not found');
+            }
+
+            return JsonResponse::success($response, [
+                'game_id' => $gameId,
+                'history' => $history,
+            ]);
+        } catch (\Exception $e) {
+            return JsonResponse::error($response, $e->getMessage(), 500);
+        }
+    }
 }

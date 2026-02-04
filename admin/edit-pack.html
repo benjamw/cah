@@ -43,7 +43,7 @@
                     
                     <div class="form-group">
                         <label for="pack-release-date">Release Date (optional)</label>
-                        <input type="datetime-local" id="pack-release-date" name="release_date">
+                        <input type="date" id="pack-release-date" name="release_date">
                     </div>
                     
                     <div class="form-group">
@@ -101,11 +101,12 @@
                     document.getElementById('pack-active').checked = pack.active;
                     
                     if (pack.release_date) {
+                        // Extract just the date part (YYYY-MM-DD)
                         const date = new Date(pack.release_date);
-                        const localDateTime = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+                        const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000)
                             .toISOString()
-                            .slice(0, 16);
-                        document.getElementById('pack-release-date').value = localDateTime;
+                            .slice(0, 10);
+                        document.getElementById('pack-release-date').value = localDate;
                     }
                     
                     document.getElementById('edit-pack-title').textContent = `Edit Pack: ${pack.name}`;

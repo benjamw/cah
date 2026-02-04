@@ -48,14 +48,11 @@
 
     <script type="module">
         import '/admin/auth-check.js';
-        import { initGames, loadGames, deleteGame } from '/admin/js/games.js';
+        import { initGames, loadGames } from '/admin/js/games.js';
 
         // Initialize games module
         initGames();
         loadGames();
-
-        // Expose functions to window for inline onclick handlers
-        window.deleteGame = deleteGame;
     </script>
 </body>
 </html>

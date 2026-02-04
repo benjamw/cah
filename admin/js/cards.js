@@ -110,6 +110,21 @@ export function setupCardsListeners() {
     uploadCsvBtn.addEventListener('click', handleImportCards);
     importCardType.addEventListener('change', updateImportFormatInfo);
     saveCardBtn.addEventListener('click', handleSaveCard);
+    
+    // Event delegation for card action buttons
+    cardsList.addEventListener('click', (e) => {
+        const button = e.target.closest('[data-action]');
+        if (!button) return;
+        
+        const action = button.dataset.action;
+        const cardId = parseInt(button.dataset.cardId);
+        
+        if (action === 'edit') {
+            editCard(cardId);
+        } else if (action === 'delete') {
+            deleteCard(cardId);
+        }
+    });
 }
 
 /**
@@ -279,8 +294,8 @@ function renderCards(cards) {
                 </div>
             </div>
             <div class="item-actions">
-                <button class="btn btn-small btn-primary" onclick='editCard(${JSON.stringify(card)})'>Edit</button>
-                <button class="btn btn-small btn-danger" onclick="deleteCard(${card.card_id})">Delete</button>
+                <button class="btn btn-small btn-primary" data-action="edit" data-card-id="${card.card_id}">Edit</button>
+                <button class="btn btn-small btn-danger" data-action="delete" data-card-id="${card.card_id}">Delete</button>
             </div>
         </div>
         `;
@@ -308,12 +323,12 @@ function updatePagination(total) {
 
 /**
  * Edit a card - navigate to edit page
- * @param {Object} card - Card data
+ * @param {number} cardId - Card ID
  */
-export function editCard(card) {
+export function editCard(cardId) {
     // Build return URL with current query params
     const returnUrl = window.location.pathname + window.location.search;
-    const editUrl = `/admin/edit-card.html?id=${card.card_id}&return=${encodeURIComponent(returnUrl)}`;
+    const editUrl = `/admin/edit-card.html?id=${cardId}&return=${encodeURIComponent(returnUrl)}`;
     window.location.href = editUrl;
 }
 

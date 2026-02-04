@@ -52,6 +52,24 @@ export function setupTagsListeners() {
             }
         });
     });
+    
+    // Event delegation for tag action buttons
+    tagsList.addEventListener('click', (e) => {
+        const button = e.target.closest('[data-action]');
+        if (!button) return;
+        
+        const action = button.dataset.action;
+        const tagId = parseInt(button.dataset.tagId);
+        
+        if (action === 'edit') {
+            editTag(tagId);
+        } else if (action === 'toggle') {
+            const active = button.dataset.active === 'true';
+            toggleTag(tagId, active);
+        } else if (action === 'delete') {
+            deleteTag(tagId);
+        }
+    });
 }
 
 /**
@@ -107,11 +125,11 @@ function renderTags(tags) {
                     </div>
                 </div>
                 <div class="item-actions">
-                    <button class="btn btn-small btn-primary" onclick="editTag(${tag.tag_id})">Edit</button>
-                    <button class="btn btn-small btn-secondary" onclick="toggleTag(${tag.tag_id}, ${!isActive})">
+                    <button class="btn btn-small btn-primary" data-action="edit" data-tag-id="${tag.tag_id}">Edit</button>
+                    <button class="btn btn-small btn-secondary" data-action="toggle" data-tag-id="${tag.tag_id}" data-active="${!isActive}">
                         ${isActive ? 'Deactivate' : 'Activate'}
                     </button>
-                    <button class="btn btn-small btn-danger" onclick="deleteTag(${tag.tag_id})">Delete</button>
+                    <button class="btn btn-small btn-danger" data-action="delete" data-tag-id="${tag.tag_id}">Delete</button>
                 </div>
             </div>
         `;
