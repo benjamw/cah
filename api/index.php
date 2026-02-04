@@ -212,6 +212,7 @@ $app->put('/api/admin/packs/toggle/{packId}', [AdminPackController::class, 'togg
 $app->put('/api/admin/packs/bulk-toggle', [AdminPackController::class, 'bulkTogglePack'])->add($adminAuth);
 $app->delete('/api/admin/packs/delete/{packId}', [AdminPackController::class, 'deletePack'])->add($adminAuth);
 $app->get('/api/admin/games/list', [AdminGameController::class, 'listGames'])->add($adminAuth);
+$app->get('/api/admin/games/{gameId}/history', [AdminGameController::class, 'getGameHistory'])->add($adminAuth);
 $app->delete('/api/admin/games/delete/{gameId}', [AdminGameController::class, 'deleteGame'])->add($adminAuth);
 $app->get('/api/admin/cards/{cardId}/tags', [AdminCardController::class, 'getCardTags'])->add($adminAuth);
 $app->post('/api/admin/cards/{cardId}/tags/{tagId}', [AdminCardController::class, 'addCardTag'])->add($adminAuth);

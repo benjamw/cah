@@ -99,6 +99,7 @@ function renderGames(games) {
                     </div>
                 </div>
                 <div class="item-actions">
+                    <button class="btn btn-small btn-primary" onclick="viewGame('${game.game_id}')">View</button>
                     <button class="btn btn-small btn-danger" onclick="deleteGame('${game.game_id}')">Delete</button>
                 </div>
             </div>
@@ -147,5 +148,12 @@ export async function deleteGame(gameId) {
     } catch (error) {
         alert(error.message || 'Error deleting game');
     }
+}
+
+/**
+ * View game details
+ */
+export function viewGame(gameId) {
+    window.location.href = `/admin/view-game.html?id=${gameId}`;
 }
 
