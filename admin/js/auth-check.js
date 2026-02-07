@@ -1,14 +1,15 @@
 /**
  * Auth check module - ensures user is authenticated
  * Include this in every admin page except login
+ * Redirects to login and throws so no other code (e.g. data loading) runs.
  */
 
 import { getAuthToken } from '/admin/js/api.js';
 
 // Check if user is authenticated
 if (!getAuthToken()) {
-    // Redirect to login page
     window.location.href = '/admin/login.html';
+    throw new Error('Not authenticated');
 }
 
 // Handle logout
@@ -26,7 +27,7 @@ if (logoutBtn) {
         } catch (error) {
             console.error('Logout error:', error);
         }
-        
+
         localStorage.removeItem('admin_token');
         window.location.href = '/admin/login.html';
     });
