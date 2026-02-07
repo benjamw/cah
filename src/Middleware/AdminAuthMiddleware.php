@@ -9,6 +9,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use CAH\Services\AdminAuthService;
+use CAH\Utils\Logger;
 use CAH\Utils\Response as JsonResponse;
 use Slim\Psr7\Response;
 
@@ -25,6 +26,9 @@ class AdminAuthMiddleware implements MiddlewareInterface
         $authHeader = $request->getHeaderLine('Authorization');
 
         if (empty($authHeader)) {
+            Logger::notice('Admin API request rejected: missing Authorization header', [
+                'path' => $request->getUri()->getPath(),
+            ]);
             $response = new Response();
             return JsonResponse::error($response, 'Missing Authorization header', 401);
         }
@@ -37,6 +41,9 @@ class AdminAuthMiddleware implements MiddlewareInterface
 
         // Verify token
         if ( ! AdminAuthService::verifyToken($token)) {
+            Logger::notice('Admin API request rejected: invalid or expired token', [
+                'path' => $request->getUri()->getPath(),
+            ]);
             $response = new Response();
             return JsonResponse::error($response, 'Invalid or expired admin token', 401);
         }

@@ -10,6 +10,7 @@ use CAH\Models\Card;
 use CAH\Models\Pack;
 use CAH\Models\Tag;
 use CAH\Services\CardImportService;
+use CAH\Utils\Logger;
 use CAH\Utils\Response as JsonResponse;
 use CAH\Utils\Validator;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -214,6 +215,12 @@ class AdminCardController
 
             // Use CardImportService to handle the import
             $result = CardImportService::importFromCsv($csvContent, $cardTypeEnum);
+
+            Logger::info('Cards imported from CSV', [
+                'type' => $cardType,
+                'imported' => $result['imported'],
+                'failed' => $result['failed'],
+            ]);
 
             return JsonResponse::success($response, $result);
         } catch (ValidationException $e) {

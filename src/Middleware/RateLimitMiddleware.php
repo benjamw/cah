@@ -10,6 +10,7 @@ use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use CAH\Services\RateLimitService;
+use CAH\Utils\Logger;
 use CAH\Utils\Response as JsonResponse;
 use Slim\Psr7\Response;
 
@@ -57,6 +58,11 @@ class RateLimitMiddleware implements MiddlewareInterface
             $check = RateLimitService::check($clientIp, RateLimitAction::FAILED_GAME_CODE, $this->failedConfig);
 
             if ( ! $check['allowed']) {
+                Logger::warning('API request blocked: fail2ban lockout', [
+                    'ip' => $clientIp,
+                    'path' => $path,
+                    'retry_after' => $check['retry_after'],
+                ]);
                 $response = new Response();
                 return JsonResponse::rateLimitExceeded(
                     $response,
@@ -71,6 +77,10 @@ class RateLimitMiddleware implements MiddlewareInterface
             $check = RateLimitService::check($clientIp, RateLimitAction::CREATE_GAME, $this->createConfig);
 
             if ( ! $check['allowed']) {
+                Logger::warning('Game create blocked by rate limit', [
+                    'ip' => $clientIp,
+                    'retry_after' => $check['retry_after'],
+                ]);
                 $response = new Response();
                 return JsonResponse::rateLimitExceeded(
                     $response,

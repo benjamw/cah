@@ -7,6 +7,7 @@ namespace CAH\Database;
 use PDO;
 use PDOException;
 use CAH\Exceptions\DatabaseException;
+use CAH\Utils\Logger;
 
 /**
  * Database connection wrapper using PDO
@@ -84,7 +85,12 @@ class Database
 
         try {
             self::$connection = new PDO($dsn, $username, $password, $options);
+            Logger::debug('Database connection established', ['database' => $database]);
         } catch (PDOException $e) {
+            Logger::error('Database connection failed', [
+                'database' => $database,
+                'message' => $e->getMessage(),
+            ]);
             throw new DatabaseException('Database connection failed: ' . $e->getMessage(), 0, $e);
         }
     }

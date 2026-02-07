@@ -19,6 +19,8 @@ use CAH\Middleware\CorsMiddleware;
 use CAH\Middleware\RateLimitMiddleware;
 use CAH\Middleware\SessionMiddleware;
 use CAH\Middleware\AuthMiddleware;
+use CAH\Utils\Logger;
+use CAH\Utils\PsrLoggerAdapter;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
@@ -59,7 +61,8 @@ $allowedOrigins = $corsOrigins === '*' ? ['*'] : array_map(trim(...), explode(',
 $app->add(new CorsMiddleware(['allowed_origins' => $allowedOrigins]));
 
 $displayErrorDetails = getenv('APP_DEBUG') === 'true' || getenv('APP_DEBUG') === '1';
-$app->addErrorMiddleware($displayErrorDetails, true, true);
+$appLogger = new PsrLoggerAdapter();
+$errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, true, true, $appLogger);
 
 // API routes
 $app->get('/api', function (Request $request, Response $response) {
@@ -137,6 +140,7 @@ $app->get('/api/health', function (Request $request, Response $response) {
         $healthData['success'] = false;
         $healthData['message'] = 'Database connection failed';
         $healthData['error'] = $e->getMessage();
+        Logger::error('Health check: database connection failed', ['exception' => $e->getMessage()]);
     }
 
     $statusCode = $healthData['success'] ? 200 : 503;

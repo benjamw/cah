@@ -10,6 +10,7 @@ use CAH\Constants\RateLimitAction;
 use CAH\Services\AdminAuthService;
 use CAH\Services\RateLimitService;
 use CAH\Exceptions\ValidationException;
+use CAH\Utils\Logger;
 use CAH\Utils\Response as JsonResponse;
 use CAH\Utils\Validator;
 
@@ -50,6 +51,7 @@ class AdminController
             $check = RateLimitService::check($clientIp, RateLimitAction::ADMIN_LOGIN, $rateLimitConfig);
 
             if ( ! $check['allowed']) {
+                Logger::warning('Admin login blocked by rate limit', ['ip' => $clientIp]);
                 return JsonResponse::rateLimitExceeded(
                     $response,
                     'Too many login attempts. Please try again later.',

@@ -21,6 +21,7 @@ use CAH\Exceptions\ValidationException;
 use CAH\Exceptions\GameCodeGenerationException;
 use CAH\Exceptions\InsufficientCardsException;
 use CAH\Utils\GameCodeGenerator;
+use CAH\Utils\Logger;
 use CAH\Utils\Validator;
 
 /**
@@ -152,6 +153,10 @@ class GameService
             try {
                 Game::create($gameId, $tagIds, $piles, $playerData);
                 Database::commit();
+                Logger::info('Game created', [
+                    'game_id' => $gameId,
+                    'creator_id' => $creatorId,
+                ]);
                 break; // Success, exit loop
             } catch (\PDOException $e) {
                 Database::rollback();
@@ -338,6 +343,11 @@ class GameService
             Game::update($gameId, [
                 'draw_pile' => ['response' => $responsePile, 'prompt' => $promptPile],
                 'player_data' => $playerData,
+            ]);
+
+            Logger::info('Game started', [
+                'game_id' => $gameId,
+                'player_count' => count($playerData['players']),
             ]);
 
             return $playerData;

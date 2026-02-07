@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CAH\Services;
 
 use CAH\Database\Database;
+use CAH\Utils\Logger;
 
 /**
  * Admin Authentication Service
@@ -26,11 +27,13 @@ class AdminAuthService
         $adminPasswordHash = $_ENV['ADMIN_PASSWORD_HASH'] ?? getenv('ADMIN_PASSWORD_HASH');
 
         if (empty($adminPasswordHash)) {
+            Logger::error('Admin login attempted but ADMIN_PASSWORD_HASH is not configured');
             throw new \Exception('Admin password not configured');
         }
 
         // Verify password
         if ( ! password_verify($password, (string) $adminPasswordHash)) {
+            Logger::warning('Admin login failed: invalid password', ['ip' => $ipAddress]);
             return null;
         }
 
@@ -51,6 +54,8 @@ class AdminAuthService
             'user_agent' => $userAgent,
             'expires_at' => $expiresAt->format('Y-m-d H:i:s'),
         ]);
+
+        Logger::info('Admin login successful', ['ip' => $ipAddress]);
 
         return [
             'token' => $token,
@@ -89,7 +94,9 @@ class AdminAuthService
     {
         $sql = "DELETE FROM admin_sessions WHERE token = :token";
         $affected = Database::execute($sql, ['token' => $token]);
-
+        if ($affected > 0) {
+            Logger::info('Admin logout successful');
+        }
         return $affected > 0;
     }
 

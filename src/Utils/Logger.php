@@ -12,11 +12,20 @@ use Monolog\Level;
 /**
  * Logger Utility
  *
- * Simple wrapper around Monolog for application logging
+ * Simple wrapper around Monolog for application logging.
+ * Log level is configurable via LOG_LEVEL (debug, info, notice, warning, error).
  */
 class Logger
 {
     private static ?MonologLogger $instance = null;
+
+    private const LEVEL_MAP = [
+        'debug' => Level::Debug,
+        'info' => Level::Info,
+        'notice' => Level::Notice,
+        'warning' => Level::Warning,
+        'error' => Level::Error,
+    ];
 
     /**
      * Get logger instance (singleton)
@@ -26,24 +35,33 @@ class Logger
         if (self::$instance === null) {
             self::$instance = new MonologLogger('cah');
 
-            // Log to logs/app.log
             $logPath = __DIR__ . '/../../logs/app.log';
             $logDir = dirname($logPath);
 
-            // Create logs directory if it doesn't exist
             if ( ! is_dir($logDir)) {
                 if ( ! mkdir($logDir, 0755, true) && ! is_dir($logDir)) {
                     throw new FileSystemException(sprintf('Directory "%s" could not be created', $logDir));
                 }
             }
 
-            // Add file handler (logs warnings and above)
-            self::$instance->pushHandler(
-                new StreamHandler($logPath, Level::Warning)
-            );
+            $levelName = strtolower($_ENV['LOG_LEVEL'] ?? getenv('LOG_LEVEL') ?: 'warning');
+            $level = self::LEVEL_MAP[$levelName] ?? Level::Warning;
+
+            self::$instance->pushHandler(new StreamHandler($logPath, $level));
         }
 
         return self::$instance;
+    }
+
+    /**
+     * Log a notice message
+     *
+     * @param string $message
+     * @param array<string, mixed> $context
+     */
+    public static function notice(string $message, array $context = []): void
+    {
+        self::getInstance()->notice($message, $context);
     }
 
     /**
