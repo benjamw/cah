@@ -55,6 +55,24 @@ class Pack
     }
 
     /**
+     * Find a pack by name and version
+     *
+     * @param string $name Pack name
+     * @param string|null $version Pack version
+     * @return array<string, mixed>|null Pack data or null if not found
+     */
+    public static function findByNameAndVersion(string $name, ?string $version): ?array
+    {
+        $sql = "
+            SELECT *
+            FROM packs
+            WHERE name = ? AND (version <=> ?)
+        ";
+        $result = Database::fetchOne($sql, [$name, $version]);
+        return $result ?: null;
+    }
+
+    /**
      * Get all packs
      *
      * @return array<int, array<string, mixed>> Array of pack data
@@ -161,7 +179,7 @@ class Pack
      * @param string $name Pack name
      * @param string|null $version Pack version
      * @param string|null $data JSON metadata
-     * @param string|null $releaseDate Release date (Y-m-d H:i:s format)
+     * @param string|null $releaseDate Release date (Y-m-d, date only)
      * @param bool $active Whether pack is active
      * @return int The new pack ID
      */

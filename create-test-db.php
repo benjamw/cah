@@ -40,7 +40,7 @@ try {
     $pdo->exec("USE cah_game_test");
 
     // Read and execute schema
-    $schemaFile = __DIR__ . '/src/Database/migrations/schema.sql';
+    $schemaFile = __DIR__ . '/database/schema.sql';
     $sql = file_get_contents($schemaFile);
     
     // Remove comments and split by semicolons

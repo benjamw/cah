@@ -1,90 +1,139 @@
 import csv
 import re
 
-# Define tag keywords
+# All keywords are matched as whole words only (\b) to avoid substring false positives.
+# Exclusion phrases: if text contains one of these, we skip that category for precision.
+
+def _word_regex(word):
+    """Match as whole word (word boundary) only."""
+    return re.compile(r'\b' + re.escape(word) + r'\b', re.IGNORECASE)
+
+def _compile_keywords(keywords):
+    return [_word_regex(k) for k in keywords]
+
+# --- Sexually explicit: unambiguous body/act terms only ---
 SEXUALLY_EXPLICIT_KEYWORDS = [
-    'sex', 'cum', 'masturbate', 'porn', 'orgasm', 'erection', 'vagina', 'penis', 
-    'anal', 'oral', 'blow', 'handjob', 'dildo', 'vibrator', 'horny', 'naked', 
-    'nude', 'breast', 'dick', 'cock', 'pussy', 'ass', 'butt', 'laid', 'virginity',
-    'go down on', 'sex position'
+    'sex', 'cum', 'masturbate', 'masturbation', 'porn', 'orgasm', 'erection',
+    'vagina', 'penis', 'handjob', 'dildo', 'vibrator', 'horny', 'naked', 'nude',
+    'dick', 'cock', 'pussy', 'virginity', 'virgin', 'blowjob', 'blow job',
+    'sex position', 'go down on', 'anal sex', 'oral sex',
+    'ass', 'butt',
 ]
+# Skip if text is clearly innocent context
+SEXUALLY_EXPLICIT_EXCLUDE = re.compile(
+    r'chicken\s*breast|breast\s*stroke|oral\s*exam|oral\s*presentation|oral\s*history',
+    re.IGNORECASE
+)
 
-SEXIST_KEYWORDS = [
-    'bitch', 'slut', 'whore', 'cunt'
-]
+# --- Sexist: slurs only (whole word) ---
+SEXIST_KEYWORDS = ['bitch', 'slut', 'whore', 'cunt']
+_SEXIST = _compile_keywords(SEXIST_KEYWORDS)
 
+# --- Racist: specific phrases / unambiguous terms ---
 RACIST_KEYWORDS = [
-    'slavery', 'white man', 'black', 'asian', 'mexican', 'indian', 'aboriginal',
-    'tribe', 'primitive'
+    'slavery', 'white man', 'black man', 'black woman', 'aboriginal',
+    'tribe', 'mexican', 'racist', 'racism',
 ]
+RACIST_EXCLUDE = re.compile(
+    r'primitive\s+version|indian\s+food|indian\s+cuisine|indian\s+summer|asian\s+cuisine|asian\s+food|tribe\s+called',
+    re.IGNORECASE
+)
 
+# --- Profanity: whole words only ---
 PROFANITY_KEYWORDS = [
-    'shit', 'fuck', 'damn', 'hell', 'ass', 'bitch', 'bastard', 'crap'
+    'shit', 'fuck', 'fucking', 'fucked', 'damn', 'hell', 'ass', 'bastard', 'crap',
 ]
+_PROFANITY = _compile_keywords(PROFANITY_KEYWORDS)
 
+# --- Violence: unambiguous harm / weapons ---
 VIOLENCE_KEYWORDS = [
-    'kill', 'murder', 'death', 'dead', 'blood', 'torture', 'rape', 'abuse',
-    'violence', 'weapon', 'gun', 'knife', 'bomb'
+    'kill', 'killing', 'murder', 'murdered', 'death', 'blood', 'bloody', 'torture',
+    'rape', 'raped', 'abuse', 'abused', 'violence', 'weapon', 'weapons', 'gun', 'guns',
+    'knife', 'bomb', 'bombs', 'stab', 'stabbing', 'shoot', 'shooting',
 ]
+VIOLENCE_EXCLUDE = re.compile(
+    r'dead\s+tired|dead\s+end|buzzkill|overkill|kill\s+two\s+birds|glue\s+gun|nail\s+gun|blood\s+orange|blood\s+type',
+    re.IGNORECASE
+)
 
+# --- Drugs: specific substances / use ---
 DRUGS_KEYWORDS = [
-    'drug', 'cocaine', 'heroin', 'meth', 'weed', 'marijuana', 'lsd',
-    'pills', 'cigarette', 'alcohol', 'drunk', 'tripping on acid'
+    'cocaine', 'heroin', 'meth', 'marijuana', 'lsd', 'cigarette', 'cigarettes',
+    'alcohol', 'drunk', 'tripping on acid', 'getting high', 'getting drunk',
+    'drugs', 'overdose',
 ]
+DRUGS_EXCLUDE = re.compile(
+    r'weed\s+killer|weeding|drug\s+store|pharmacy|vitamin\s+pills|sleeping\s+pills\b|pain\s+relief',
+    re.IGNORECASE
+)
+
+_SEX = _compile_keywords(SEXUALLY_EXPLICIT_KEYWORDS)
+_RACIST = _compile_keywords(RACIST_KEYWORDS)
+_VIOLENCE = _compile_keywords(VIOLENCE_KEYWORDS)
+_DRUGS = _compile_keywords(DRUGS_KEYWORDS)
+
 
 def check_tags(text):
     tags = []
-    text_lower = text.lower()
-    
-    # Check for sexually explicit content
-    for keyword in SEXUALLY_EXPLICIT_KEYWORDS:
-        if keyword in text_lower:
-            # Avoid false positives
-            if keyword == 'ass' and ('class' in text_lower or 'pass' in text_lower or 'grass' in text_lower or 'bass' in text_lower):
-                continue
-            tags.append('Sexually Explicit')
-            break
-    
-    # Check for sexist content
-    if any(keyword in text_lower for keyword in SEXIST_KEYWORDS):
+    if not text or not text.strip():
+        return tags
+
+    # Sexually explicit (whole words + exclusions)
+    if not SEXUALLY_EXPLICIT_EXCLUDE.search(text):
+        for pattern in _SEX:
+            if pattern.search(text):
+                tags.append('Sexually Explicit')
+                break
+
+    # Sexist
+    if any(p.search(text) for p in _SEXIST):
         tags.append('Sexist')
-    
-    # Check for racist content
-    for keyword in RACIST_KEYWORDS:
-        if keyword in text_lower:
-            # Avoid false positives
-            if keyword == 'primitive' and 'primitive version' in text_lower:
-                continue
-            if keyword == 'tribe' and 'tribe' not in text_lower:
-                continue
-            tags.append('Racist')
-            break
-    
-    # Check for profanity
-    for keyword in PROFANITY_KEYWORDS:
-        if keyword in text_lower:
-            # Avoid false positives
-            if keyword == 'ass' and ('class' in text_lower or 'pass' in text_lower or 'grass' in text_lower or 'bass' in text_lower):
-                continue
-            if keyword == 'hell' and 'shell' in text_lower:
-                continue
+
+    # Racist (whole words + exclusions)
+    if not RACIST_EXCLUDE.search(text):
+        for pattern in _RACIST:
+            if pattern.search(text):
+                tags.append('Racist')
+                break
+
+    # Profanity
+    for pattern in _PROFANITY:
+        if pattern.search(text):
             tags.append('Profanity')
             break
-    
-    # Check for violence
-    if any(keyword in text_lower for keyword in VIOLENCE_KEYWORDS):
-        tags.append('Violence')
-    
-    # Check for drugs
-    for keyword in DRUGS_KEYWORDS:
-        if keyword in text_lower:
-            # Avoid false positives - "high" in wrong context
-            if keyword == 'high' and ('high five' in text_lower or 'high school' in text_lower):
-                continue
-            tags.append('Drugs')
-            break
-    
+
+    # Violence (whole words + exclusions)
+    if not VIOLENCE_EXCLUDE.search(text):
+        if any(p.search(text) for p in _VIOLENCE):
+            tags.append('Violence')
+
+    # Drugs (whole words + exclusions)
+    if not DRUGS_EXCLUDE.search(text):
+        for pattern in _DRUGS:
+            if pattern.search(text):
+                tags.append('Drugs')
+                break
+
     return tags
+
+
+# Content level order: basic < mild < medium < severe. If no tag matches higher levels, use basic.
+CONTENT_LEVEL_SEVERE = {'Sexually Explicit', 'Sexist', 'Racist', 'Violence'}
+CONTENT_LEVEL_MEDIUM = {'Drugs'}
+CONTENT_LEVEL_MILD = {'Profanity'}
+
+
+def content_level(tags):
+    """Return one of: basic, mild, medium, severe. Default is basic."""
+    tag_set = set(tags)
+    if tag_set & CONTENT_LEVEL_SEVERE:
+        return 'severe'
+    if tag_set & CONTENT_LEVEL_MEDIUM:
+        return 'medium'
+    if tag_set & CONTENT_LEVEL_MILD:
+        return 'mild'
+    return 'basic'
+
 
 def process_file(filename):
     """Process a CSV file and add tags."""
@@ -99,8 +148,10 @@ def process_file(filename):
     output_rows = []
     for i, row in enumerate(rows):
         if i == 0:
-            # Keep header as is
-            output_rows.append(row)
+            # Header: first column (card text), then Level, then tag columns
+            header = [row[0] if row else 'Card text', 'Level']
+            header += (row[1:12] if len(row) > 1 else [''] * 10)[:10]
+            output_rows.append(header)
             continue
 
         if not row or not row[0]:
@@ -109,12 +160,13 @@ def process_file(filename):
         # Extract the card text (first column)
         card_text = row[0]
 
-        # Get tags
+        # Get tags and content level (basic | mild | medium | severe)
         tags = check_tags(card_text)
+        level = content_level(tags)
 
-        # Build output row with tags
+        # Build output row: card text, level, then tag columns
         tag_values = tags + [''] * (10 - len(tags))  # Pad to 10 tag columns
-        output_row = [card_text] + tag_values[:10]
+        output_row = [card_text, level] + tag_values[:10]
         output_rows.append(output_row)
 
     # Write back
@@ -124,15 +176,18 @@ def process_file(filename):
 
     print(f'Tagged {len(output_rows) - 1} cards')
 
-    # Show sample tagged cards
-    tagged_count = sum(1 for row in output_rows[1:] if len(row) > 1 and any(row[1:]))
-    print(f'{tagged_count} cards received content warning tags')
+    # Show sample: cards with non-basic level or any content tags
+    level_col = 1
+    tag_start = 2
+    tagged_count = sum(1 for row in output_rows[1:] if len(row) > level_col and (row[level_col] != 'basic' or any(row[tag_start:])))
+    print(f'{tagged_count} cards have content level or warning tags')
 
-    print('\nSample tagged cards:')
+    print('\nSample (level + tags):')
     sample_count = 0
     for row in output_rows[1:]:
-        if len(row) > 1 and any(row[1:]):
-            print(f'  {row[0][:60]}... -> {[t for t in row[1:] if t]}')
+        if len(row) > level_col and (row[level_col] != 'basic' or any(row[tag_start:])):
+            tags_str = [row[level_col]] + [t for t in row[tag_start:] if t]
+            print(f'  {row[0][:55]}... -> {tags_str}')
             sample_count += 1
             if sample_count >= 10:
                 break

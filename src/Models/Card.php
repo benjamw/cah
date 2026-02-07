@@ -182,16 +182,18 @@ class Card
      * @param string $copy Card text (supports markdown)
      * @param int|null $choices Number of response cards needed (prompt cards only)
      * @param bool $active Whether card is active
+     * @param string|null $notes Optional notes (e.g. explanation, footnotes from import)
+     * @param string|null $special Optional special (e.g. "Pick 2", "Draw 2, Pick 3")
      * @return int The new card ID
      */
-    public static function create(CardType $cardType, string $copy, ?int $choices = null, bool $active = true): int
+    public static function create(CardType $cardType, string $copy, ?int $choices = null, bool $active = true, ?string $notes = null, ?string $special = null): int
     {
         $sql = "
-            INSERT INTO cards (type, copy, choices, active)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO cards (type, copy, choices, active, notes, special)
+            VALUES (?, ?, ?, ?, ?, ?)
         ";
 
-        Database::execute($sql, [$cardType->value, $copy, $choices, $active ? 1 : 0]);
+        Database::execute($sql, [$cardType->value, $copy, $choices, $active ? 1 : 0, $notes, $special]);
 
         return (int) Database::lastInsertId();
     }
@@ -205,7 +207,7 @@ class Card
      */
     public static function update(int $cardId, array $data): int
     {
-        $allowedFields = ['type', 'copy', 'choices', 'active'];
+        $allowedFields = ['type', 'copy', 'choices', 'active', 'notes', 'special'];
         $fields = [];
         $values = [];
 

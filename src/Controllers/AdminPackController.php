@@ -58,7 +58,7 @@ class AdminPackController
                 $data['name'],
                 $data['version'] ?? null,
                 $data['data'] ?? null,
-                $data['release_date'] ?? null,
+                self::normalizeReleaseDate($data['release_date'] ?? null),
                 $data['active'] ?? true
             );
 
@@ -71,6 +71,25 @@ class AdminPackController
         } catch (\Exception $e) {
             return JsonResponse::error($response, $e->getMessage(), 500);
         }
+    }
+
+    /**
+     * Normalize release_date to date-only (Y-m-d). Time component is not stored.
+     */
+    private static function normalizeReleaseDate(mixed $value): ?string
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+        $s = trim((string) $value);
+        if ($s === '') {
+            return null;
+        }
+        if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $s, $m)) {
+            return $m[1];
+        }
+        $ts = strtotime($s);
+        return $ts ? date('Y-m-d', $ts) : null;
     }
 
     /**
@@ -100,7 +119,7 @@ class AdminPackController
                 $updateData['data'] = $data['data'];
             }
             if (isset($data['release_date'])) {
-                $updateData['release_date'] = $data['release_date'];
+                $updateData['release_date'] = self::normalizeReleaseDate($data['release_date']);
             }
             if (isset($data['active'])) {
                 $updateData['active'] = $data['active'] ? 1 : 0;

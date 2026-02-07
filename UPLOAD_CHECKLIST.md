@@ -79,7 +79,7 @@ All three `.htaccess` files are production-ready and work as-is:
 - [ ] Create `.env` file (see DEPLOYMENT.md Step 3.1)
 - [ ] Set file permissions: `chmod -R 755` for directories, `chmod 600 .env`
 - [ ] Create MySQL database
-- [ ] Import schema: `src/Database/migrations/schema.sql`
+- [ ] Import schema: `database/schema.sql`
 - [ ] Import data: `data/tags.sql` and `data/cards.sql`
 - [ ] Test API: Visit `https://yourdomain.com/api/health`
 - [ ] Test Client: Visit `https://yourdomain.com/`

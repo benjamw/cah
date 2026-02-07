@@ -173,19 +173,26 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
       );
     }
 
-    // Replace blanks with response card text
+    // Replace blanks with response card text. Handle _<u>(repeat)</u>_ (or _(repeat)_) as
+    // "same as previous blank"; only real blanks (3+ underscores) consume from responseCardTexts.
     let result = promptCardText;
     let responseIndex = 0;
+    let lastFilled = '';
 
-    result = result.replace(/_+/g, () => {
+    // Match blanks (3+ underscores) first, then repeat placeholder _[^\s_]+_
+    const repeatOrBlankRegex = /_{3,}|_[^\s_]+_/g;
+    result = result.replace(repeatOrBlankRegex, (match) => {
+      const isRepeat = !/^_+$/.test(match); // not all underscores => repeat placeholder
+      if (isRepeat) {
+        if (lastFilled === '') return '_____';
+        return `<span class="response-text-inline">${formatCardText(lastFilled)}</span>`;
+      }
+      // Real blank
       if (responseIndex < responseCardTexts.length) {
-        // Trim trailing periods from response cards since prompt cards usually have punctuation
         const responseText = responseCardTexts[responseIndex].replace(/\.+$/, '');
-        const replacement = `<span class="response-text-inline">${formatCardText(
-          responseText
-        )}</span>`;
+        lastFilled = responseText;
         responseIndex++;
-        return replacement;
+        return `<span class="response-text-inline">${formatCardText(responseText)}</span>`;
       }
       return '_____';
     });

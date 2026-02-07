@@ -97,7 +97,7 @@ class AdminPackControllerTest extends TestCase
             'name' => 'AdminTest Full Pack',
             'version' => '2.0',
             'data' => '{"description": "Test pack"}',
-            'release_date' => '2025-06-01 12:00:00',
+            'release_date' => '2025-06-01',
             'active' => false
         ]);
         $response = $this->responseFactory->createResponse();
@@ -113,7 +113,7 @@ class AdminPackControllerTest extends TestCase
         $this->assertEquals('AdminTest Full Pack', $pack['name']);
         $this->assertEquals('2.0', $pack['version']);
         $this->assertEquals('{"description": "Test pack"}', $pack['data']);
-        $this->assertEquals('2025-06-01 12:00:00', $pack['release_date']);
+        $this->assertEquals('2025-06-01', $pack['release_date']);
         $this->assertEquals(0, $pack['active']);
     }
 

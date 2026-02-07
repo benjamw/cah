@@ -160,10 +160,10 @@ Run the schema SQL file to create tables:
 
 ```sql
 -- Option 1: Via phpMyAdmin
--- Upload and execute: src/Database/migrations/schema.sql
+-- Upload and execute: database/schema.sql
 
 -- Option 2: Via command line (if available)
-mysql -u your_user -p your_database < src/Database/migrations/schema.sql
+mysql -u your_user -p your_database < database/schema.sql
 ```
 
 ### 4.3 Import Card Data

@@ -54,7 +54,7 @@ class PackModelTest extends TestCase
             'Full Pack Test',
             '3.0',
             '{"description": "test pack"}',
-            '2025-01-01 12:00:00',
+            '2025-01-01',
             false
         );
 
@@ -66,7 +66,7 @@ class PackModelTest extends TestCase
         $this->assertEquals('Full Pack Test', $pack['name']);
         $this->assertEquals('3.0', $pack['version']);
         $this->assertEquals('{"description": "test pack"}', $pack['data']);
-        $this->assertEquals('2025-01-01 12:00:00', $pack['release_date']);
+        $this->assertEquals('2025-01-01', $pack['release_date']);
         $this->assertEquals(0, $pack['active']);
 
         // Cleanup

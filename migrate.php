@@ -42,7 +42,7 @@ try {
 }
 
 // Read schema file
-$schemaFile = __DIR__ . '/src/Database/migrations/schema.sql';
+$schemaFile = __DIR__ . '/database/schema.sql';
 if ( ! file_exists($schemaFile)) {
     echo "Schema file not found: {$schemaFile}\n";
     exit(1);
