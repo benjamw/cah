@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faPause, faPlay, faRobot, faCircleXmark, faRightFromBracket, faTag, faBoxArchive } from '@fortawesome/free-solid-svg-icons';
+import { faPause, faPlay, faRobot, faCircleXmark, faRightFromBracket, faBoxArchive } from '@fortawesome/free-solid-svg-icons';
 import CardSwiper from './CardSwiper';
 import CardSelector from './CardSelector';
 import CzarView from './CzarView';
-import CardTagEditor from './CardTagEditor';
 import { removePlayer, transferHost, leaveGame, placeSkippedPlayer, voteSkipCzar, togglePlayerPause, refreshHand } from '../utils/api';
 
 function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
@@ -18,8 +17,6 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
   const [votingToSkip, setVotingToSkip] = useState(false);
   const [pausing, setPausing] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [tagEditorCard, setTagEditorCard] = useState(null);
-  const [cardTagsMap, setCardTagsMap] = useState({});
   
   const currentPlayer = gameState.players?.find(
     (p) => p.id === gameData.playerId
@@ -73,17 +70,6 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
       setSubmittedCardIds([]);
     }
   }, [gameData.gameId, gameState.current_round, hasSubmitted]);
-
-  // Load initial tags for all cards
-  useEffect(() => {
-    const tagsMap = {};
-    allResponseCards.forEach(card => {
-      if (card.tags) {
-        tagsMap[card.card_id] = card.tags;
-      }
-    });
-    setCardTagsMap(tagsMap);
-  }, [allResponseCards]);
 
   // Filter out submitted cards from the hand
   const responseCards = hasSubmitted 
@@ -292,32 +278,6 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
     }
   };
 
-  const handleOpenTagEditor = (card) => {
-    // Merge card with current tags from state if available
-    const cardWithTags = {
-      ...card,
-      tags: cardTagsMap[card.card_id] || card.tags || []
-    };
-    setTagEditorCard(cardWithTags);
-  };
-
-  const handleCloseTagEditor = () => {
-    setTagEditorCard(null);
-  };
-
-  const handleTagsUpdated = (cardId, newTags) => {
-    // Update the local tags map
-    setCardTagsMap(prev => ({
-      ...prev,
-      [cardId]: newTags
-    }));
-
-    // Show success toast
-    if (showToast) {
-      showToast('Card tags updated!');
-    }
-  };
-
   const handleTransferAndLeave = async (newHostId) => {
     setTransferring(true);
     try {
@@ -344,7 +304,6 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
             promptCard={promptCard}
             responseCards={allResponseCards}
             showToast={showToast}
-            onOpenTagEditor={handleOpenTagEditor}
             onRefreshHand={handleRefreshHand}
             refreshing={refreshing}
           />
@@ -407,13 +366,6 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
           />
         )}
         
-        {tagEditorCard && (
-          <CardTagEditor
-            card={tagEditorCard}
-            onClose={handleCloseTagEditor}
-            onTagsUpdated={handleTagsUpdated}
-          />
-        )}
       </>
     );
   }
@@ -449,7 +401,6 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
             disabled={hasSubmitted}
             onRefreshHand={handleRefreshHand}
             refreshing={refreshing}
-            onOpenTagEditor={handleOpenTagEditor}
           />
         </div>
 
@@ -471,15 +422,6 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
               {blanksNeeded > 1 && (
                 <div className="card-pick">Pick {blanksNeeded}</div>
               )}
-              
-              <button
-                className="card-tag-btn"
-                onClick={() => handleOpenTagEditor(promptCard)}
-                title="Edit tags for this card"
-                aria-label="Edit tags"
-              >
-                <FontAwesomeIcon icon={faTag} />
-              </button>
               
               {promptCard.packs && promptCard.packs.length > 0 && (
                 <button
@@ -577,14 +519,6 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
           onPlacePlayer={handlePlaceSkippedPlayer}
           onCancel={() => setShowSkippedPlayerModal(false)}
           placing={placingPlayer}
-        />
-      )}
-
-      {tagEditorCard && (
-        <CardTagEditor
-          card={tagEditorCard}
-          onClose={handleCloseTagEditor}
-          onTagsUpdated={handleTagsUpdated}
         />
       )}
     </div>

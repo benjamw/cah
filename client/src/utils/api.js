@@ -223,30 +223,6 @@ export async function forceEarlyReview(gameId) {
   });
 }
 
-// Add a tag to a card in player's hand
-export async function addCardTag(cardId, tagId) {
-  return apiRequest('/cards/tag', {
-    method: 'POST',
-    body: JSON.stringify({
-      card_id: cardId,
-      tag_id: tagId,
-      action: 'add',
-    }),
-  });
-}
-
-// Remove a tag from a card in player's hand
-export async function removeCardTag(cardId, tagId) {
-  return apiRequest('/cards/tag', {
-    method: 'POST',
-    body: JSON.stringify({
-      card_id: cardId,
-      tag_id: tagId,
-      action: 'remove',
-    }),
-  });
-}
-
 // Get random card pairing (prompt + responses)
 export async function getRandomPairing() {
   return apiRequest('/cards/random-pairing', {
