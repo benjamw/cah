@@ -32,7 +32,7 @@ _SEXIST = _compile_keywords(SEXIST_KEYWORDS)
 # --- Racist: specific phrases / unambiguous terms ---
 RACIST_KEYWORDS = [
     'slavery', 'white man', 'black man', 'black woman', 'aboriginal',
-    'tribe', 'mexican', 'racist', 'racism',
+    'tribe', 'mexican', 'racist', 'racism', 'nigga', 'nigger', 'negro', 'slave', 'kneel', 'kneeling',
 ]
 RACIST_EXCLUDE = re.compile(
     r'primitive\s+version|indian\s+food|indian\s+cuisine|indian\s+summer|asian\s+cuisine|asian\s+food|tribe\s+called',
@@ -192,8 +192,8 @@ def process_file(filename):
             if sample_count >= 10:
                 break
 
-# Process both files
-process_file('data/prompt_cards.csv')
-process_file('data/response_cards.csv')
-
-print('\nAll files processed!')
+if __name__ == '__main__':
+    # Process both files
+    process_file('data/prompt_cards.csv')
+    process_file('data/response_cards.csv')
+    print('\nAll files processed!')
