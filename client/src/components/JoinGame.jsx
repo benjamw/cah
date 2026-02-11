@@ -134,6 +134,13 @@ function JoinGame({ onGameJoined, onSwitchToCreate, onSwitchToRandom, playerName
       >
         Show random pairing
       </button>
+
+      <p className="content-notice">
+        Cards are tagged for content where possible, but with tens of thousands in the deck,
+        some offensive cards may still appear. If that&apos;s not something you&apos;re okay with,
+        this game probably isn&apos;t for you.<br/>
+        You have been warned.
+      </p>
     </div>
   );
 }
