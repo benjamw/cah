@@ -22,7 +22,7 @@ function CardSelector({
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [submittedCards, setSubmittedCardsState] = useState([]);
 
-  const canSubmit = selectedCards.length === blanksNeeded && ! hasSubmitted;
+  const canSubmit = selectedCards.length === blanksNeeded && !hasSubmitted;
 
   // Load submitted cards from localStorage on mount and when submission status changes
   useEffect(() => {
@@ -31,7 +31,7 @@ function CardSelector({
   }, [gameData.gameId, gameState.current_round, hasSubmitted]);
 
   const handleSubmit = async () => {
-    if ( ! canSubmit) return;
+    if (!canSubmit) return;
 
     setSubmitting(true);
     setError('');
@@ -40,9 +40,11 @@ function CardSelector({
       const response = await submitCards(gameData.gameId, selectedCards);
       if (response.success) {
         // Store submitted cards with their full data (not just IDs) in localStorage
-        const submittedCardsData = selectedCards.map(cardId => {
-          return responseCards.find(c => c.card_id === cardId);
-        }).filter(Boolean);
+        const submittedCardsData = selectedCards
+          .map((cardId) => {
+            return responseCards.find((c) => c.card_id === cardId);
+          })
+          .filter(Boolean);
 
         setSubmittedCards(gameData.gameId, gameState.current_round, submittedCardsData);
         setSubmittedCardsState(submittedCardsData);
@@ -81,34 +83,34 @@ function CardSelector({
 
   if (hasSubmitted) {
     // Check if all submissions are in (exclude czar and paused players)
-    const activePlayers = gameState.players?.filter(p => 
-      p.id !== gameState.current_czar_id && ! p.is_paused
-    ) || [];
+    const activePlayers =
+      gameState.players?.filter((p) => p.id !== gameState.current_czar_id && !p.is_paused) || [];
     const submissionCount = gameState.submissions?.length || 0;
     const expectedSubmissions = activePlayers.length;
     const allSubmitted = submissionCount >= expectedSubmissions;
-    
+
     // Get czar name for display
     const czarName = gameState.current_czar_name || 'the czar';
-    
+
     return (
       <div className="card-selector">
         <div className="submission-status">
-          <div className="status-icon"><FontAwesomeIcon icon={faCircleCheck} /></div>
+          <div className="status-icon">
+            <FontAwesomeIcon icon={faCircleCheck} />
+          </div>
           <p>
-            {allSubmitted 
+            {allSubmitted
               ? `All cards submitted! Waiting for ${czarName} to pick a winner...`
-              : "Cards submitted! Waiting for other players..."
-            }
+              : 'Cards submitted! Waiting for other players...'}
           </p>
         </div>
-        
+
         {submittedCards.length > 0 && (
           <div className="submitted-cards-display">
             <h4>Your Submission:</h4>
             <div className="submitted-cards-list">
               {submittedCards.map((card, index) => {
-                if ( ! card) return null;
+                if (!card) return null;
 
                 return (
                   <div key={card.card_id} className="submitted-card-preview">
@@ -143,7 +145,7 @@ function CardSelector({
             <div className="selected-cards-list-compact">
               {selectedCards.map((cardId, index) => {
                 const card = responseCards.find((c) => c.card_id === cardId);
-                if ( ! card) return null;
+                if (!card) return null;
 
                 return (
                   <div
@@ -180,7 +182,7 @@ function CardSelector({
       <button
         className="btn btn-primary submit-cards-btn"
         onClick={handleSubmit}
-        disabled={ ! canSubmit || submitting}
+        disabled={!canSubmit || submitting}
       >
         {submitting ? 'Submitting...' : 'Submit Cards'}
       </button>

@@ -2,6 +2,7 @@ import js from '@eslint/js';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import reactRefresh from 'eslint-plugin-react-refresh';
+import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default [
   {
@@ -42,18 +43,18 @@ export default [
       ...react.configs.recommended.rules,
       ...react.configs['jsx-runtime'].rules,
       ...reactHooks.configs.recommended.rules,
-      
+
       // Error on console.log in production
       'no-console': ['warn', { allow: ['warn', 'error'] }],
-      
+
       // React specific
       'react/prop-types': 'off',
       'react/react-in-jsx-scope': 'off',
-      
+
       // Code quality
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-debugger': 'error',
-      
+
       // React Refresh
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
@@ -63,4 +64,5 @@ export default [
       },
     },
   },
+  eslintConfigPrettier,
 ];

@@ -2,10 +2,7 @@ export function formatCardText(text) {
   if (!text) return '';
 
   // Escape HTML first so card content cannot inject markup.
-  let formatted = text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+  let formatted = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   // Protect sequences of 3+ underscores (blanks) by replacing them temporarily.
   // Use a vertical tab placeholder that should never appear in card text.

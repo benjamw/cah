@@ -86,7 +86,7 @@ export async function startGame(gameId) {
 // Get game state
 export async function getGameState(ifModifiedSince = null) {
   const headers = {};
-  
+
   if (ifModifiedSince) {
     headers['If-Modified-Since'] = ifModifiedSince;
   }

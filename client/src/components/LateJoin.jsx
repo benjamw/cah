@@ -9,8 +9,8 @@ function LateJoin({ gameId, playerName, playerNames, onGameJoined, onBack }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if ( ! adjacentPlayer1 || ! adjacentPlayer2) {
+
+    if (!adjacentPlayer1 || !adjacentPlayer2) {
       setError('Please select both players');
       return;
     }
@@ -46,8 +46,8 @@ function LateJoin({ gameId, playerName, playerNames, onGameJoined, onBack }) {
     <div className="late-join">
       <h1>Game Already Started</h1>
       <p className="late-join-info">
-        The game has already started, but you can still join!
-        Select two players who are sitting next to each other - you&apos;ll be placed between them.
+        The game has already started, but you can still join! Select two players who are sitting
+        next to each other - you&apos;ll be placed between them.
       </p>
 
       <div className="join-info-box">
@@ -114,12 +114,7 @@ function LateJoin({ gameId, playerName, playerNames, onGameJoined, onBack }) {
         </button>
       </form>
 
-      <button
-        type="button"
-        className="btn btn-secondary"
-        onClick={onBack}
-        disabled={loading}
-      >
+      <button type="button" className="btn btn-secondary" onClick={onBack} disabled={loading}>
         Back
       </button>
     </div>

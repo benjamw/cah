@@ -15,18 +15,18 @@ export function getCachedTags() {
   try {
     const cached = localStorage.getItem(TAG_CACHE_KEY);
     const timestamp = localStorage.getItem(TAG_CACHE_TIMESTAMP_KEY);
-    
+
     if (!cached || !timestamp) {
       return null;
     }
-    
+
     const cacheAge = Date.now() - parseInt(timestamp, 10);
     if (cacheAge > CACHE_DURATION) {
       // Cache expired
       clearTagCache();
       return null;
     }
-    
+
     return JSON.parse(cached);
   } catch (error) {
     console.error('Error reading tag cache:', error);
@@ -69,7 +69,7 @@ export function hasValidTagCache() {
   if (!timestamp) {
     return false;
   }
-  
+
   const cacheAge = Date.now() - parseInt(timestamp, 10);
   return cacheAge <= CACHE_DURATION;
 }

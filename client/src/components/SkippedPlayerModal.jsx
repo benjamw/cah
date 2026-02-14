@@ -1,10 +1,17 @@
 import { useState } from 'react';
 
-function SkippedPlayerModal({ skippedPlayers, players, playerOrder, onPlacePlayer, onCancel, placing }) {
+function SkippedPlayerModal({
+  skippedPlayers,
+  players,
+  playerOrder,
+  onPlacePlayer,
+  onCancel,
+  placing,
+}) {
   const [currentSkippedIndex, setCurrentSkippedIndex] = useState(0);
   const [selectedBeforePlayer, setSelectedBeforePlayer] = useState('');
 
-  if ( ! skippedPlayers || skippedPlayers.ids.length === 0) {
+  if (!skippedPlayers || skippedPlayers.ids.length === 0) {
     return null;
   }
 
@@ -13,11 +20,11 @@ function SkippedPlayerModal({ skippedPlayers, players, playerOrder, onPlacePlaye
 
   // Get players in the current order
   const orderedPlayers = playerOrder
-    .map(id => players.find(p => p.id === id))
-    .filter(p => p && ! p.is_rando);
+    .map((id) => players.find((p) => p.id === id))
+    .filter((p) => p && !p.is_rando);
 
   const handlePlace = () => {
-    if ( ! selectedBeforePlayer) return;
+    if (!selectedBeforePlayer) return;
 
     onPlacePlayer(currentSkippedId, selectedBeforePlayer);
 
@@ -59,15 +66,11 @@ function SkippedPlayerModal({ skippedPlayers, players, playerOrder, onPlacePlaye
           <button
             className="btn btn-primary"
             onClick={handlePlace}
-            disabled={ ! selectedBeforePlayer || placing}
+            disabled={!selectedBeforePlayer || placing}
           >
             {placing ? 'Placing...' : 'Place Player'}
           </button>
-          <button
-            className="btn btn-secondary"
-            onClick={onCancel}
-            disabled={placing}
-          >
+          <button className="btn btn-secondary" onClick={onCancel} disabled={placing}>
             Cancel
           </button>
         </div>

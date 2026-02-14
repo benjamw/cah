@@ -26,7 +26,7 @@ function GameEnd({ gameState, onLeaveGame }) {
   return (
     <div className="game-end">
       <h1>Game Over!</h1>
-      
+
       <div className="end-reason">
         <p>{getEndReasonMessage()}</p>
       </div>
@@ -37,22 +37,27 @@ function GameEnd({ gameState, onLeaveGame }) {
           {sortedPlayers.map((player, index) => {
             const isWinner = player.id === winnerId;
             const isRando = player.is_rando;
-            
+
             return (
-              <div 
-                key={player.id} 
-                className={`scoreboard-item ${isWinner ? 'winner' : ''}`}
-              >
+              <div key={player.id} className={`scoreboard-item ${isWinner ? 'winner' : ''}`}>
                 <div className="player-rank">#{index + 1}</div>
                 <div className="player-info">
                   <div className="player-name-score">
                     <span className="player-name">
-                      {isRando && <><FontAwesomeIcon icon={faRobot} /> </>}
+                      {isRando && (
+                        <>
+                          <FontAwesomeIcon icon={faRobot} />{' '}
+                        </>
+                      )}
                       {player.name}
                     </span>
                     <span className="player-score">{player.score} points</span>
                   </div>
-                  {isWinner && <span className="winner-badge"><FontAwesomeIcon icon={faCrown} /> Winner</span>}
+                  {isWinner && (
+                    <span className="winner-badge">
+                      <FontAwesomeIcon icon={faCrown} /> Winner
+                    </span>
+                  )}
                 </div>
               </div>
             );

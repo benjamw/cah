@@ -6,7 +6,16 @@ import CardSwiper from './CardSwiper';
 import CardCombinationView from './CardCombinationView';
 import CardView from './CardView';
 
-function CzarView({ gameState, gameData, promptCard, responseCards, showToast, onOpenTagEditor, onRefreshHand, refreshing }) {
+function CzarView({
+  gameState,
+  gameData,
+  promptCard,
+  responseCards,
+  showToast,
+  onOpenTagEditor,
+  onRefreshHand,
+  refreshing,
+}) {
   const [currentSubmissionIndex, setCurrentSubmissionIndex] = useState(0);
   const [selecting, setSelecting] = useState(false);
   const [error, setError] = useState('');
@@ -17,29 +26,32 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
 
   const submissions = gameState.submissions || [];
   const minSwipeDistance = 50;
-  
+
   // Get czar name from the top level (already provided by API)
   // Kept for potential future use in czar-specific UI features
   // const czarName = gameState.current_czar_name || 'Unknown';
-  
+
   // Calculate how many players should submit (exclude czar and paused players)
-  const activePlayers = gameState.players?.filter(p => 
-    p.id !== gameState.current_czar_id && ! p.is_paused
-  ) || [];
+  const activePlayers =
+    gameState.players?.filter((p) => p.id !== gameState.current_czar_id && !p.is_paused) || [];
   const expectedSubmissions = activePlayers.length;
   const allSubmitted = submissions.length >= expectedSubmissions && submissions.length > 0;
   const forcedReview = gameState.forced_early_review === true;
-  const canForceReview = submissions.length > 0 && ! allSubmitted && ! forcedReview;
+  const canForceReview = submissions.length > 0 && !allSubmitted && !forcedReview;
   const canSkipRound = submissions.length === 0 && expectedSubmissions > 0;
 
   const handleForceReview = async () => {
-    if ( ! window.confirm(`Only ${submissions.length} out of ${expectedSubmissions} players have submitted. Review anyway?`)) {
+    if (
+      !window.confirm(
+        `Only ${submissions.length} out of ${expectedSubmissions} players have submitted. Review anyway?`
+      )
+    ) {
       return;
     }
-    
+
     try {
       const response = await forceEarlyReview(gameData.gameId);
-      if ( ! response.success) {
+      if (!response.success) {
         if (showToast) {
           showToast(response.message || 'Failed to force early review');
         }
@@ -54,16 +66,16 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
   };
 
   const handleSkipRound = async () => {
-    if ( ! window.confirm('No submissions received. Skip to next round without a winner?')) {
+    if (!window.confirm('No submissions received. Skip to next round without a winner?')) {
       return;
     }
-    
+
     setSettingCzar(true);
     setError('');
-    
+
     try {
       const response = await setNextCzar(gameData.gameId);
-      if ( ! response.success) {
+      if (!response.success) {
         setError(response.message || 'Failed to advance round');
       }
     } catch (err) {
@@ -83,7 +95,7 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
   };
 
   const onTouchEnd = () => {
-    if ( ! touchStart || ! touchEnd) return;
+    if (!touchStart || !touchEnd) return;
 
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
@@ -99,19 +111,16 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
 
   const handlePickWinner = async () => {
     // Allow picking winner if all submitted OR forced early review
-    if ( ! allSubmitted && ! forcedReview) return;
+    if (!allSubmitted && !forcedReview) return;
 
     const currentSubmission = submissions[currentSubmissionIndex];
-    
+
     setSelecting(true);
     setError('');
 
     try {
-      const response = await pickWinner(
-        gameData.gameId,
-        currentSubmission.player_id
-      );
-      if ( ! response.success) {
+      const response = await pickWinner(gameData.gameId, currentSubmission.player_id);
+      if (!response.success) {
         setError(response.message || 'Failed to advance round');
       } else {
         // Check if we need to select next czar
@@ -134,13 +143,13 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
 
     try {
       const response = await setNextCzar(gameData.gameId, nextCzarId);
-      if ( ! response.success) {
+      if (!response.success) {
         setError(response.message || 'Failed to set next czar');
       } else {
         setShowCzarSelection(false);
-        
+
         // Check if order was locked (without skipped players - those are handled separately)
-        if (response.data.order_locked && ! response.data.skipped_players) {
+        if (response.data.order_locked && !response.data.skipped_players) {
           showToast('Player order locked! The czar will now rotate automatically.');
         }
       }
@@ -158,7 +167,7 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
         <span>You are the Card Czar</span>
       </div>
 
-      { ! allSubmitted && (
+      {!allSubmitted && (
         <div className="card-section">
           {promptCard ? (
             <CardView copy={promptCard.copy} variant="prompt" choices={promptCard.choices}>
@@ -172,7 +181,7 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
                   <FontAwesomeIcon icon={faTag} />
                 </button>
               )}
-              
+
               {promptCard.packs && promptCard.packs.length > 0 && (
                 <button
                   className="card-packs-btn-prompt"
@@ -190,7 +199,7 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
                   <FontAwesomeIcon icon={faBoxArchive} />
                 </button>
               )}
-              
+
               {promptCard.packs && promptCard.packs.length > 0 && (
                 <div className="card-packs-display-prompt hidden">
                   <div className="card-packs-header">
@@ -212,7 +221,7 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
         </div>
       )}
 
-      { ! allSubmitted && ! forcedReview ? (
+      {!allSubmitted && !forcedReview ? (
         <>
           <div className="waiting-for-submissions">
             <p>Waiting for players to submit their cards...</p>
@@ -220,15 +229,12 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
               {submissions.length} / {expectedSubmissions} submitted
             </div>
             {canForceReview && (
-              <button 
-                className="btn-skip-czar btn-review-anyway"
-                onClick={handleForceReview}
-              >
+              <button className="btn-skip-czar btn-review-anyway" onClick={handleForceReview}>
                 Review Anyway
               </button>
             )}
             {canSkipRound && (
-              <button 
+              <button
                 className="btn-skip-czar btn-review-anyway"
                 onClick={handleSkipRound}
                 disabled={settingCzar}
@@ -275,9 +281,7 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
                     {submissions.map((_, index) => (
                       <button
                         key={index}
-                        className={`dot ${
-                          index === currentSubmissionIndex ? 'active' : ''
-                        }`}
+                        className={`dot ${index === currentSubmissionIndex ? 'active' : ''}`}
                         onClick={() => setCurrentSubmissionIndex(index)}
                         aria-label={`Go to submission ${index + 1}`}
                       />
@@ -296,13 +300,12 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
                   onClick={handlePickWinner}
                   disabled={selecting}
                 >
-                  <FontAwesomeIcon icon={faTrophy} /> {selecting ? 'Selecting...' : 'This is the Winner!'}
+                  <FontAwesomeIcon icon={faTrophy} />{' '}
+                  {selecting ? 'Selecting...' : 'This is the Winner!'}
                 </button>
               </>
             ) : (
-              <div className="card card-empty">
-                No submissions available to review
-              </div>
+              <div className="card card-empty">No submissions available to review</div>
             )}
           </div>
 
@@ -336,14 +339,16 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
 
 function CzarSelectionModal({ players, currentCzarId, onSelectCzar, onCancel, selecting }) {
   // Filter out current czar and Rando
-  const eligiblePlayers = players.filter(p => p.id !== currentCzarId && ! p.is_rando);
+  const eligiblePlayers = players.filter((p) => p.id !== currentCzarId && !p.is_rando);
 
   return (
     <div className="modal-overlay" onClick={onCancel}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <h2>Select Next Card Czar</h2>
-        <p>Choose the player to your <strong>left</strong> (clockwise around the table):</p>
-        
+        <p>
+          Choose the player to your <strong>left</strong> (clockwise around the table):
+        </p>
+
         <div className="czar-selection-list">
           {eligiblePlayers.map((player) => (
             <button
@@ -357,7 +362,7 @@ function CzarSelectionModal({ players, currentCzarId, onSelectCzar, onCancel, se
             </button>
           ))}
         </div>
-        
+
         {eligiblePlayers.length === 0 && (
           <p className="no-players">No eligible players available</p>
         )}

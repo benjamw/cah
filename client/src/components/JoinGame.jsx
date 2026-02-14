@@ -11,7 +11,7 @@ function JoinGame({ onGameJoined, onSwitchToCreate, onSwitchToRandom, playerName
   // Filter out dangerous characters that could be used for attacks or cause display issues
   const handleNameChange = (e) => {
     let value = e.target.value;
-    
+
     // Remove control characters (0x00-0x1F, 0x7F-0x9F)
     // Remove zero-width and invisible characters (U+200B-U+200F)
     // Remove bidirectional text override characters (U+202A-U+202E)
@@ -19,7 +19,7 @@ function JoinGame({ onGameJoined, onSwitchToCreate, onSwitchToRandom, playerName
     // Remove byte order mark (U+FEFF)
     // eslint-disable-next-line no-control-regex
     value = value.replace(/[\x00-\x1F\x7F-\x9F\u200B-\u200F\u202A-\u202E\u2028\u2029\uFEFF]/g, '');
-    
+
     setPlayerName(value);
   };
 
@@ -30,7 +30,7 @@ function JoinGame({ onGameJoined, onSwitchToCreate, onSwitchToRandom, playerName
 
     try {
       const response = await joinGame(playerName, gameId);
-      
+
       if (response.success) {
         onGameJoined({
           gameId: response.data.game_id || gameId,
@@ -126,19 +126,15 @@ function JoinGame({ onGameJoined, onSwitchToCreate, onSwitchToRandom, playerName
         Create New Game
       </button>
 
-      <button
-        type="button"
-        className="btn btn-text"
-        onClick={onSwitchToRandom}
-        disabled={loading}
-      >
+      <button type="button" className="btn btn-text" onClick={onSwitchToRandom} disabled={loading}>
         Show random pairing
       </button>
 
       <p className="content-notice">
-        Cards are tagged for content where possible, but with tens of thousands in the deck,
-        some offensive cards may still appear. If that&apos;s not something you&apos;re okay with,
-        this game probably isn&apos;t for you.<br/>
+        Cards are tagged for content where possible, but with tens of thousands in the deck, some
+        offensive cards may still appear. If that&apos;s not something you&apos;re okay with, this
+        game probably isn&apos;t for you.
+        <br />
         You have been warned.
       </p>
     </div>

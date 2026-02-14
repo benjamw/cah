@@ -10,11 +10,7 @@ function CardCombinationView({ promptText, responseTexts }) {
         <CardText text={promptText} className="card-text prompt-text" />
         <div className="response-cards-below">
           {responseTexts.map((text, index) => (
-            <CardText
-              key={index}
-              text={text}
-              className="card-text response-text-inline"
-            />
+            <CardText key={index} text={text} className="card-text response-text-inline" />
           ))}
         </div>
       </div>
@@ -45,12 +41,7 @@ function CardCombinationView({ promptText, responseTexts }) {
     return '_____';
   });
 
-  return (
-    <div
-      className="card-text prompt-text"
-      dangerouslySetInnerHTML={{ __html: result }}
-    />
-  );
+  return <div className="card-text prompt-text" dangerouslySetInnerHTML={{ __html: result }} />;
 }
 
 export default CardCombinationView;

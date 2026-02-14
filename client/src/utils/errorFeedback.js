@@ -5,11 +5,7 @@ export function reportActionFailure({
   showToast,
   logPrefix = 'Action failed',
 }) {
-  const message =
-    response?.message ||
-    response?.error ||
-    error?.message ||
-    fallbackMessage;
+  const message = response?.message || response?.error || error?.message || fallbackMessage;
 
   if (response) {
     console.error(`${logPrefix}:`, response);

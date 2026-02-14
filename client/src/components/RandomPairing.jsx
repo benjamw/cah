@@ -14,10 +14,10 @@ function RandomPairing({ onBack }) {
   const loadRandomPairing = async () => {
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await getRandomPairing();
-      
+
       if (response.success) {
         setPairing(response.data);
       } else {
@@ -57,7 +57,7 @@ function RandomPairing({ onBack }) {
   return (
     <div className="random-pairing">
       <h1>Random Pairing</h1>
-      
+
       <div className="random-pairing-display">
         <div className="card card-prompt card-submission">
           <CardCombinationView

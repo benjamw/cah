@@ -40,7 +40,7 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
   // Filter out dangerous characters that could be used for attacks or cause display issues
   const handleNameChange = (e) => {
     let value = e.target.value;
-    
+
     // Remove control characters (0x00-0x1F, 0x7F-0x9F)
     // Remove zero-width and invisible characters (U+200B-U+200F)
     // Remove bidirectional text override characters (U+202A-U+202E)
@@ -48,14 +48,14 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
     // Remove byte order mark (U+FEFF)
     // eslint-disable-next-line no-control-regex
     value = value.replace(/[\x00-\x1F\x7F-\x9F\u200B-\u200F\u202A-\u202E\u2028\u2029\uFEFF]/g, '');
-    
+
     setPlayerName(value);
   };
 
   useEffect(() => {
     // Load available tags
     setTagsLoading(true);
-    
+
     // Check cache first
     const cachedTags = getCachedTags();
     if (cachedTags) {
@@ -65,7 +65,7 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
       setTagsLoading(false);
       return;
     }
-    
+
     // Cache miss - fetch from API
     getTags()
       .then((response) => {
@@ -123,9 +123,7 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
 
   const toggleTag = (tagId) => {
     setSelectedTags((prev) =>
-      prev.includes(tagId)
-        ? prev.filter((id) => id !== tagId)
-        : [...prev, tagId]
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
     );
   };
 
@@ -140,7 +138,7 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
   const invertTagSelection = () => {
     setSelectedTags((prev) => {
       const allTagIds = tags.map((tag) => tag.tag_id);
-      return allTagIds.filter((id) => ! prev.includes(id));
+      return allTagIds.filter((id) => !prev.includes(id));
     });
   };
 
@@ -148,7 +146,10 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
     const buckets = new Map();
 
     for (const tag of tags) {
-      const typeKey = String(tag.type || '').trim().toLowerCase() || 'uncategorized';
+      const typeKey =
+        String(tag.type || '')
+          .trim()
+          .toLowerCase() || 'uncategorized';
       if (!buckets.has(typeKey)) {
         buckets.set(typeKey, []);
       }

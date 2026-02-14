@@ -9,7 +9,11 @@ export async function handleLeaveWithOptionalTransfer({
   showToast,
 }) {
   if (requiresTransfer) {
-    if (window.confirm('Are you sure you want to leave the game? You will need to transfer host to another player.')) {
+    if (
+      window.confirm(
+        'Are you sure you want to leave the game? You will need to transfer host to another player.'
+      )
+    ) {
       setShowHostTransfer(true);
     }
     return;

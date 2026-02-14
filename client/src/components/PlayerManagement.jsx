@@ -6,13 +6,13 @@ function PlayerManagement({ players, gameData, onRemovePlayer, onTogglePause, re
   const [expanded, setExpanded] = useState(false);
 
   // Filter out Rando for count
-  const nonRandoPlayers = players.filter(p => ! p.is_rando);
+  const nonRandoPlayers = players.filter((p) => !p.is_rando);
 
   return (
     <div className="player-management">
       <button
         className="btn btn-secondary toggle-players-btn"
-        onClick={() => setExpanded( ! expanded)}
+        onClick={() => setExpanded(!expanded)}
       >
         {expanded ? 'Hide' : 'Manage'} Players ({nonRandoPlayers.length})
       </button>
@@ -22,7 +22,11 @@ function PlayerManagement({ players, gameData, onRemovePlayer, onTogglePause, re
           {nonRandoPlayers.map((player) => (
             <div key={player.id} className="player-inline-item">
               <span className={`player-inline-name ${player.is_paused ? 'paused' : ''}`}>
-                {player.is_paused && <><FontAwesomeIcon icon={faPause} /> </>}
+                {player.is_paused && (
+                  <>
+                    <FontAwesomeIcon icon={faPause} />{' '}
+                  </>
+                )}
                 {player.name}
                 {player.id === gameData.playerId && ' (You)'}
               </span>
@@ -36,7 +40,11 @@ function PlayerManagement({ players, gameData, onRemovePlayer, onTogglePause, re
                     aria-label={player.is_paused ? 'Unpause player' : 'Pause player'}
                     title={player.is_paused ? 'Unpause player' : 'Pause player'}
                   >
-                    {pausing === player.id ? '...' : <FontAwesomeIcon icon={player.is_paused ? faPlay : faPause} />}
+                    {pausing === player.id ? (
+                      '...'
+                    ) : (
+                      <FontAwesomeIcon icon={player.is_paused ? faPlay : faPause} />
+                    )}
                   </button>
                 )}
                 {player.id !== gameData.playerId && (

@@ -1,5 +1,5 @@
 function HostTransferModal({ players, currentPlayerId, onTransfer, onCancel, transferring }) {
-  const otherPlayers = players.filter(p => p.id !== currentPlayerId && ! p.is_rando);
+  const otherPlayers = players.filter((p) => p.id !== currentPlayerId && !p.is_rando);
 
   return (
     <div className="modal-overlay">
@@ -20,11 +20,7 @@ function HostTransferModal({ players, currentPlayerId, onTransfer, onCancel, tra
           ))}
         </div>
 
-        <button
-          className="btn btn-secondary"
-          onClick={onCancel}
-          disabled={transferring}
-        >
+        <button className="btn btn-secondary" onClick={onCancel} disabled={transferring}>
           Cancel
         </button>
       </div>

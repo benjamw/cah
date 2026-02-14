@@ -160,7 +160,9 @@ h3 {
   border: none;
   border-radius: var(--border-radius);
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.1s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease;
   margin-bottom: var(--spacing-md);
   text-align: center;
 }
@@ -450,9 +452,28 @@ h3 {
 
 .tag-list {
   display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-sm);
+}
+
+.tag-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.tag-group-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-gray-dark);
+}
+
+.tag-group-list {
+  display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-sm);
-  margin-bottom: var(--spacing-sm);
 }
 
 .tag-button {
@@ -566,7 +587,8 @@ h3 {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -2140,4 +2162,3 @@ h3 {
 .random-pairing-actions .btn {
   min-width: 150px;
 }
-

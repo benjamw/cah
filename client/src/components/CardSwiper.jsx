@@ -3,7 +3,16 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowsRotate, faTag, faBoxArchive } from '@fortawesome/free-solid-svg-icons';
 import CardView from './CardView';
 
-function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, onRefreshHand, refreshing, onOpenTagEditor }) {
+function CardSwiper({
+  cards,
+  selectedCards,
+  onCardSelect,
+  cardType,
+  disabled,
+  onRefreshHand,
+  refreshing,
+  onOpenTagEditor,
+}) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
@@ -45,7 +54,7 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
   };
 
   const onTouchEnd = () => {
-    if ( ! touchStart || ! touchEnd) return;
+    if (!touchStart || !touchEnd) return;
 
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
@@ -71,7 +80,7 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
     }
   };
 
-  if ( ! cards || cards.length === 0) {
+  if (!cards || cards.length === 0) {
     return (
       <div className="card-swiper">
         <div className="card card-empty">No cards available</div>
@@ -112,7 +121,7 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
             <FontAwesomeIcon icon={faTag} />
           </button>
         )}
-        
+
         {currentCard.packs && currentCard.packs.length > 0 && (
           <button
             className="card-packs-btn"

@@ -16,16 +16,16 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error, sho
   const [transferring, setTransferring] = useState(false);
 
   const handleRemovePlayer = async (playerId) => {
-    if ( ! gameData.isCreator || playerId === gameData.playerId) return;
+    if (!gameData.isCreator || playerId === gameData.playerId) return;
 
-    if ( ! window.confirm('Are you sure you want to remove this player?')) {
+    if (!window.confirm('Are you sure you want to remove this player?')) {
       return;
     }
 
     setRemoving(playerId);
     try {
       const response = await removePlayer(gameData.gameId, playerId);
-      if ( ! response.success) {
+      if (!response.success) {
         reportActionFailure({
           response,
           fallbackMessage: 'Failed to remove player',
@@ -78,26 +78,24 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error, sho
         </div>
       )}
 
-      { ! gameData.isCreator && (
+      {!gameData.isCreator && (
         <div className="waiting-message">
           <h2>Waiting for game to start...</h2>
-          <p className="waiting-subtext">
-            The host will start the game when ready.
-          </p>
+          <p className="waiting-subtext">The host will start the game when ready.</p>
         </div>
       )}
 
       {gameData.isCreator && players.length >= minPlayers && (
         <div className="ready-message">
           <h2>Ready to start!</h2>
-          <p className="waiting-subtext">
-            You have enough players to begin.
-          </p>
+          <p className="waiting-subtext">You have enough players to begin.</p>
         </div>
       )}
 
       <div className="player-list">
-        <h3>Players ({players.length}/{settings.max_players || 0})</h3>
+        <h3>
+          Players ({players.length}/{settings.max_players || 0})
+        </h3>
         {players.length === 0 ? (
           <p className="empty-list">No players yet...</p>
         ) : (
@@ -108,7 +106,7 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error, sho
                   <span className="player-name">{player.name}</span>
                   {player.is_creator && <span className="badge">Host</span>}
                 </div>
-                {gameData.isCreator && ! player.is_creator && (
+                {gameData.isCreator && !player.is_creator && (
                   <button
                     className="btn-remove-icon"
                     onClick={() => handleRemovePlayer(player.id)}
@@ -133,8 +131,12 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error, sho
           {settings.allow_late_join && <li>Late Join: Allowed</li>}
           {gameState?.deck_counts && (
             <>
-              <li>White Cards in Deck: <strong>{gameState.deck_counts.response_cards}</strong></li>
-              <li>Black Cards in Deck: <strong>{gameState.deck_counts.prompt_cards}</strong></li>
+              <li>
+                White Cards in Deck: <strong>{gameState.deck_counts.response_cards}</strong>
+              </li>
+              <li>
+                Black Cards in Deck: <strong>{gameState.deck_counts.prompt_cards}</strong>
+              </li>
             </>
           )}
         </ul>
@@ -145,17 +147,13 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error, sho
       <div className="waiting-room-actions">
         {gameData.isCreator ? (
           <>
-            <button 
-              className="btn btn-primary" 
-              onClick={onStartGame}
-              disabled={ ! canStart}
-            >
+            <button className="btn btn-primary" onClick={onStartGame} disabled={!canStart}>
               Start Game
             </button>
-            { ! canStart && (
+            {!canStart && (
               <p className="info-message">
-                Need at least {minPlayers} players to start
-                ({minPlayers - players.length} more needed)
+                Need at least {minPlayers} players to start ({minPlayers - players.length} more
+                needed)
               </p>
             )}
           </>

@@ -35,11 +35,17 @@ function Scoreboard({ players, currentPlayerId }) {
             >
               <span className="scoreboard-rank">#{rank}</span>
               <span className="scoreboard-name">
-                {isRando && <><FontAwesomeIcon icon={faRobot} /> </>}
+                {isRando && (
+                  <>
+                    <FontAwesomeIcon icon={faRobot} />{' '}
+                  </>
+                )}
                 {player.name}
                 {isCurrentPlayer && ' (You)'}
               </span>
-              <span className="scoreboard-score">{player.score} {player.score === 1 ? 'pt' : 'pts'}</span>
+              <span className="scoreboard-score">
+                {player.score} {player.score === 1 ? 'pt' : 'pts'}
+              </span>
             </div>
           );
         })}
