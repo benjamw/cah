@@ -4,12 +4,14 @@ import { faPause, faPlay, faRightFromBracket, faBoxArchive } from '@fortawesome/
 import CardSwiper from './CardSwiper';
 import CardSelector from './CardSelector';
 import CzarView from './CzarView';
-import { removePlayer, transferHost, leaveGame, placeSkippedPlayer, voteSkipCzar, togglePlayerPause, refreshHand } from '../utils/api';
+import { removePlayer, placeSkippedPlayer, voteSkipCzar, togglePlayerPause, refreshHand } from '../utils/api';
 import CardView from './CardView';
 import Scoreboard from './Scoreboard';
 import PlayerManagement from './PlayerManagement';
 import SkippedPlayerModal from './SkippedPlayerModal';
 import SkipCzarButton from './SkipCzarButton';
+import HostTransferModal from './HostTransferModal';
+import { handleLeaveWithOptionalTransfer, handleTransferAndLeave } from '../utils/hostLeaveFlow';
 
 function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
   const [selectedCards, setSelectedCards] = useState([]);
@@ -261,41 +263,23 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
     }
   };
 
-  const handleLeaveClick = async () => {
-    if (currentPlayer?.is_creator) {
-      // Creator with other players - confirm first, then show transfer modal
-      if (window.confirm('Are you sure you want to leave the game? You will need to transfer host to another player.')) {
-        setShowHostTransfer(true);
-      }
-    } else {
-      // Non-creator calls API to leave
-      if (window.confirm('Are you sure you want to leave the game?')) {
-        try {
-          await leaveGame(gameData.gameId);
-        } catch (err) {
-          console.error('Error leaving game:', err);
-          // Don't show error - we're leaving anyway
-        } finally {
-          // Always clear local storage, even if API call failed
-          onLeaveGame();
-        }
-      }
-    }
+  const onLeaveClick = async () => {
+    await handleLeaveWithOptionalTransfer({
+      requiresTransfer: !! currentPlayer?.is_creator,
+      gameId: gameData.gameId,
+      onLeaveGame,
+      setShowHostTransfer,
+    });
   };
 
-  const handleTransferAndLeave = async (newHostId) => {
-    setTransferring(true);
-    try {
-      await transferHost(gameData.gameId, newHostId, true);
-    } catch (err) {
-      console.error('Error transferring host:', err);
-      // Don't show error - we're leaving anyway
-    } finally {
-      setTransferring(false);
-      setShowHostTransfer(false);
-      // Always clear local storage, even if API call failed
-      onLeaveGame();
-    }
+  const onTransferAndLeave = async (newHostId) => {
+    await handleTransferAndLeave({
+      gameId: gameData.gameId,
+      newHostId,
+      onLeaveGame,
+      setShowHostTransfer,
+      setTransferring,
+    });
   };
 
   // Show czar view if player is czar
@@ -346,7 +330,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
         </button>
         <button 
           className="btn btn-danger"
-          onClick={handleLeaveClick}
+          onClick={onLeaveClick}
         >
           <FontAwesomeIcon icon={faRightFromBracket} /> Leave Game
         </button>
@@ -355,7 +339,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
           <HostTransferModal
             players={gameState.players || []}
             currentPlayerId={gameData.playerId}
-            onTransfer={handleTransferAndLeave}
+            onTransfer={onTransferAndLeave}
             onCancel={() => setShowHostTransfer(false)}
             transferring={transferring}
           />
@@ -495,7 +479,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
         </button>
         <button 
           className="btn btn-danger"
-          onClick={handleLeaveClick}
+          onClick={onLeaveClick}
         >
           <FontAwesomeIcon icon={faRightFromBracket} /> Leave Game
         </button>
@@ -505,7 +489,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
         <HostTransferModal
           players={gameState.players || []}
           currentPlayerId={gameData.playerId}
-          onTransfer={handleTransferAndLeave}
+          onTransfer={onTransferAndLeave}
           onCancel={() => setShowHostTransfer(false)}
           transferring={transferring}
         />
@@ -521,40 +505,6 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
           placing={placingPlayer}
         />
       )}
-    </div>
-  );
-}
-
-function HostTransferModal({ players, currentPlayerId, onTransfer, onCancel, transferring }) {
-  const otherPlayers = players.filter(p => p.id !== currentPlayerId && ! p.is_rando);
-
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h3>Transfer Host</h3>
-        <p>As the game host, you must select a new host before leaving.</p>
-        
-        <div className="player-selection-list">
-          {otherPlayers.map((player) => (
-            <button
-              key={player.id}
-              className="player-select-btn"
-              onClick={() => onTransfer(player.id)}
-              disabled={transferring}
-            >
-              <span className="player-select-name">{player.name}</span>
-            </button>
-          ))}
-        </div>
-
-        <button 
-          className="btn btn-secondary" 
-          onClick={onCancel}
-          disabled={transferring}
-        >
-          Cancel
-        </button>
-      </div>
     </div>
   );
 }

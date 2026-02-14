@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleXmark } from '@fortawesome/free-solid-svg-icons';
-import { removePlayer, transferHost, leaveGame } from '../utils/api';
+import { removePlayer } from '../utils/api';
+import HostTransferModal from './HostTransferModal';
+import { handleLeaveWithOptionalTransfer, handleTransferAndLeave } from '../utils/hostLeaveFlow';
 
 function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
   const players = gameState?.players || [];
@@ -33,41 +35,23 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
     }
   };
 
-  const handleLeaveClick = async () => {
-    if (gameData.isCreator && players.length > 1) {
-      // Creator with other players - confirm first, then show transfer modal
-      if (window.confirm('Are you sure you want to leave the game? You will need to transfer host to another player.')) {
-        setShowHostTransfer(true);
-      }
-    } else {
-      // Non-creator or creator as last player can leave directly
-      if (window.confirm('Are you sure you want to leave the game?')) {
-        try {
-          await leaveGame(gameData.gameId);
-        } catch (err) {
-          console.error('Error leaving game:', err);
-          // Don't show error - we're leaving anyway
-        } finally {
-          // Always clear local storage, even if API call failed
-          onLeaveGame();
-        }
-      }
-    }
+  const onLeaveClick = async () => {
+    await handleLeaveWithOptionalTransfer({
+      requiresTransfer: gameData.isCreator && players.length > 1,
+      gameId: gameData.gameId,
+      onLeaveGame,
+      setShowHostTransfer,
+    });
   };
 
-  const handleTransferAndLeave = async (newHostId) => {
-    setTransferring(true);
-    try {
-      await transferHost(gameData.gameId, newHostId, true);
-    } catch (err) {
-      console.error('Error transferring host:', err);
-      // Don't show error - we're leaving anyway
-    } finally {
-      setTransferring(false);
-      setShowHostTransfer(false);
-      // Always clear local storage, even if API call failed
-      onLeaveGame();
-    }
+  const onTransferAndLeave = async (newHostId) => {
+    await handleTransferAndLeave({
+      gameId: gameData.gameId,
+      newHostId,
+      onLeaveGame,
+      setShowHostTransfer,
+      setTransferring,
+    });
   };
 
   return (
@@ -164,7 +148,7 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
           </>
         ) : null}
 
-        <button className="btn btn-secondary" onClick={handleLeaveClick}>
+        <button className="btn btn-secondary" onClick={onLeaveClick}>
           Leave Game
         </button>
       </div>
@@ -173,45 +157,11 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
         <HostTransferModal
           players={players}
           currentPlayerId={gameData.playerId}
-          onTransfer={handleTransferAndLeave}
+          onTransfer={onTransferAndLeave}
           onCancel={() => setShowHostTransfer(false)}
           transferring={transferring}
         />
       )}
-    </div>
-  );
-}
-
-function HostTransferModal({ players, currentPlayerId, onTransfer, onCancel, transferring }) {
-  const otherPlayers = players.filter(p => p.id !== currentPlayerId && ! p.is_rando);
-
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h3>Transfer Host</h3>
-        <p>As the game host, you must select a new host before leaving.</p>
-        
-        <div className="player-selection-list">
-          {otherPlayers.map((player) => (
-            <button
-              key={player.id}
-              className="player-select-btn"
-              onClick={() => onTransfer(player.id)}
-              disabled={transferring}
-            >
-              <span className="player-select-name">{player.name}</span>
-            </button>
-          ))}
-        </div>
-
-        <button 
-          className="btn btn-secondary" 
-          onClick={onCancel}
-          disabled={transferring}
-        >
-          Cancel
-        </button>
-      </div>
     </div>
   );
 }
