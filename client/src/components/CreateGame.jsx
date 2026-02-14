@@ -1,6 +1,29 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { createGame, getTags } from '../utils/api';
 import { getCachedTags, setCachedTags } from '../utils/tagCache';
+
+const TAG_GROUP_ORDER = ['rating', 'advisory', 'other', 'source', 'location'];
+const TAG_GROUP_LABELS = {
+  rating: 'Rating',
+  advisory: 'Advisory',
+  other: 'Other',
+  source: 'Source',
+  location: 'Location',
+};
+
+function formatTypeLabel(type) {
+  if (!type) {
+    return 'Uncategorized';
+  }
+
+  return String(type)
+    .trim()
+    .toLowerCase()
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
 
 function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }) {
   const [maxPlayers, setMaxPlayers] = useState(20);
@@ -120,6 +143,49 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
       return allTagIds.filter((id) => ! prev.includes(id));
     });
   };
+
+  const groupedTags = useMemo(() => {
+    const buckets = new Map();
+
+    for (const tag of tags) {
+      const typeKey = String(tag.type || '').trim().toLowerCase() || 'uncategorized';
+      if (!buckets.has(typeKey)) {
+        buckets.set(typeKey, []);
+      }
+      buckets.get(typeKey).push(tag);
+    }
+
+    for (const groupTags of buckets.values()) {
+      groupTags.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    }
+
+    const groups = [];
+
+    for (const key of TAG_GROUP_ORDER) {
+      if (buckets.has(key)) {
+        groups.push({
+          key,
+          label: TAG_GROUP_LABELS[key],
+          tags: buckets.get(key),
+        });
+        buckets.delete(key);
+      }
+    }
+
+    const remaining = Array.from(buckets.entries()).sort((a, b) =>
+      formatTypeLabel(a[0]).localeCompare(formatTypeLabel(b[0]))
+    );
+
+    for (const [key, groupTags] of remaining) {
+      groups.push({
+        key,
+        label: formatTypeLabel(key),
+        tags: groupTags,
+      });
+    }
+
+    return groups;
+  }, [tags]);
 
   return (
     <div className="create-game">
@@ -247,18 +313,25 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
               {selectedTags.length} of {tags.length} selected
             </div>
             <div className="tag-list">
-              {tags.map((tag) => (
-                <button
-                  key={tag.tag_id}
-                  type="button"
-                  className={`tag-button ${
-                    selectedTags.includes(tag.tag_id) ? 'selected' : ''
-                  }`}
-                  onClick={() => toggleTag(tag.tag_id)}
-                  disabled={loading}
-                >
-                  {tag.name} ({tag.response_card_count || 0}W / {tag.prompt_card_count || 0}B)
-                </button>
+              {groupedTags.map((group) => (
+                <div key={group.key} className="tag-group">
+                  <h4 className="tag-group-title">{group.label}</h4>
+                  <div className="tag-group-list">
+                    {group.tags.map((tag) => (
+                      <button
+                        key={tag.tag_id}
+                        type="button"
+                        className={`tag-button ${
+                          selectedTags.includes(tag.tag_id) ? 'selected' : ''
+                        }`}
+                        onClick={() => toggleTag(tag.tag_id)}
+                        disabled={loading}
+                      >
+                        {tag.name} ({tag.response_card_count || 0}W / {tag.prompt_card_count || 0}B)
+                      </button>
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
