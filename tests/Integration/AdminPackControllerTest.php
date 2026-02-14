@@ -117,6 +117,22 @@ class AdminPackControllerTest extends TestCase
         $this->assertEquals(0, $pack['active']);
     }
 
+    public function testCreatePackNormalizesReleaseDateWithTimestampInput(): void
+    {
+        $request = $this->createJsonRequest('POST', '/admin/packs', [
+            'name' => 'AdminTest Date Normalize Create',
+            'release_date' => '2025-07-16T12:34:56Z',
+        ]);
+        $response = $this->responseFactory->createResponse();
+
+        $result = $this->controller->createPack($request, $response);
+        $this->assertEquals(201, $result->getStatusCode());
+
+        $json = $this->getJsonResponse($result);
+        $pack = Pack::find($json['data']['pack_id']);
+        $this->assertEquals('2025-07-16', $pack['release_date']);
+    }
+
     /**
      * Test creating a pack without name fails validation
      */
@@ -185,6 +201,47 @@ class AdminPackControllerTest extends TestCase
         $this->assertEquals('1.5', $pack['version']); // Updated
         $this->assertEquals('{"old": "data"}', $pack['data']); // Unchanged
         $this->assertEquals(1, $pack['active']); // Unchanged
+    }
+
+    public function testEditPackNormalizesHumanReadableReleaseDate(): void
+    {
+        $packId = Pack::create('AdminTest Date Normalize Edit', '1.0', null, null, true);
+        $request = $this->createJsonRequest('PUT', "/admin/packs/{$packId}", [
+            'release_date' => 'July 17, 2025',
+        ]);
+        $response = $this->responseFactory->createResponse();
+
+        $result = $this->controller->editPack($request, $response, ['packId' => (string) $packId]);
+        $this->assertEquals(200, $result->getStatusCode());
+
+        $pack = Pack::find($packId);
+        $this->assertEquals('2025-07-17', $pack['release_date']);
+    }
+
+    public function testGetPackReturnsSinglePackById(): void
+    {
+        $packId = Pack::create('AdminTest Get Pack', '1.0', null, null, true);
+        $request = $this->requestFactory->createRequest('GET', "/admin/packs/{$packId}");
+        $response = $this->responseFactory->createResponse();
+
+        $result = $this->controller->getPack($request, $response, ['packId' => (string) $packId]);
+        $json = $this->getJsonResponse($result);
+
+        $this->assertEquals(200, $result->getStatusCode());
+        $this->assertTrue($json['success']);
+        $this->assertEquals($packId, $json['data']['pack']['pack_id']);
+    }
+
+    public function testGetPackReturnsNotFoundForMissingPack(): void
+    {
+        $request = $this->requestFactory->createRequest('GET', '/admin/packs/999999');
+        $response = $this->responseFactory->createResponse();
+
+        $result = $this->controller->getPack($request, $response, ['packId' => '999999']);
+        $json = $this->getJsonResponse($result);
+
+        $this->assertEquals(404, $result->getStatusCode());
+        $this->assertFalse($json['success']);
     }
 
     /**
@@ -596,5 +653,20 @@ class AdminPackControllerTest extends TestCase
         $json = $this->getJsonResponse($result);
         $this->assertFalse($json['success']);
         $this->assertArrayHasKey('errors', $json);
+    }
+
+    public function testBulkToggleWithNonArrayPackIdsFails(): void
+    {
+        $request = $this->createJsonRequest('PUT', '/admin/packs/bulk-toggle', [
+            'pack_ids' => 'not-an-array',
+            'active' => true,
+        ]);
+        $response = $this->responseFactory->createResponse();
+
+        $result = $this->controller->bulkTogglePack($request, $response);
+        $json = $this->getJsonResponse($result);
+
+        $this->assertEquals(422, $result->getStatusCode());
+        $this->assertFalse($json['success']);
     }
 }

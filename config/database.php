@@ -21,7 +21,7 @@ $readEnv = static function (string $key): ?string {
     return $value === '' ? null : $value;
 };
 
-$host = $readEnv('DB_HOST') ?? 'localhost';
+$host = $readEnv('DB_HOST') ?? '127.0.0.1';
 $portRaw = $readEnv('DB_PORT') ?? '3306';
 $database = $readEnv('DB_NAME');
 $username = $readEnv('DB_USER');

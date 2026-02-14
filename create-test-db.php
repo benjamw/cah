@@ -16,7 +16,7 @@ if (file_exists(__DIR__ . '/.env')) {
     $dotenv->load();
 }
 
-$host = $_ENV['DB_HOST'] ?? 'localhost';
+$host = $_ENV['DB_HOST'] ?? '127.0.0.1';
 $port = $_ENV['DB_PORT'] ?? 3306;
 $username = $_ENV['DB_USER'] ?? 'root';
 $password = $_ENV['DB_PASS'] ?? '';

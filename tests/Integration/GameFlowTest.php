@@ -34,7 +34,7 @@ class GameFlowTest extends TestCase
      */
     private function getCardIds(array $cards): array
     {
-        if (empty($cards)) {
+        if ($cards === []) {
             return [];
         }
         return is_array($cards[0]) ? array_column($cards, 'card_id') : $cards;
@@ -155,8 +155,8 @@ class GameFlowTest extends TestCase
         $gameId = $createResult['game_id'];
         $creatorId = $createResult['player_id'];
 
-        $player2 = GameService::joinGame($gameId, 'Player Two');
-        $player3 = GameService::joinGame($gameId, 'Player Three');
+        GameService::joinGame($gameId, 'Player Two');
+        GameService::joinGame($gameId, 'Player Three');
 
         $gameState = GameService::startGame($gameId, $creatorId);
 

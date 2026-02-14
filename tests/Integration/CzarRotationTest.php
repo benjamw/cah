@@ -35,10 +35,8 @@ class CzarRotationTest extends TestCase
         $player2Id = $result2['player_id'];
 
         $result3 = GameService::joinGame($gameId, 'Player 3');
-        $player3Id = $result3['player_id'];
 
         $result4 = GameService::joinGame($gameId, 'Player 4');
-        $player4Id = $result4['player_id'];
 
         // Start game
         $gameState = GameService::startGame($gameId, $player1Id);
@@ -55,7 +53,7 @@ class CzarRotationTest extends TestCase
         // Submit cards for all non-czar players
         $nonCzarPlayers = array_filter(
             $gameState['players'],
-            fn($p) => $p['id'] !== $firstCzarId && empty($p['is_rando'])
+            fn(array $p): bool => $p['id'] !== $firstCzarId && empty($p['is_rando'])
         );
         
         foreach ($nonCzarPlayers as $player) {
@@ -109,10 +107,10 @@ class CzarRotationTest extends TestCase
         // Build a specific order: firstCzar -> player1 -> player2 -> player3 -> back to firstCzar
         // But we need to ensure player1, 2, 3 are all different from firstCzar
         $playersToRotate = [$player1Id, $player2Id, $player3Id];
-        $nextPlayers = array_values(array_filter($playersToRotate, fn($id) => $id !== $firstCzarId));
+        array_values(array_filter($playersToRotate, fn(string $id): bool => $id !== $firstCzarId));
         
         // If firstCzar is one of our players, we need to adjust
-        if ($firstCzarId === $player1Id || $firstCzarId === $player2Id || $firstCzarId === $player3Id) {
+        if (in_array($firstCzarId, [$player1Id, $player2Id, $player3Id], true)) {
             // Just rotate through all 3 players in order
             $gameState = $this->playRoundAndSetNextCzar($gameId, $firstCzarId, $playersToRotate[0]);
             $gameState = $this->playRoundAndSetNextCzar($gameId, $playersToRotate[0], $playersToRotate[1]);
@@ -158,7 +156,7 @@ class CzarRotationTest extends TestCase
         $activePlayers = [];
         
         // Determine which player to skip (not the first czar)
-        $nonCzarPlayers = array_filter($allPlayers, fn($id) => $id !== $firstCzar);
+        $nonCzarPlayers = array_filter($allPlayers, fn(string $id): bool => $id !== $firstCzar);
         $nonCzarPlayers = array_values($nonCzarPlayers);
         
         // Skip the middle player (index 1 of non-czar players)
@@ -267,7 +265,7 @@ class CzarRotationTest extends TestCase
         $firstCzar = $gameState['current_czar_id'];
         
         $allPlayers = [$creatorId, $player2Id, $player3Id];
-        $nonCzarPlayers = array_values(array_filter($allPlayers, fn($id) => $id !== $firstCzar));
+        $nonCzarPlayers = array_values(array_filter($allPlayers, fn(string $id): bool => $id !== $firstCzar));
         
         // Create rotation skipping one player
         $this->playRoundAndSetNextCzar($gameId, $firstCzar, $nonCzarPlayers[0]);
@@ -313,7 +311,7 @@ class CzarRotationTest extends TestCase
         // Build a full rotation to lock the order
         // We need to know who comes after whom, so let's just play 4 rounds
         $allPlayers = [$creatorId, $player2Id, $player3Id, $player4Id];
-        $nonFirstCzar = array_values(array_filter($allPlayers, fn($id) => $id !== $firstCzar));
+        $nonFirstCzar = array_values(array_filter($allPlayers, fn(string $id): bool => $id !== $firstCzar));
         
         // Round 1: first czar -> player A
         $this->playRoundAndSetNextCzar($gameId, $firstCzar, $nonFirstCzar[0]);
@@ -393,7 +391,7 @@ class CzarRotationTest extends TestCase
         }
 
         // Set next czar
-        $gameState = GameService::setNextCzar($gameId, $currentCzarId, $nextCzarId);
+        GameService::setNextCzar($gameId, $currentCzarId, $nextCzarId);
 
         // Advance round
         return RoundService::advanceToNextRound($gameId);
@@ -404,7 +402,7 @@ class CzarRotationTest extends TestCase
      */
     private function getCardIds(array $cards): array
     {
-        if (empty($cards)) {
+        if ($cards === []) {
             return [];
         }
         return is_array($cards[0]) ? array_column($cards, 'card_id') : $cards;

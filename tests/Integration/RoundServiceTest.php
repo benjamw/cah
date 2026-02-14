@@ -50,7 +50,7 @@ class RoundServiceTest extends TestCase
      */
     private function getCardIds(array $cards): array
     {
-        if (empty($cards)) {
+        if ($cards === []) {
             return [];
         }
         return is_array($cards[0]) ? array_column($cards, 'card_id') : $cards;
@@ -92,7 +92,7 @@ class RoundServiceTest extends TestCase
         $gameState = $game['game_state'];
 
         $czarId = $gameState['current_czar_id'];
-        $czar = GameService::findPlayer($gameState, $czarId);
+        GameService::findPlayer($gameState, $czarId);
 
         $this->expectException(UnauthorizedException::class);
         $this->expectExceptionMessage('Card Czar cannot submit cards');
@@ -252,10 +252,12 @@ class RoundServiceTest extends TestCase
 
         // Have all non-czar players submit the correct number of cards
         foreach ($playerData['players'] as $player) {
-            if ($player['id'] === $czarId || ! empty($player['is_rando'])) {
+            if ($player['id'] === $czarId) {
                 continue;
             }
-
+            if (! empty($player['is_rando'])) {
+                continue;
+            }
             $handCards = array_slice($player['hand'], 0, $requiredCards);
 
             // Sanity check: make sure the test setup actually gave this player enough cards

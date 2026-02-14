@@ -271,7 +271,7 @@ class AdminControllerImportTest extends TestCase
 
         // Make sure no tags with extra whitespace were created
         foreach ($allTags as $tag) {
-            $this->assertEquals(trim($tag['name']), $tag['name']);
+            $this->assertEquals(trim((string) $tag['name']), $tag['name']);
         }
     }
 
@@ -335,9 +335,7 @@ class AdminControllerImportTest extends TestCase
 
         // Verify only one "Profanity" tag exists (case-insensitive)
         $allTags = Tag::getAll();
-        $profanityTags = array_filter($allTags, function($tag) {
-            return strcasecmp($tag['name'], 'Profanity') === 0;
-        });
+        $profanityTags = array_filter($allTags, fn(array $tag) => strcasecmp((string) $tag['name'], 'Profanity') === 0);
         $this->assertCount(1, $profanityTags);
     }
 
@@ -399,9 +397,7 @@ class AdminControllerImportTest extends TestCase
 
         // Verify cards were created with newlines preserved - filter by our prefix
         $cards = Card::getActiveByType(CardType::RESPONSE);
-        $ourCards = array_filter($cards, function($c) {
-            return strpos($c['copy'], '[NewlineTest]') === 0;
-        });
+        $ourCards = array_filter($cards, fn(array $c) => str_starts_with((string) $c['copy'], '[NewlineTest]'));
         $this->assertCount(3, $ourCards);
 
         $cardTexts = array_column($ourCards, 'copy');
@@ -412,9 +408,7 @@ class AdminControllerImportTest extends TestCase
         $this->assertContains('[NewlineTest] Normal card without newlines', $cardTexts);
 
         // Verify tags were still added correctly
-        $card1 = array_values(array_filter($ourCards, function($c) {
-            return strpos($c['copy'], '[NewlineTest] A card with') === 0;
-        }))[0];
+        $card1 = array_values(array_filter($ourCards, fn(array $c) => str_starts_with((string) $c['copy'], '[NewlineTest] A card with')))[0];
 
         $card1Tags = Tag::getCardTags($card1['card_id']);
         $this->assertCount(1, $card1Tags);
@@ -450,9 +444,7 @@ class AdminControllerImportTest extends TestCase
 
         // Verify card text has both commas and newlines preserved - filter by our prefix
         $cards = Card::getActiveByType(CardType::PROMPT);
-        $ourCards = array_filter($cards, function($c) {
-            return strpos($c['copy'], '[CommaNewlineTest]') === 0;
-        });
+        $ourCards = array_filter($cards, fn(array $c) => str_starts_with((string) $c['copy'], '[CommaNewlineTest]'));
         $this->assertCount(1, $ourCards);
         $ourCard = array_values($ourCards)[0];
         $this->assertEquals("[CommaNewlineTest] A card with,\ncommas and newlines", $ourCard['copy']);
@@ -494,9 +486,7 @@ class AdminControllerImportTest extends TestCase
 
         // Verify card text has quotes preserved (CSV parser converts "" to ") - filter by our prefix
         $cards = Card::getActiveByType(CardType::RESPONSE);
-        $ourCards = array_filter($cards, function($c) {
-            return strpos($c['copy'], '[QuotesTest]') === 0;
-        });
+        $ourCards = array_filter($cards, fn(array $c) => str_starts_with((string) $c['copy'], '[QuotesTest]'));
         $this->assertCount(1, $ourCards);
         $ourCard = array_values($ourCards)[0];
         $this->assertEquals('[QuotesTest] A card with "quoted" text', $ourCard['copy']);

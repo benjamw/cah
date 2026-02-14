@@ -65,7 +65,7 @@ class AdminGameManagementTest extends TestCase
         );
         $gameId = $createResult['game_id'];
         
-        $player2 = GameService::joinGame($gameId, 'Player 2');
+        GameService::joinGame($gameId, 'Player 2');
         GameService::joinGame($gameId, 'Player 3');
         GameService::startGame($gameId, $createResult['player_id']);
         
@@ -230,18 +230,11 @@ class AdminGameManagementTest extends TestCase
 
         // Assert - Game is in waiting state (needs confirmation)
         $this->assertEquals('waiting', $gameState, 'Game is in waiting state');
-        
-        // Simulate: Admin confirms deletion
-        $confirmed = true;
-        
-        if ($confirmed) {
-            // Act - Delete after confirmation
-            Database::execute("DELETE FROM games WHERE game_id = ?", [$gameId]);
-            
-            // Assert
-            $deletedGame = Game::find($gameId);
-            $this->assertNull($deletedGame, 'Game deleted after confirmation');
-        }
+        // Act - Delete after confirmation
+        Database::execute("DELETE FROM games WHERE game_id = ?", [$gameId]);
+        // Assert
+        $deletedGame = Game::find($gameId);
+        $this->assertNull($deletedGame, 'Game deleted after confirmation');
     }
 
     public function test_deleting_playing_game_requires_confirmation(): void
@@ -263,18 +256,11 @@ class AdminGameManagementTest extends TestCase
 
         // Assert - Game is playing (needs confirmation)
         $this->assertEquals('playing', $gameState, 'Game is in playing state');
-        
-        // Simulate: Admin confirms deletion despite active game
-        $confirmed = true;
-        
-        if ($confirmed) {
-            // Act - Delete after confirmation
-            Database::execute("DELETE FROM games WHERE game_id = ?", [$gameId]);
-            
-            // Assert
-            $deletedGame = Game::find($gameId);
-            $this->assertNull($deletedGame, 'Active game deleted after confirmation');
-        }
+        // Act - Delete after confirmation
+        Database::execute("DELETE FROM games WHERE game_id = ?", [$gameId]);
+        // Assert
+        $deletedGame = Game::find($gameId);
+        $this->assertNull($deletedGame, 'Active game deleted after confirmation');
     }
 
     public function test_finished_game_deletion_does_not_require_confirmation(): void
@@ -376,7 +362,6 @@ class AdminGameManagementTest extends TestCase
             [$this->testCards['tag_id']],
             []
         );
-        $gameId = $createResult['game_id'];
 
         // Assert - Only view and delete operations are available
         // No admin methods exist for:

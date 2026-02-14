@@ -32,7 +32,7 @@ class PackFilteringTest extends TestCase
         parent::setUp();
 
         // Create test packs
-        $this->pack1Id = (int) Database::execute(
+        $this->pack1Id = Database::execute(
             "INSERT INTO packs (name, version, active) VALUES (?, ?, ?)",
             ['Test Pack 1', '1.0', 1]
         );
@@ -40,14 +40,14 @@ class PackFilteringTest extends TestCase
         $result = Database::fetchOne("SELECT LAST_INSERT_ID() as id");
         $this->pack1Id = (int) $result['id'];
 
-        $this->pack2Id = (int) Database::execute(
+        $this->pack2Id = Database::execute(
             "INSERT INTO packs (name, version, active) VALUES (?, ?, ?)",
             ['Test Pack 2', '1.0', 1]
         );
         $result = Database::fetchOne("SELECT LAST_INSERT_ID() as id");
         $this->pack2Id = (int) $result['id'];
 
-        $this->pack3Id = (int) Database::execute(
+        $this->pack3Id = Database::execute(
             "INSERT INTO packs (name, version, active) VALUES (?, ?, ?)",
             ['Test Pack 3 Inactive', '1.0', 0]
         );

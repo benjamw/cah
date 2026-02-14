@@ -32,7 +32,7 @@ class PlayerManagementTest extends TestCase
      */
     private function getCardIds(array $cards): array
     {
-        if (empty($cards)) {
+        if ($cards === []) {
             return [];
         }
         return is_array($cards[0]) ? array_column($cards, 'card_id') : $cards;
@@ -45,8 +45,8 @@ class PlayerManagementTest extends TestCase
         $creatorId = $createResult['player_id'];
 
         $player2 = GameService::joinGame($gameId, 'Player Two');
-        $player3 = GameService::joinGame($gameId, 'Player Three');
-        $player4 = GameService::joinGame($gameId, 'Player Four');
+        GameService::joinGame($gameId, 'Player Three');
+        GameService::joinGame($gameId, 'Player Four');
 
         // Remove player 2 (need 4 players to remove one, min is 3)
         GameService::removePlayer($gameId, $creatorId, $player2['player_id']);
@@ -81,8 +81,8 @@ class PlayerManagementTest extends TestCase
         $gameId = $createResult['game_id'];
         $creatorId = $createResult['player_id'];
 
-        $player2 = GameService::joinGame($gameId, 'Player Two');
-        $player3 = GameService::joinGame($gameId, 'Player Three');
+        GameService::joinGame($gameId, 'Player Two');
+        GameService::joinGame($gameId, 'Player Three');
 
         $gameState = GameService::startGame($gameId, $creatorId);
         $firstCzarId = $gameState['current_czar_id'];
@@ -120,7 +120,7 @@ class PlayerManagementTest extends TestCase
 
         // Round 1: First czar selects next
         $czar1 = $gameState['current_czar_id'];
-        $otherPlayers = array_filter($allPlayerIds, fn($id) => $id !== $czar1);
+        $otherPlayers = array_filter($allPlayerIds, fn(string $id): bool => $id !== $czar1);
         $otherPlayers = array_values($otherPlayers);
         
         $result = GameService::setNextCzar($gameId, $czar1, $otherPlayers[0]);
@@ -180,7 +180,7 @@ class PlayerManagementTest extends TestCase
         $creatorId = $createResult['player_id'];
 
         $player2 = GameService::joinGame($gameId, 'Player Two');
-        $player3 = GameService::joinGame($gameId, 'Player Three');
+        GameService::joinGame($gameId, 'Player Three');
 
         // Start the game
         $gameState = GameService::startGame($gameId, $creatorId);
@@ -222,7 +222,7 @@ class PlayerManagementTest extends TestCase
         $creatorId = $createResult['player_id'];
 
         $player2 = GameService::joinGame($gameId, 'Player Two');
-        $player3 = GameService::joinGame($gameId, 'Player Three');
+        GameService::joinGame($gameId, 'Player Three');
 
         // Try to remove a player (would leave only 2 players, below minimum of 3)
         $this->expectException(ValidationException::class);
@@ -237,9 +237,9 @@ class PlayerManagementTest extends TestCase
         $gameId = $createResult['game_id'];
         $creatorId = $createResult['player_id'];
 
-        $player2 = GameService::joinGame($gameId, 'Player Two');
-        $player3 = GameService::joinGame($gameId, 'Player Three');
-        $player4 = GameService::joinGame($gameId, 'Player Four');
+        GameService::joinGame($gameId, 'Player Two');
+        GameService::joinGame($gameId, 'Player Three');
+        GameService::joinGame($gameId, 'Player Four');
 
         // Start the game
         $gameState = GameService::startGame($gameId, $creatorId);
@@ -292,9 +292,9 @@ class PlayerManagementTest extends TestCase
         $gameId = $createResult['game_id'];
         $creatorId = $createResult['player_id'];
 
-        $player2 = GameService::joinGame($gameId, 'Player Two');
-        $player3 = GameService::joinGame($gameId, 'Player Three');
-        $player4 = GameService::joinGame($gameId, 'Player Four');
+        GameService::joinGame($gameId, 'Player Two');
+        GameService::joinGame($gameId, 'Player Three');
+        GameService::joinGame($gameId, 'Player Four');
 
         // Start the game
         $gameState = GameService::startGame($gameId, $creatorId);
@@ -374,7 +374,7 @@ class PlayerManagementTest extends TestCase
         $gameId = $createResult['game_id'];
         $creatorId = $createResult['player_id'];
 
-        $player2 = GameService::joinGame($gameId, 'Player Two');
+        GameService::joinGame($gameId, 'Player Two');
         $player3 = GameService::joinGame($gameId, 'Player Three');
 
         // Player 3 leaves (drops to 2 players, below minimum of 3)
@@ -400,7 +400,7 @@ class PlayerManagementTest extends TestCase
         $creatorId = $createResult['player_id'];
 
         $player2 = GameService::joinGame($gameId, 'Player Two');
-        $player3 = GameService::joinGame($gameId, 'Player Three');
+        GameService::joinGame($gameId, 'Player Three');
 
         // Start the game
         GameService::startGame($gameId, $creatorId);

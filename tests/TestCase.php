@@ -36,7 +36,7 @@ abstract class TestCase extends BaseTestCase
             // Delete ALL games (test games have random 4-char IDs, not just TEST%)
             Database::execute('DELETE FROM games');
             Database::execute('DELETE FROM rate_limits WHERE ip_address LIKE "127.0.0.%"');
-        } catch (\Exception $e) {
+        } catch (\Exception) {
             // Ignore cleanup errors
         }
     }
@@ -139,10 +139,6 @@ abstract class TestCase extends BaseTestCase
 
     /**
      * Assert that an exception is thrown with a specific message
-     *
-     * @param string $exceptionClass
-     * @param callable $callback
-     * @param string|null $expectedMessage
      */
     protected function assertThrowsException(string $exceptionClass, callable $callback, ?string $expectedMessage = null): void
     {

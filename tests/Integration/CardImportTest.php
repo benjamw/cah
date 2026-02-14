@@ -145,7 +145,7 @@ class CardImportTest extends TestCase
         $existingTags = Tag::getAll();
         $tagId2 = null;
         foreach ($existingTags as $existingTag) {
-            if (strcasecmp($existingTag['name'], 'Profanity_duplicateTest') === 0) {
+            if (strcasecmp((string) $existingTag['name'], 'Profanity_duplicateTest') === 0) {
                 $tagId2 = $existingTag['tag_id'];
                 break;
             }
@@ -155,9 +155,7 @@ class CardImportTest extends TestCase
         
         // Verify only one tag exists
         $allTags = Tag::getAll();
-        $profanityTags = array_filter($allTags, function($tag) {
-            return strcasecmp($tag['name'], 'Profanity_duplicateTest') === 0;
-        });
+        $profanityTags = array_filter($allTags, fn(array $tag) => strcasecmp((string) $tag['name'], 'Profanity_duplicateTest') === 0);
         $this->assertCount(1, $profanityTags);
     }
 
@@ -173,7 +171,7 @@ class CardImportTest extends TestCase
         $existingTags = Tag::getAll();
         $tagId2 = null;
         foreach ($existingTags as $existingTag) {
-            if (strcasecmp($existingTag['name'], 'PROFANITY_CASETEST') === 0) {
+            if (strcasecmp((string) $existingTag['name'], 'PROFANITY_CASETEST') === 0) {
                 $tagId2 = $existingTag['tag_id'];
                 break;
             }
@@ -209,9 +207,7 @@ class CardImportTest extends TestCase
 
         // Verify only one tag exists in database
         $allTags = Tag::getAll();
-        $profanityTags = array_filter($allTags, function($tag) {
-            return strcasecmp($tag['name'], 'Profanity_multipleCards') === 0;
-        });
+        $profanityTags = array_filter($allTags, fn(array $tag) => strcasecmp((string) $tag['name'], 'Profanity_multipleCards') === 0);
         $this->assertCount(1, $profanityTags);
     }
 
@@ -232,7 +228,7 @@ class CardImportTest extends TestCase
                 continue; // Skip header
             }
 
-            $data = str_getcsv($line);
+            $data = str_getcsv((string) $line);
             if (empty($data[0])) {
                 continue;
             }
@@ -243,8 +239,8 @@ class CardImportTest extends TestCase
             $tagColumns = array_slice($data, 1, 10);
             $tags = [];
             foreach ($tagColumns as $tag) {
-                $tag = trim($tag);
-                if ( ! empty($tag)) {
+                $tag = trim((string) $tag);
+                if ( $tag !== '' && $tag !== '0') {
                     $tags[] = $tag;
                 }
             }
@@ -277,7 +273,7 @@ class CardImportTest extends TestCase
                 continue; // Skip header
             }
 
-            $data = str_getcsv($line);
+            $data = str_getcsv((string) $line);
             if (empty($data[0])) {
                 continue;
             }
@@ -288,8 +284,8 @@ class CardImportTest extends TestCase
             $tagColumns = array_slice($data, 1, 10);
             $tags = [];
             foreach ($tagColumns as $tag) {
-                $tag = trim($tag);
-                if ( ! empty($tag)) {
+                $tag = trim((string) $tag);
+                if ( $tag !== '' && $tag !== '0') {
                     $tags[] = $tag;
                 }
             }
@@ -298,24 +294,22 @@ class CardImportTest extends TestCase
             $this->assertNotNull($cardId);
 
             // Add tags if any
-            if ( ! empty($tags)) {
-                foreach ($tags as $tagName) {
-                    // Find or create tag
-                    $existingTags = Tag::getAll();
-                    $tagId = null;
-                    foreach ($existingTags as $existingTag) {
-                        if (strcasecmp($existingTag['name'], $tagName) === 0) {
-                            $tagId = $existingTag['tag_id'];
-                            break;
-                        }
+            foreach ($tags as $tagName) {
+                // Find or create tag
+                $existingTags = Tag::getAll();
+                $tagId = null;
+                foreach ($existingTags as $existingTag) {
+                    if (strcasecmp((string) $existingTag['name'], $tagName) === 0) {
+                        $tagId = $existingTag['tag_id'];
+                        break;
                     }
-
-                    if ( ! $tagId) {
-                        $tagId = Tag::create($tagName, null, true);
-                    }
-
-                    Tag::addToCard($cardId, $tagId);
                 }
+
+                if ( ! $tagId) {
+                    $tagId = Tag::create($tagName, null, true);
+                }
+
+                Tag::addToCard($cardId, $tagId);
             }
 
             $cardIds[] = ['id' => $cardId, 'expected_tag_count' => count($tags)];
@@ -351,11 +345,11 @@ class CardImportTest extends TestCase
         $line2 = '"Another card, with commas, and more commas",Violence,Sexually Explicit,,,,,,,,';
 
         $data1 = str_getcsv($line1);
-        $cardText1 = trim($data1[0]);
+        $cardText1 = trim((string) $data1[0]);
         $this->assertEquals('A card with, commas in it', $cardText1);
 
         $data2 = str_getcsv($line2);
-        $cardText2 = trim($data2[0]);
+        $cardText2 = trim((string) $data2[0]);
         $this->assertEquals('Another card, with commas, and more commas', $cardText2);
 
         // Import the cards
@@ -388,7 +382,7 @@ class CardImportTest extends TestCase
                 continue; // Skip header
             }
 
-            $data = str_getcsv($line);
+            $data = str_getcsv((string) $line);
             if (empty($data[0])) {
                 continue;
             }
@@ -399,8 +393,8 @@ class CardImportTest extends TestCase
             $tagColumns = array_slice($data, 1, 10);
             $tags = [];
             foreach ($tagColumns as $tag) {
-                $tag = trim($tag);
-                if ( ! empty($tag)) {
+                $tag = trim((string) $tag);
+                if ( $tag !== '' && $tag !== '0') {
                     $tags[] = $tag;
                 }
             }
@@ -419,7 +413,7 @@ class CardImportTest extends TestCase
                 $existingTags = Tag::getAll();
                 $tagId = null;
                 foreach ($existingTags as $existingTag) {
-                    if (strcasecmp($existingTag['name'], $tagName) === 0) {
+                    if (strcasecmp((string) $existingTag['name'], $tagName) === 0) {
                         $tagId = $existingTag['tag_id'];
                         break;
                     }
@@ -457,7 +451,7 @@ class CardImportTest extends TestCase
                 continue; // Skip header
             }
 
-            $data = str_getcsv($line);
+            $data = str_getcsv((string) $line);
             if (empty($data[0])) {
                 continue; // Skip empty lines
             }
@@ -489,7 +483,7 @@ class CardImportTest extends TestCase
                 continue; // Skip header
             }
 
-            $data = str_getcsv($line);
+            $data = str_getcsv((string) $line);
             if (empty($data[0])) {
                 continue;
             }
@@ -500,8 +494,8 @@ class CardImportTest extends TestCase
             $tagColumns = array_slice($data, 1, 10);
             $tags = [];
             foreach ($tagColumns as $tag) {
-                $tag = trim($tag);
-                if ( ! empty($tag)) {
+                $tag = trim((string) $tag);
+                if ( $tag !== '' && $tag !== '0') {
                     $tags[] = $tag;
                 }
             }
@@ -514,7 +508,7 @@ class CardImportTest extends TestCase
                 $existingTags = Tag::getAll();
                 $tagId = null;
                 foreach ($existingTags as $existingTag) {
-                    if (strcasecmp($existingTag['name'], $tagName) === 0) {
+                    if (strcasecmp((string) $existingTag['name'], $tagName) === 0) {
                         $tagId = $existingTag['tag_id'];
                         break;
                     }
@@ -530,9 +524,7 @@ class CardImportTest extends TestCase
 
         // Verify only one "Profanity" tag exists (case-insensitive)
         $allTags = Tag::getAll();
-        $profanityTags = array_filter($allTags, function($tag) {
-            return strcasecmp($tag['name'], 'Profanity') === 0;
-        });
+        $profanityTags = array_filter($allTags, fn(array $tag) => strcasecmp((string) $tag['name'], 'Profanity') === 0);
         $this->assertCount(1, $profanityTags);
     }
 }

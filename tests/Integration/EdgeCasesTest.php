@@ -36,7 +36,7 @@ class EdgeCasesTest extends TestCase
      */
     private function getCardIds(array $cards): array
     {
-        if (empty($cards)) {
+        if ($cards === []) {
             return [];
         }
         return is_array($cards[0]) ? array_column($cards, 'card_id') : $cards;
@@ -105,7 +105,7 @@ class EdgeCasesTest extends TestCase
         // Pick winner
         $game = Game::find($gameId);
         $winningPlayerId = $game['player_data']['submissions'][0]['player_id'];
-        $gameState = RoundService::pickWinner($gameId, $czarId, $winningPlayerId);
+        RoundService::pickWinner($gameId, $czarId, $winningPlayerId);
 
         // Advance to next round
         $result = RoundService::advanceToNextRound($gameId);

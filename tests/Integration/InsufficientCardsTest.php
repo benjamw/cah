@@ -34,8 +34,8 @@ class InsufficientCardsTest extends TestCase
         $playerId = $result['player_id'];
         
         // Add more players
-        $player2 = GameService::joinGame($gameId, 'Player2');
-        $player3 = GameService::joinGame($gameId, 'Player3');
+        GameService::joinGame($gameId, 'Player2');
+        GameService::joinGame($gameId, 'Player3');
         
         // Artificially reduce response card pile to force insufficient cards
         $game = Game::find($gameId);
@@ -137,7 +137,7 @@ class InsufficientCardsTest extends TestCase
         try {
             RoundService::submitCards($gameId, $submittingPlayerId, $cardsToSubmit);
             $this->fail('Expected InsufficientCardsException to be thrown');
-        } catch (InsufficientCardsException $e) {
+        } catch (InsufficientCardsException) {
             // Good - exception was thrown
             
             // Verify player still has their cards (didn't lose them)

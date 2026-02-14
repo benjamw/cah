@@ -224,10 +224,8 @@ class PackControllerTest extends TestCase
         $packs = $json['data']['packs'];
 
         // Filter to just our test packs
-        $testPacks = array_filter($packs, function ($pack) {
-            return in_array($pack['pack_id'], [$this->activePackId])
-                || str_starts_with($pack['name'], 'ControllerTest');
-        });
+        $testPacks = array_filter($packs, fn(array $pack) => $pack['pack_id'] == $this->activePackId
+            || str_starts_with((string) $pack['name'], 'ControllerTest'));
 
         $testPacks = array_values($testPacks);
 

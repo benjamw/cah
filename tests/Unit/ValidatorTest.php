@@ -166,4 +166,51 @@ class ValidatorTest extends TestCase
             $this->assertStringContainsString($testCase['expectedError'], $result['error']);
         }
     }
+
+    public function testValidateGameSettingsValidAndInvalidValues(): void
+    {
+        $valid = Validator::validateGameSettings([
+            'max_score' => 8,
+            'hand_size' => 10,
+        ]);
+        $this->assertTrue($valid['valid']);
+
+        $invalidMaxScoreType = Validator::validateGameSettings(['max_score' => 'abc']);
+        $this->assertFalse($invalidMaxScoreType['valid']);
+        $this->assertStringContainsString('max_score must be an integer', (string) $invalidMaxScoreType['error']);
+
+        $invalidMaxScoreValue = Validator::validateGameSettings(['max_score' => 0]);
+        $this->assertFalse($invalidMaxScoreValue['valid']);
+        $this->assertStringContainsString('max_score must be at least 1', (string) $invalidMaxScoreValue['error']);
+
+        $invalidHandSizeType = Validator::validateGameSettings(['hand_size' => 'x']);
+        $this->assertFalse($invalidHandSizeType['valid']);
+        $this->assertStringContainsString('hand_size must be an integer', (string) $invalidHandSizeType['error']);
+
+        $invalidHandSizeValue = Validator::validateGameSettings(['hand_size' => -1]);
+        $this->assertFalse($invalidHandSizeValue['valid']);
+        $this->assertStringContainsString('hand_size must be at least 1', (string) $invalidHandSizeValue['error']);
+    }
+
+    public function testFluentValidatorInstanceMethodsAndErrorCollection(): void
+    {
+        $validator = ( new Validator() )
+            ->required('', 'name')
+            ->stringLength('ab', 'username', 3, 5)
+            ->integer('abc', 'age')
+            ->boolean('yes', 'enabled')
+            ->array('not-array', 'items')
+            ->in('orange', 'color', ['red', 'blue']);
+
+        $this->assertTrue($validator->fails());
+        $this->assertFalse($validator->passes());
+
+        $errors = $validator->getErrors();
+        $this->assertArrayHasKey('name', $errors);
+        $this->assertArrayHasKey('username', $errors);
+        $this->assertArrayHasKey('age', $errors);
+        $this->assertArrayHasKey('enabled', $errors);
+        $this->assertArrayHasKey('items', $errors);
+        $this->assertArrayHasKey('color', $errors);
+    }
 }

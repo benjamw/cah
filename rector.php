@@ -10,6 +10,7 @@ return RectorConfig::configure()
         __DIR__ . '/api',
         __DIR__ . '/config',
         __DIR__ . '/src',
+        __DIR__ . '/tests',
     ])
     // Automatically sets PHP version based on composer.json
     ->withPhpSets()

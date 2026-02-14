@@ -17,8 +17,6 @@ use CAH\Models\Card;
  */
 class AdminCardManagementTest extends TestCase
 {
-    private string $adminToken;
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -26,9 +24,7 @@ class AdminCardManagementTest extends TestCase
         // Setup admin authentication
         $adminPassword = 'test_admin_pass';
         $_ENV['ADMIN_PASSWORD_HASH'] = password_hash($adminPassword, PASSWORD_DEFAULT);
-        
-        $loginResult = AdminAuthService::login($adminPassword, '127.0.0.1', 'Test');
-        $this->adminToken = $loginResult['token'];
+        AdminAuthService::login($adminPassword, '127.0.0.1', 'Test');
     }
 
     // ========================================
@@ -277,9 +273,6 @@ class AdminCardManagementTest extends TestCase
             ['white', 'Card in game', 1]
         );
         $cardId = (int) Database::lastInsertId();
-
-        // Simulate game with this card in draw pile
-        $drawPile = ['white' => [$cardId], 'black' => []];
         
         // Act - Soft delete the card
         Database::execute("UPDATE cards SET active = ? WHERE card_id = ?", [0, $cardId]);

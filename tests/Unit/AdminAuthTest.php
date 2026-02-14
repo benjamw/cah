@@ -20,7 +20,7 @@ class AdminAuthTest extends TestCase
         
         // Store the original value to restore later
         $originalEnvValue = $_ENV['ADMIN_PASSWORD_HASH'] ?? null;
-        $originalGetenvValue = getenv('ADMIN_PASSWORD_HASH');
+        getenv('ADMIN_PASSWORD_HASH');
         
         $_ENV['ADMIN_PASSWORD_HASH'] = $hashedPassword;
         putenv("ADMIN_PASSWORD_HASH={$hashedPassword}");

@@ -59,7 +59,7 @@ class Database
             throw new DatabaseException('Database configuration not initialized. Call Database::init() first.');
         }
 
-        $host = self::$config['host'] ?? 'localhost';
+        $host = self::$config['host'] ?? '127.0.0.1';
         $port = self::$config['port'] ?? 3306;
         $database = self::$config['database'] ?? '';
         $username = self::$config['username'] ?? '';

@@ -41,6 +41,14 @@
             <property name="absoluteLineLimit" value="150"/>
         </properties>
     </rule>
+    <!-- EditorConfig parity for PHP files -->
+    <rule ref="Generic.Files.LineEndings">
+        <properties>
+            <property name="eolChar" value="\n"/>
+        </properties>
+    </rule>
+    <rule ref="Generic.Files.EndFileNewline"/>
+    <rule ref="Squiz.WhiteSpace.SuperfluousWhitespace"/>
     <rule ref="Generic.Metrics.CyclomaticComplexity">
         <properties>
             <property name="complexity" value="15"/>

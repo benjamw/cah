@@ -79,7 +79,7 @@ class AdminAuthenticationTest extends TestCase
             [$token]
         );
         
-        $expiresAt = strtotime($tokenData['expires_at']);
+        $expiresAt = strtotime((string) $tokenData['expires_at']);
         $now = time();
         $expectedExpiry = $now + (24 * 60 * 60); // 24 hours
 
@@ -183,7 +183,7 @@ class AdminAuthenticationTest extends TestCase
         for ($i = 0; $i < 5; $i++) {
             try {
                 AdminAuthService::login($wrongPassword, $ipAddress, 'Test');
-            } catch (UnauthorizedException $e) {
+            } catch (UnauthorizedException) {
                 // Expected - record the attempt
                 RateLimitService::recordAttempt($ipAddress, RateLimitAction::ADMIN_LOGIN);
             }
@@ -221,7 +221,7 @@ class AdminAuthenticationTest extends TestCase
 
         // Assert
         $this->assertNotNull($record['locked_until']);
-        $lockedUntil = strtotime($record['locked_until']);
+        $lockedUntil = strtotime((string) $record['locked_until']);
         $expectedUnlock = time() + (1440 * 60); // 24 hours from now
         
         $this->assertGreaterThan(time(), $lockedUntil, 'Lockout should be in the future');
@@ -236,11 +236,6 @@ class AdminAuthenticationTest extends TestCase
     {
         // Arrange
         $ipAddress = '203.0.113.52';
-        $rateLimitConfig = [
-            'max_attempts' => 5,
-            'window_minutes' => 5,
-            'lockout_minutes' => 1440,
-        ];
 
         // Make 3 failed attempts
         for ($i = 0; $i < 3; $i++) {
@@ -685,7 +680,7 @@ class AdminAuthenticationTest extends TestCase
                 AdminAuthService::login($this->adminPassword, $badIp, 'Test');
                 // If it succeeds, just verify it stored the IP (graceful handling)
                 $this->assertTrue(true, "Malformed IP '{$badIp}' was handled gracefully");
-            } catch (\CAH\Exceptions\ValidationException $e) {
+            } catch (\CAH\Exceptions\ValidationException) {
                 // Expected - validation exception is also acceptable
                 $this->assertTrue(true, "Malformed IP '{$badIp}' threw validation exception");
             }
@@ -707,7 +702,7 @@ class AdminAuthenticationTest extends TestCase
             $this->expectException(UnauthorizedException::class);
             try {
                 AdminAuthService::login($injection, '127.0.0.1', 'Test');
-            } catch (UnauthorizedException $e) {
+            } catch (UnauthorizedException) {
                 // Expected - continue
                 continue;
             }
@@ -925,7 +920,7 @@ class AdminAuthenticationTest extends TestCase
             $this->expectException(UnauthorizedException::class);
             try {
                 AdminAuthService::login($wrong, '127.0.0.1', 'Test');
-            } catch (UnauthorizedException $e) {
+            } catch (UnauthorizedException) {
                 // Expected - continue to next
                 continue;
             }

@@ -137,7 +137,7 @@ echo "Created test_base tag (ID: {$tagId})\n";
 echo "Test data ready!\n\n";
 
 // Register shutdown function to clean up test data
-register_shutdown_function(function () use ($connection) {
+register_shutdown_function(function () use ($connection): void {
     echo "\nCleaning up test data...\n";
 
     try {

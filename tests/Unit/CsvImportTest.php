@@ -87,12 +87,12 @@ class CsvImportTest extends TestCase
         $line = 'This is a test card,,,,,,,,,,';
         $data = str_getcsv($line);
         
-        $cardText = trim($data[0]);
+        $cardText = trim((string) $data[0]);
         $tagColumns = array_slice($data, 1, 10);
         $tags = [];
         foreach ($tagColumns as $tag) {
-            $tag = trim($tag);
-            if ( ! empty($tag)) {
+            $tag = trim((string) $tag);
+            if ( $tag !== '' && $tag !== '0') {
                 $tags[] = $tag;
             }
         }
@@ -109,12 +109,12 @@ class CsvImportTest extends TestCase
         $line = 'This is a profane card,Profanity,,,,,,,,,';
         $data = str_getcsv($line);
         
-        $cardText = trim($data[0]);
+        $cardText = trim((string) $data[0]);
         $tagColumns = array_slice($data, 1, 10);
         $tags = [];
         foreach ($tagColumns as $tag) {
-            $tag = trim($tag);
-            if ( ! empty($tag)) {
+            $tag = trim((string) $tag);
+            if ( $tag !== '' && $tag !== '0') {
                 $tags[] = $tag;
             }
         }
@@ -132,12 +132,12 @@ class CsvImportTest extends TestCase
         $line = 'This is a bad card,Profanity,Sexually Explicit,Violence,,,,,,';
         $data = str_getcsv($line);
         
-        $cardText = trim($data[0]);
+        $cardText = trim((string) $data[0]);
         $tagColumns = array_slice($data, 1, 10);
         $tags = [];
         foreach ($tagColumns as $tag) {
-            $tag = trim($tag);
-            if ( ! empty($tag)) {
+            $tag = trim((string) $tag);
+            if ( $tag !== '' && $tag !== '0') {
                 $tags[] = $tag;
             }
         }
@@ -155,12 +155,12 @@ class CsvImportTest extends TestCase
         $line = '"A card with, commas in it",Profanity,,,,,,,,,';
         $data = str_getcsv($line);
         
-        $cardText = trim($data[0]);
+        $cardText = trim((string) $data[0]);
         $tagColumns = array_slice($data, 1, 10);
         $tags = [];
         foreach ($tagColumns as $tag) {
-            $tag = trim($tag);
-            if ( ! empty($tag)) {
+            $tag = trim((string) $tag);
+            if ( $tag !== '' && $tag !== '0') {
                 $tags[] = $tag;
             }
         }
@@ -178,12 +178,12 @@ class CsvImportTest extends TestCase
         $line = 'Test card,  Profanity  , Sexually Explicit ,,,,,,,';
         $data = str_getcsv($line);
         
-        $cardText = trim($data[0]);
+        $cardText = trim((string) $data[0]);
         $tagColumns = array_slice($data, 1, 10);
         $tags = [];
         foreach ($tagColumns as $tag) {
-            $tag = trim($tag);
-            if ( ! empty($tag)) {
+            $tag = trim((string) $tag);
+            if ( $tag !== '' && $tag !== '0') {
                 $tags[] = $tag;
             }
         }
