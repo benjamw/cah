@@ -33,19 +33,38 @@
 
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const password = document.getElementById('password').value;
             const errorDiv = document.getElementById('login-error');
-            
+
             try {
                 const response = await fetch('/api/admin/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ password })
                 });
-                
-                const data = await response.json();
-                
+
+                // Check if response is ok before parsing JSON
+                if (!response.ok) {
+                    const text = await response.text();
+                    console.error('Response not OK:', response.status, text);
+                    errorDiv.textContent = `Login failed: HTTP ${response.status}`;
+                    errorDiv.classList.add('active');
+                    return;
+                }
+
+                // Get response text first to check if it's empty
+                const responseText = await response.text();
+                console.log('Response text:', responseText);
+
+                if (!responseText) {
+                    errorDiv.textContent = 'Login failed: Empty response from server';
+                    errorDiv.classList.add('active');
+                    return;
+                }
+
+                const data = JSON.parse(responseText);
+
                 if (data.success && data.data && data.data.token) {
                     setAuthToken(data.data.token);
                     window.location.href = '/admin/cards.html';
@@ -54,6 +73,7 @@
                     errorDiv.classList.add('active');
                 }
             } catch (error) {
+                console.error('Login error:', error);
                 errorDiv.textContent = 'Login failed: ' + error.message;
                 errorDiv.classList.add('active');
             }
