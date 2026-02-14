@@ -19,3 +19,30 @@ Thumbs.db
 # Test coverage
 .phpunit.result.cache
 coverage/
+
+# Runtime logs and diagnostics
+*.log
+*.out
+*.err
+api/error_log
+php_errors.log
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+
+# Temporary and local analysis artifacts
+results.txt
+*.tmp
+*.temp
+*.bak
+*.orig
+
+
+sources/
+scripts/
+processed/
+other_src/
+ai_tagging/
+database/
