@@ -12,6 +12,19 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
   const packsDisplayRef = useRef(null);
 
   const minSwipeDistance = 50;
+  const cardsLength = cards.length;
+
+  // Keep index valid when card list shrinks/changes
+  useEffect(() => {
+    if (cardsLength === 0 && currentIndex !== 0) {
+      setCurrentIndex(0);
+      return;
+    }
+
+    if (cardsLength > 0 && currentIndex >= cardsLength) {
+      setCurrentIndex(0);
+    }
+  }, [cardsLength, currentIndex]);
 
   // Close packs display when clicking outside
   useEffect(() => {
@@ -68,12 +81,6 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
       onCardSelect(currentCard.card_id);
     }
   };
-
-  // Reset to first card when cards array changes
-  const cardsLength = cards.length;
-  if (currentIndex >= cardsLength && cardsLength > 0) {
-    setCurrentIndex(0);
-  }
 
   if ( ! cards || cards.length === 0) {
     return (
