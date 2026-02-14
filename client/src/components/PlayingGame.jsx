@@ -13,6 +13,7 @@ import SkipCzarButton from './SkipCzarButton';
 import HostTransferModal from './HostTransferModal';
 import { handleLeaveWithOptionalTransfer, handleTransferAndLeave } from '../utils/hostLeaveFlow';
 import { getSubmittedCards, hasSubmittedCards } from '../utils/submittedCardsStorage';
+import { reportActionFailure } from '../utils/errorFeedback';
 
 function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
   const [selectedCards, setSelectedCards] = useState([]);
@@ -116,11 +117,21 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
     try {
       const response = await removePlayer(gameData.gameId, playerId);
       if ( ! response.success) {
-        console.error('Failed to remove player:', response);
+        reportActionFailure({
+          response,
+          fallbackMessage: 'Failed to remove player',
+          showToast,
+          logPrefix: 'Failed to remove player',
+        });
       }
       // Game state will update via polling
     } catch (err) {
-      console.error('Error removing player:', err);
+      reportActionFailure({
+        error: err,
+        fallbackMessage: 'Error removing player',
+        showToast,
+        logPrefix: 'Error removing player',
+      });
     } finally {
       setRemoving(null);
     }
@@ -139,16 +150,20 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
           }
         }
       } else {
-        console.error('Failed to place skipped player:', response);
-        if (showToast) {
-          showToast('Failed to place player. Please try again.');
-        }
+        reportActionFailure({
+          response,
+          fallbackMessage: 'Failed to place player. Please try again.',
+          showToast,
+          logPrefix: 'Failed to place skipped player',
+        });
       }
     } catch (err) {
-      console.error('Error placing skipped player:', err);
-      if (showToast) {
-        showToast('Error placing player. Please try again.');
-      }
+      reportActionFailure({
+        error: err,
+        fallbackMessage: 'Error placing player. Please try again.',
+        showToast,
+        logPrefix: 'Error placing skipped player',
+      });
     } finally {
       setPlacingPlayer(false);
     }
@@ -163,17 +178,21 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
     try {
       const response = await voteSkipCzar(gameData.gameId);
       if ( ! response.success) {
-        console.error('Failed to vote skip czar:', response);
-        if (showToast) {
-          showToast(response.message || 'Failed to vote');
-        }
+        reportActionFailure({
+          response,
+          fallbackMessage: 'Failed to vote',
+          showToast,
+          logPrefix: 'Failed to vote skip czar',
+        });
       }
       // State will update via polling
     } catch (err) {
-      console.error('Error voting to skip czar:', err);
-      if (showToast) {
-        showToast('Error voting to skip czar');
-      }
+      reportActionFailure({
+        error: err,
+        fallbackMessage: 'Error voting to skip czar',
+        showToast,
+        logPrefix: 'Error voting to skip czar',
+      });
     } finally {
       setVotingToSkip(false);
     }
@@ -195,17 +214,21 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
     try {
       const response = await togglePlayerPause(gameData.gameId, targetPlayerId);
       if ( ! response.success) {
-        console.error('Failed to toggle pause:', response);
-        if (showToast) {
-          showToast(response.message || 'Failed to pause/unpause player');
-        }
+        reportActionFailure({
+          response,
+          fallbackMessage: 'Failed to pause/unpause player',
+          showToast,
+          logPrefix: 'Failed to toggle pause',
+        });
       }
       // State will update via polling
     } catch (err) {
-      console.error('Error toggling pause:', err);
-      if (showToast) {
-        showToast('Error pausing/unpausing player');
-      }
+      reportActionFailure({
+        error: err,
+        fallbackMessage: 'Error pausing/unpausing player',
+        showToast,
+        logPrefix: 'Error toggling pause',
+      });
     } finally {
       setPausing(null);
     }
@@ -236,20 +259,24 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
     try {
       const response = await refreshHand(gameData.gameId);
       if ( ! response.success) {
-        console.error('Failed to refresh hand:', response);
-        if (showToast) {
-          showToast(response.message || 'Failed to refresh hand');
-        }
+        reportActionFailure({
+          response,
+          fallbackMessage: 'Failed to refresh hand',
+          showToast,
+          logPrefix: 'Failed to refresh hand',
+        });
       } else {
         // Clear selected cards
         setSelectedCards([]);
       }
       // State will update via polling
     } catch (err) {
-      console.error('Error refreshing hand:', err);
-      if (showToast) {
-        showToast('Error refreshing hand');
-      }
+      reportActionFailure({
+        error: err,
+        fallbackMessage: 'Error refreshing hand',
+        showToast,
+        logPrefix: 'Error refreshing hand',
+      });
     } finally {
       setRefreshing(false);
     }
@@ -261,6 +288,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
       gameId: gameData.gameId,
       onLeaveGame,
       setShowHostTransfer,
+      showToast,
     });
   };
 
@@ -271,6 +299,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
       onLeaveGame,
       setShowHostTransfer,
       setTransferring,
+      showToast,
     });
   };
 

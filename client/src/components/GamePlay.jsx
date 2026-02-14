@@ -323,6 +323,7 @@ function GamePlay({ gameData, onLeaveGame }) {
           onStartGame={handleStartGame}
           onLeaveGame={onLeaveGame}
           error={error}
+          showToast={showToast}
         />
       )}
 

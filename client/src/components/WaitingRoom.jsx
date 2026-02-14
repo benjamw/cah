@@ -4,8 +4,9 @@ import { faCircleXmark } from '@fortawesome/free-solid-svg-icons';
 import { removePlayer } from '../utils/api';
 import HostTransferModal from './HostTransferModal';
 import { handleLeaveWithOptionalTransfer, handleTransferAndLeave } from '../utils/hostLeaveFlow';
+import { reportActionFailure } from '../utils/errorFeedback';
 
-function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
+function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error, showToast }) {
   const players = gameState?.players || [];
   const settings = gameState?.settings || {};
   const minPlayers = 3;
@@ -25,11 +26,21 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
     try {
       const response = await removePlayer(gameData.gameId, playerId);
       if ( ! response.success) {
-        console.error('Failed to remove player:', response);
+        reportActionFailure({
+          response,
+          fallbackMessage: 'Failed to remove player',
+          showToast,
+          logPrefix: 'Failed to remove player',
+        });
       }
       // Game state will update via polling
     } catch (err) {
-      console.error('Error removing player:', err);
+      reportActionFailure({
+        error: err,
+        fallbackMessage: 'Error removing player',
+        showToast,
+        logPrefix: 'Error removing player',
+      });
     } finally {
       setRemoving(null);
     }
@@ -41,6 +52,7 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
       gameId: gameData.gameId,
       onLeaveGame,
       setShowHostTransfer,
+      showToast,
     });
   };
 
@@ -51,6 +63,7 @@ function WaitingRoom({ gameState, gameData, onStartGame, onLeaveGame, error }) {
       onLeaveGame,
       setShowHostTransfer,
       setTransferring,
+      showToast,
     });
   };
 
