@@ -13,18 +13,7 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
 
   const minSwipeDistance = 50;
   const cardsLength = cards.length;
-
-  // Keep index valid when card list shrinks/changes
-  useEffect(() => {
-    if (cardsLength === 0 && currentIndex !== 0) {
-      setCurrentIndex(0);
-      return;
-    }
-
-    if (cardsLength > 0 && currentIndex >= cardsLength) {
-      setCurrentIndex(0);
-    }
-  }, [cardsLength, currentIndex]);
+  const activeIndex = cardsLength > 0 ? Math.min(currentIndex, cardsLength - 1) : 0;
 
   // Close packs display when clicking outside
   useEffect(() => {
@@ -76,7 +65,7 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
 
   const handleCardClick = () => {
     if (disabled) return;
-    const currentCard = cards[currentIndex];
+    const currentCard = cards[activeIndex];
     if (currentCard && onCardSelect) {
       onCardSelect(currentCard.card_id);
     }
@@ -90,7 +79,7 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
     );
   }
 
-  const currentCard = cards[currentIndex];
+  const currentCard = cards[activeIndex];
   const isSelected = selectedCards?.includes(currentCard.card_id);
   const cardVariant = cardType === 'response' ? 'response' : 'prompt';
 
@@ -160,7 +149,7 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
             {cards.map((_, index) => (
               <button
                 key={index}
-                className={`dot ${index === currentIndex ? 'active' : ''}`}
+                className={`dot ${index === activeIndex ? 'active' : ''}`}
                 onClick={() => goToCard(index)}
                 aria-label={`Go to card ${index + 1}`}
               />
@@ -182,7 +171,7 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
       </div>
 
       <div className="card-counter">
-        {currentIndex + 1} / {cards.length}
+        {activeIndex + 1} / {cards.length}
       </div>
     </div>
   );
