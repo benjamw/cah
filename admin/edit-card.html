@@ -49,6 +49,17 @@
                         <input type="number" id="card-choices" name="choices" min="0" max="10" step="1" value="0">
                         <small>Number of response cards needed for prompt cards. 0 or empty means none/auto-detect.</small>
                     </div>
+
+                    <div class="form-group">
+                        <label for="card-special">Special</label>
+                        <input type="text" id="card-special" name="special" maxlength="255" placeholder="e.g. Pick 2">
+                        <small>Optional special instruction text for the card.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="card-notes">Notes</label>
+                        <textarea id="card-notes" name="notes" rows="4" placeholder="Optional internal/editor notes"></textarea>
+                    </div>
                     
                     <div class="form-group">
                         <label for="card-tags">Tags</label>
@@ -114,6 +125,8 @@
                     document.getElementById('card-text').value = card.copy;
                     document.getElementById('card-type').value = card.type;
                     document.getElementById('card-choices').value = card.choices ?? 0;
+                    document.getElementById('card-special').value = card.special ?? '';
+                    document.getElementById('card-notes').value = card.notes ?? '';
                     document.getElementById('card-active').checked = card.active;
                     document.getElementById('edit-card-title').textContent = `Edit Card #${card.card_id}`;
                     
@@ -268,6 +281,8 @@
                     copy: document.getElementById('card-text').value,
                     type: document.getElementById('card-type').value,
                     choices: choices,
+                    special: document.getElementById('card-special').value || null,
+                    notes: document.getElementById('card-notes').value || null,
                     active: document.getElementById('card-active').checked,
                     tags: selectedTags.map(id => parseInt(id)),
                     packs: selectedPacks.map(id => parseInt(id))

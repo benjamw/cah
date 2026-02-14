@@ -4,6 +4,7 @@ import {
   faPause,
   faPlay,
   faRightFromBracket,
+  faTags,
   faBoxArchive,
 } from '@fortawesome/free-solid-svg-icons';
 import CardSwiper from './CardSwiper';
@@ -457,15 +458,35 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
                   onClick={(e) => {
                     e.stopPropagation();
                     const btn = e.currentTarget;
-                    const display = btn.nextElementSibling;
-                    if (display) {
-                      display.classList.toggle('hidden');
-                    }
+                    const card = btn.closest('.card');
+                    const packsDisplay = card?.querySelector('.card-packs-display-prompt');
+                    const tagsDisplay = card?.querySelector('.card-tags-display-prompt');
+                    if (packsDisplay) packsDisplay.classList.toggle('hidden');
+                    if (tagsDisplay) tagsDisplay.classList.add('hidden');
                   }}
                   title="View packs this card belongs to"
                   aria-label="View packs"
                 >
                   <FontAwesomeIcon icon={faBoxArchive} />
+                </button>
+              )}
+
+              {promptCard.tags && promptCard.tags.length > 0 && (
+                <button
+                  className="card-tags-btn-prompt"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const btn = e.currentTarget;
+                    const card = btn.closest('.card');
+                    const tagsDisplay = card?.querySelector('.card-tags-display-prompt');
+                    const packsDisplay = card?.querySelector('.card-packs-display-prompt');
+                    if (tagsDisplay) tagsDisplay.classList.toggle('hidden');
+                    if (packsDisplay) packsDisplay.classList.add('hidden');
+                  }}
+                  title="View tags on this card"
+                  aria-label="View tags"
+                >
+                  <FontAwesomeIcon icon={faTags} />
                 </button>
               )}
 
@@ -478,6 +499,21 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
                     {promptCard.packs.map((pack, index) => (
                       <div key={index} className="card-pack-item">
                         {pack.name} {pack.version && `(${pack.version})`}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {promptCard.tags && promptCard.tags.length > 0 && (
+                <div className="card-tags-display-prompt hidden">
+                  <div className="card-packs-header">
+                    <strong>Card tags on this card:</strong>
+                  </div>
+                  <div className="card-packs-list">
+                    {promptCard.tags.map((tag, index) => (
+                      <div key={index} className="card-tag-item">
+                        {tag.name}
                       </div>
                     ))}
                   </div>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowsRotate, faTag, faBoxArchive } from '@fortawesome/free-solid-svg-icons';
+import { faArrowsRotate, faTags, faBoxArchive } from '@fortawesome/free-solid-svg-icons';
 import CardView from './CardView';
 
 function CardSwiper({
@@ -11,30 +11,33 @@ function CardSwiper({
   disabled,
   onRefreshHand,
   refreshing,
-  onOpenTagEditor,
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState(null);
   const [touchEnd, setTouchEnd] = useState(null);
   const [showPacks, setShowPacks] = useState(false);
+  const [showTags, setShowTags] = useState(false);
   const containerRef = useRef(null);
   const packsDisplayRef = useRef(null);
+  const tagsDisplayRef = useRef(null);
 
   const minSwipeDistance = 50;
   const cardsLength = cards.length;
   const activeIndex = cardsLength > 0 ? Math.min(currentIndex, cardsLength - 1) : 0;
 
-  // Close packs display when clicking outside
+  // Close metadata displays when clicking outside
   useEffect(() => {
-    if (!showPacks) return;
+    if (!showPacks && !showTags) return;
 
     const handleClickOutside = (event) => {
-      if (packsDisplayRef.current && !packsDisplayRef.current.contains(event.target)) {
-        // Check if the click was on the packs button
-        const packsButton = event.target.closest('.card-packs-btn');
-        if (!packsButton) {
-          setShowPacks(false);
-        }
+      const clickedPacksButton = event.target.closest('.card-packs-btn');
+      const clickedTagsButton = event.target.closest('.card-tags-btn');
+      const clickedInsidePacks = packsDisplayRef.current?.contains(event.target);
+      const clickedInsideTags = tagsDisplayRef.current?.contains(event.target);
+
+      if (!clickedPacksButton && !clickedTagsButton && !clickedInsidePacks && !clickedInsideTags) {
+        setShowPacks(false);
+        setShowTags(false);
       }
     };
 
@@ -42,7 +45,7 @@ function CardSwiper({
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showPacks]);
+  }, [showPacks, showTags]);
 
   const onTouchStart = (e) => {
     setTouchEnd(null);
@@ -108,31 +111,33 @@ function CardSwiper({
         choices={currentCard.choices}
         onClick={handleCardClick}
       >
-        {onOpenTagEditor && (
-          <button
-            className="card-tag-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onOpenTagEditor(currentCard);
-            }}
-            title="Edit tags for this card"
-            aria-label="Edit tags"
-          >
-            <FontAwesomeIcon icon={faTag} />
-          </button>
-        )}
-
         {currentCard.packs && currentCard.packs.length > 0 && (
           <button
             className="card-packs-btn"
             onClick={(e) => {
               e.stopPropagation();
               setShowPacks(!showPacks);
+              setShowTags(false);
             }}
             title="View packs this card belongs to"
             aria-label="View packs"
           >
             <FontAwesomeIcon icon={faBoxArchive} />
+          </button>
+        )}
+
+        {currentCard.tags && currentCard.tags.length > 0 && (
+          <button
+            className="card-tags-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowTags(!showTags);
+              setShowPacks(false);
+            }}
+            title="View tags on this card"
+            aria-label="View tags"
+          >
+            <FontAwesomeIcon icon={faTags} />
           </button>
         )}
       </CardView>
@@ -146,6 +151,21 @@ function CardSwiper({
             {currentCard.packs.map((pack, index) => (
               <div key={index} className="card-pack-item">
                 {pack.name} {pack.version && `(${pack.version})`}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showTags && currentCard.tags && (
+        <div className="card-tags-display" ref={tagsDisplayRef}>
+          <div className="card-packs-header">
+            <strong>Card tags on this card:</strong>
+          </div>
+          <div className="card-packs-list">
+            {currentCard.tags.map((tag, index) => (
+              <div key={index} className="card-tag-item">
+                {tag.name}
               </div>
             ))}
           </div>
