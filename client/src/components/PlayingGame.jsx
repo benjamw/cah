@@ -12,6 +12,7 @@ import SkippedPlayerModal from './SkippedPlayerModal';
 import SkipCzarButton from './SkipCzarButton';
 import HostTransferModal from './HostTransferModal';
 import { handleLeaveWithOptionalTransfer, handleTransferAndLeave } from '../utils/hostLeaveFlow';
+import { getSubmittedCards, hasSubmittedCards } from '../utils/submittedCardsStorage';
 
 function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
   const [selectedCards, setSelectedCards] = useState([]);
@@ -39,8 +40,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
   ) || false;
   
   // Also check localStorage for persistent tracking across refreshes
-  const storageKey = `submitted_cards_${gameData.gameId}_${gameState.current_round}`;
-  const hasSubmittedLocally = !! localStorage.getItem(storageKey);
+  const hasSubmittedLocally = hasSubmittedCards(gameData.gameId, gameState.current_round);
   
   const hasSubmitted = hasSubmittedInAPI || hasSubmittedLocally;
   
@@ -62,17 +62,9 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
 
   // Load submitted cards from localStorage and filter them out of the hand
   useEffect(() => {
-    const storageKey = `submitted_cards_${gameData.gameId}_${gameState.current_round}`;
-    const stored = localStorage.getItem(storageKey);
-    if (stored && hasSubmitted) {
-      try {
-        const submitted = JSON.parse(stored);
-        // Extract card IDs from the stored card objects
-        const cardIds = submitted.map(card => card.card_id);
-        setSubmittedCardIds(cardIds);
-      } catch (e) {
-        console.error('Failed to parse submitted cards:', e);
-      }
+    if (hasSubmitted) {
+      const { cardIds } = getSubmittedCards(gameData.gameId, gameState.current_round);
+      setSubmittedCardIds(cardIds);
     } else {
       setSubmittedCardIds([]);
     }

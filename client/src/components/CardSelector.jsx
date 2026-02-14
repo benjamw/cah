@@ -4,6 +4,7 @@ import { faCircleXmark, faCircleCheck } from '@fortawesome/free-solid-svg-icons'
 import { submitCards } from '../utils/api';
 import CardText from './CardText';
 import CardView from './CardView';
+import { getSubmittedCards, setSubmittedCards } from '../utils/submittedCardsStorage';
 
 function CardSelector({
   selectedCards,
@@ -19,25 +20,14 @@ function CardSelector({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [draggedIndex, setDraggedIndex] = useState(null);
-  const [submittedCardIds, setSubmittedCardIds] = useState([]);
+  const [submittedCards, setSubmittedCardsState] = useState([]);
 
   const canSubmit = selectedCards.length === blanksNeeded && ! hasSubmitted;
 
   // Load submitted cards from localStorage on mount and when submission status changes
   useEffect(() => {
-    const storageKey = `submitted_cards_${gameData.gameId}_${gameState.current_round}`;
-    const stored = localStorage.getItem(storageKey);
-    
-    if (stored) {
-      try {
-        const parsedCards = JSON.parse(stored);
-        setSubmittedCardIds(parsedCards);
-      } catch (e) {
-        console.error('Failed to parse submitted cards:', e);
-      }
-    } else {
-      setSubmittedCardIds([]);
-    }
+    const { cards } = getSubmittedCards(gameData.gameId, gameState.current_round);
+    setSubmittedCardsState(cards);
   }, [gameData.gameId, gameState.current_round, hasSubmitted]);
 
   const handleSubmit = async () => {
@@ -53,10 +43,9 @@ function CardSelector({
         const submittedCardsData = selectedCards.map(cardId => {
           return responseCards.find(c => c.card_id === cardId);
         }).filter(Boolean);
-        
-        const storageKey = `submitted_cards_${gameData.gameId}_${gameState.current_round}`;
-        localStorage.setItem(storageKey, JSON.stringify(submittedCardsData));
-        setSubmittedCardIds(submittedCardsData);
+
+        setSubmittedCards(gameData.gameId, gameState.current_round, submittedCardsData);
+        setSubmittedCardsState(submittedCardsData);
         onCardsSubmitted();
       } else {
         setError(response.message || 'Failed to submit cards');
@@ -114,11 +103,11 @@ function CardSelector({
           </p>
         </div>
         
-        {submittedCardIds.length > 0 && (
+        {submittedCards.length > 0 && (
           <div className="submitted-cards-display">
             <h4>Your Submission:</h4>
             <div className="submitted-cards-list">
-              {submittedCardIds.map((card, index) => {
+              {submittedCards.map((card, index) => {
                 if ( ! card) return null;
 
                 return (
