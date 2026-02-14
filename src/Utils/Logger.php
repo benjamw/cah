@@ -44,7 +44,12 @@ class Logger
                 }
             }
 
-            $levelName = strtolower($_ENV['LOG_LEVEL'] ?? getenv('LOG_LEVEL') ?: 'warning');
+            $envLogLevel = $_ENV['LOG_LEVEL'] ?? getenv('LOG_LEVEL');
+            $levelName = strtolower(
+                is_string($envLogLevel) && $envLogLevel !== ''
+                    ? $envLogLevel
+                    : 'warning'
+            );
             $level = self::LEVEL_MAP[$levelName] ?? Level::Warning;
 
             self::$instance->pushHandler(new StreamHandler($logPath, $level));

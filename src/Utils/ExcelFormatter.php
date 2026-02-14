@@ -257,16 +257,16 @@ class ExcelFormatter
     {
         // Remove bold/italic
         $text = preg_replace('/\*\*\*(.*?)\*\*\*/', '$1', $text);
-        $text = preg_replace('/\*\*(.*?)\*\*/', '$1', $text);
-        $text = preg_replace('/\*(.*?)\*/', '$1', $text);
+        $text = preg_replace('/\*\*(.*?)\*\*/', '$1', (string) $text);
+        $text = preg_replace('/\*(.*?)\*/', '$1', (string) $text);
         
         // Remove strikethrough
-        $text = preg_replace('/~~(.*?)~~/', '$1', $text);
+        $text = preg_replace('/~~(.*?)~~/', '$1', (string) $text);
         
         // Remove HTML tags
-        $text = preg_replace('/<u>(.*?)<\/u>/', '$1', $text);
-        $text = preg_replace('/<sup>(.*?)<\/sup>/', '$1', $text);
-        $text = preg_replace('/<sub>(.*?)<\/sub>/', '$1', $text);
+        $text = preg_replace('/<u>(.*?)<\/u>/', '$1', (string) $text);
+        $text = preg_replace('/<sup>(.*?)<\/sup>/', '$1', (string) $text);
+        $text = preg_replace('/<sub>(.*?)<\/sub>/', '$1', (string) $text);
         
         return $text;
     }

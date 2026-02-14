@@ -73,7 +73,7 @@ class CardController
             
             // Hydrate with packs and tags
             $promptCardId = (int) $promptCard['card_id'];
-            $responseCardIds = array_map(fn($card) => (int) $card['card_id'], $responseCards);
+            $responseCardIds = array_map(fn($card): int => (int) $card['card_id'], $responseCards);
             
             $allCardIds = array_merge([$promptCardId], $responseCardIds);
             

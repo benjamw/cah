@@ -58,9 +58,7 @@ class DuplicateDetector
         }
         
         // Sort by similarity (highest first)
-        usort($similar, function($a, $b) {
-            return $b['similarity'] <=> $a['similarity'];
-        });
+        usort($similar, fn($a, $b) => $b['similarity'] <=> $a['similarity']);
         
         return $similar;
     }
@@ -102,16 +100,16 @@ class DuplicateDetector
     {
         // Remove markdown formatting
         $text = preg_replace('/\*\*\*(.*?)\*\*\*/', '$1', $text);
-        $text = preg_replace('/\*\*(.*?)\*\*/', '$1', $text);
-        $text = preg_replace('/\*(.*?)\*/', '$1', $text);
-        $text = preg_replace('/~~(.*?)~~/', '$1', $text);
+        $text = preg_replace('/\*\*(.*?)\*\*/', '$1', (string) $text);
+        $text = preg_replace('/\*(.*?)\*/', '$1', (string) $text);
+        $text = preg_replace('/~~(.*?)~~/', '$1', (string) $text);
         
         // Convert to lowercase
-        $text = strtolower($text);
+        $text = strtolower((string) $text);
         
         // Remove extra whitespace
         $text = preg_replace('/\s+/', ' ', $text);
-        $text = trim($text);
+        $text = trim((string) $text);
         
         return $text;
     }

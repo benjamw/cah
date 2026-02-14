@@ -295,7 +295,7 @@ class AdminCardController
                 // Get current tags
                 $currentTags = Tag::getCardTags($cardId, false); // Get all tags, not just active
                 $currentTagIds = array_column($currentTags, 'tag_id');
-                $newTagIds = array_map('intval', $data['tags']);
+                $newTagIds = array_map(intval(...), $data['tags']);
                 
                 // Remove tags that are no longer selected
                 $tagsToRemove = array_diff($currentTagIds, $newTagIds);
@@ -315,7 +315,7 @@ class AdminCardController
                 // Get current packs
                 $currentPacks = Pack::getCardPacks($cardId, false); // Get all packs, not just active
                 $currentPackIds = array_column($currentPacks, 'pack_id');
-                $newPackIds = array_map('intval', $data['packs']);
+                $newPackIds = array_map(intval(...), $data['packs']);
                 
                 // Remove packs that are no longer selected
                 $packsToRemove = array_diff($currentPackIds, $newPackIds);
