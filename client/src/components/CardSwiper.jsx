@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowsRotate, faTag, faBoxArchive } from '@fortawesome/free-solid-svg-icons';
+import CardView from './CardView';
 
 function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, onRefreshHand, refreshing, onOpenTagEditor }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -84,7 +85,7 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
 
   const currentCard = cards[currentIndex];
   const isSelected = selectedCards?.includes(currentCard.card_id);
-  const cardClass = cardType === 'response' ? 'card-response' : 'card-prompt';
+  const cardVariant = cardType === 'response' ? 'response' : 'prompt';
 
   return (
     <div
@@ -94,20 +95,14 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      <div
-        className={`card ${cardClass} ${isSelected ? 'card-selected' : ''} ${
-          disabled ? 'card-disabled' : ''
-        }`}
+      <CardView
+        copy={currentCard.copy}
+        variant={cardVariant}
+        selected={isSelected}
+        disabled={disabled}
+        choices={currentCard.choices}
         onClick={handleCardClick}
       >
-        <div
-          className="card-content"
-          dangerouslySetInnerHTML={{ __html: formatCardText(currentCard.copy) }}
-        />
-        {currentCard.choices > 1 && (
-          <div className="card-pick">Pick {currentCard.choices}</div>
-        )}
-        
         {onOpenTagEditor && (
           <button
             className="card-tag-btn"
@@ -135,7 +130,7 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
             <FontAwesomeIcon icon={faBoxArchive} />
           </button>
         )}
-      </div>
+      </CardView>
 
       {showPacks && currentCard.packs && (
         <div className="card-packs-display" ref={packsDisplayRef}>
@@ -184,30 +179,6 @@ function CardSwiper({ cards, selectedCards, onCardSelect, cardType, disabled, on
       </div>
     </div>
   );
-}
-
-function formatCardText(text) {
-  if ( ! text) return '';
-
-  // Protect sequences of 3+ underscores (blanks) by replacing them temporarily
-  // Using vertical tab character (U+000B) which won't appear in cards or be processed by markdown
-  const blankPlaceholder = '\u000B';
-  let formatted = text.replace(/_{3,}/g, blankPlaceholder);
-
-  // Convert newlines to <br>
-  formatted = formatted.replace(/\n/g, '<br>');
-  
-  // Simple markdown-like formatting
-  // Bold: *text*
-  formatted = formatted.replace(/\*(.+?)\*/g, '<strong>$1</strong>');
-  
-  // Italic: _text_
-  formatted = formatted.replace(/_(.+?)_/g, '<em>$1</em>');
-  
-  // Restore the blanks
-  formatted = formatted.replace(new RegExp(blankPlaceholder, 'g'), '_____');
-
-  return formatted;
 }
 
 export default CardSwiper;

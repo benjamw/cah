@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCircleXmark, faCircleCheck } from '@fortawesome/free-solid-svg-icons';
 import { submitCards } from '../utils/api';
+import CardText from './CardText';
+import CardView from './CardView';
 
 function CardSelector({
   selectedCards,
@@ -122,11 +124,12 @@ function CardSelector({
                 return (
                   <div key={card.card_id} className="submitted-card-preview">
                     <div className="card-order-badge">{index + 1}</div>
-                    <div className="card card-response card-preview">
-                      <div className="card-content-small">
-                        {card.copy}
-                      </div>
-                    </div>
+                    <CardView
+                      copy={card.copy}
+                      variant="response"
+                      className="card-preview"
+                      contentClassName="card-content-small"
+                    />
                   </div>
                 );
               })}
@@ -163,9 +166,7 @@ function CardSelector({
                     onDragEnd={handleDragEnd}
                   >
                     <div className="card-order-number-mini">{index + 1}</div>
-                    <div className="selected-card-text-mini">
-                      {card.copy}
-                    </div>
+                    <CardText text={card.copy} className="selected-card-text-mini" />
                     <button
                       className="btn-remove-icon"
                       onClick={() => handleRemoveCard(cardId)}

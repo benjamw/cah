@@ -3,6 +3,8 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrophy, faTag, faBoxArchive } from '@fortawesome/free-solid-svg-icons';
 import { pickWinner, setNextCzar, forceEarlyReview } from '../utils/api';
 import CardSwiper from './CardSwiper';
+import CardCombinationView from './CardCombinationView';
+import CardView from './CardView';
 
 function CzarView({ gameState, gameData, promptCard, responseCards, showToast, onOpenTagEditor, onRefreshHand, refreshing }) {
   const [currentSubmissionIndex, setCurrentSubmissionIndex] = useState(0);
@@ -149,62 +151,6 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
     }
   };
 
-  const renderCardWithBlanks = (promptCardText, responseCardTexts) => {
-    const blanks = (promptCardText.match(/_+/g) || []).length;
-
-    if (blanks === 0) {
-      // No blanks, show prompt card and response cards below
-      return (
-        <div className="card-combination">
-          <div
-            className="card-text prompt-text"
-            dangerouslySetInnerHTML={{ __html: formatCardText(promptCardText) }}
-          />
-          <div className="response-cards-below">
-            {responseCardTexts.map((text, index) => (
-              <div
-                key={index}
-                className="card-text response-text-inline"
-                dangerouslySetInnerHTML={{ __html: formatCardText(text) }}
-              />
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    // Replace blanks with response card text. Handle _<u>(repeat)</u>_ (or _(repeat)_) as
-    // "same as previous blank"; only real blanks (3+ underscores) consume from responseCardTexts.
-    let result = promptCardText;
-    let responseIndex = 0;
-    let lastFilled = '';
-
-    // Match blanks (3+ underscores) first, then repeat placeholder _[^\s_]+_
-    const repeatOrBlankRegex = /_{3,}|_[^\s_]+_/g;
-    result = result.replace(repeatOrBlankRegex, (match) => {
-      const isRepeat = !/^_+$/.test(match); // not all underscores => repeat placeholder
-      if (isRepeat) {
-        if (lastFilled === '') return '_____';
-        return `<span class="response-text-inline">${formatCardText(lastFilled)}</span>`;
-      }
-      // Real blank
-      if (responseIndex < responseCardTexts.length) {
-        const responseText = responseCardTexts[responseIndex].replace(/\.+$/, '');
-        lastFilled = responseText;
-        responseIndex++;
-        return `<span class="response-text-inline">${formatCardText(responseText)}</span>`;
-      }
-      return '_____';
-    });
-
-    return (
-      <div
-        className="card-text prompt-text"
-        dangerouslySetInnerHTML={{ __html: result }}
-      />
-    );
-  };
-
   return (
     <div className="czar-view">
       <div className="czar-badge">
@@ -215,12 +161,7 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
       { ! allSubmitted && (
         <div className="card-section">
           {promptCard ? (
-            <div className="card card-prompt">
-              <div className="card-content" dangerouslySetInnerHTML={{ __html: formatCardText(promptCard.copy) }} />
-              {promptCard.choices > 1 && (
-                <div className="card-pick">Pick {promptCard.choices}</div>
-              )}
-              
+            <CardView copy={promptCard.copy} variant="prompt" choices={promptCard.choices}>
               {onOpenTagEditor && (
                 <button
                   className="card-tag-btn"
@@ -264,7 +205,7 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
                   </div>
                 </div>
               )}
-            </div>
+            </CardView>
           ) : (
             <div className="card card-empty">No prompt card available</div>
           )}
@@ -323,10 +264,10 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
             {submissions.length > 0 && submissions[currentSubmissionIndex] ? (
               <>
                 <div className="card card-prompt card-submission">
-                  {renderCardWithBlanks(
-                    promptCard.copy,
-                    submissions[currentSubmissionIndex].cards.map((c) => c.copy)
-                  )}
+                  <CardCombinationView
+                    promptText={promptCard.copy}
+                    responseTexts={submissions[currentSubmissionIndex].cards.map((c) => c.copy)}
+                  />
                 </div>
 
                 {submissions.length > 1 && (
@@ -391,30 +332,6 @@ function CzarView({ gameState, gameData, promptCard, responseCards, showToast, o
       )}
     </div>
   );
-}
-
-function formatCardText(text) {
-  if ( ! text) return '';
-
-  // Protect sequences of 3+ underscores (blanks) by replacing them temporarily
-  // Using vertical tab character (U+000B) which won't appear in cards or be processed by markdown
-  const blankPlaceholder = '\u000B';
-  let formatted = text.replace(/_{3,}/g, blankPlaceholder);
-
-  // Convert newlines to <br>
-  formatted = formatted.replace(/\n/g, '<br>');
-  
-  // Simple markdown-like formatting
-  // Bold: *text*
-  formatted = formatted.replace(/\*(.+?)\*/g, '<strong>$1</strong>');
-  
-  // Italic: _text_
-  formatted = formatted.replace(/_(.+?)_/g, '<em>$1</em>');
-  
-  // Restore the blanks
-  formatted = formatted.replace(new RegExp(blankPlaceholder, 'g'), '_____');
-
-  return formatted;
 }
 
 function CzarSelectionModal({ players, currentCzarId, onSelectCzar, onCancel, selecting }) {

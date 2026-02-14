@@ -5,6 +5,7 @@ import CardSwiper from './CardSwiper';
 import CardSelector from './CardSelector';
 import CzarView from './CzarView';
 import { removePlayer, transferHost, leaveGame, placeSkippedPlayer, voteSkipCzar, togglePlayerPause, refreshHand } from '../utils/api';
+import CardView from './CardView';
 
 function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
   const [selectedCards, setSelectedCards] = useState([]);
@@ -417,12 +418,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
             )}
           </div>
           {promptCard ? (
-            <div className="card card-prompt">
-              <div className="card-content" dangerouslySetInnerHTML={{ __html: formatCardText(promptCard.copy) }} />
-              {blanksNeeded > 1 && (
-                <div className="card-pick">Pick {blanksNeeded}</div>
-              )}
-              
+            <CardView copy={promptCard.copy} variant="prompt" choices={blanksNeeded}>
               {promptCard.packs && promptCard.packs.length > 0 && (
                 <button
                   className="card-packs-btn-prompt"
@@ -455,7 +451,7 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
                   </div>
                 </div>
               )}
-            </div>
+            </CardView>
           ) : (
             <div className="card card-empty">No black card available</div>
           )}
@@ -660,30 +656,6 @@ function PlayerManagement({ players, gameData, onRemovePlayer, onTogglePause, re
       )}
     </div>
   );
-}
-
-function formatCardText(text) {
-  if ( ! text) return '';
-
-  // Protect sequences of 3+ underscores (blanks) by replacing them temporarily
-  // Using vertical tab character (U+000B) which won't appear in cards or be processed by markdown
-  const blankPlaceholder = '\u000B';
-  let formatted = text.replace(/_{3,}/g, blankPlaceholder);
-  
-  // Convert newlines to <br>
-  formatted = formatted.replace(/\n/g, '<br>');
-  
-  // Simple markdown-like formatting
-  // Bold: *text*
-  formatted = formatted.replace(/\*(.+?)\*/g, '<strong>$1</strong>');
-  
-  // Italic: _text_
-  formatted = formatted.replace(/_(.+?)_/g, '<em>$1</em>');
-  
-  // Restore the blanks
-  formatted = formatted.replace(new RegExp(blankPlaceholder, 'g'), '_____');
-  
-  return formatted;
 }
 
 function SkippedPlayerModal({ skippedPlayers, players, playerOrder, onPlacePlayer, onCancel, placing }) {
