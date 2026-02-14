@@ -5,14 +5,55 @@ declare(strict_types=1);
 /**
  * Database Configuration
  *
- * Update these values with your MySQL/MariaDB credentials
+ * Loads DB settings from environment and fails fast when required values are missing.
  */
 
+/**
+ * Read env var from $_ENV or getenv and normalize empty strings to null.
+ */
+$readEnv = static function (string $key): ?string {
+    $value = $_ENV[$key] ?? getenv($key);
+    if ($value === false) {
+        return null;
+    }
+
+    $value = trim((string) $value);
+    return $value === '' ? null : $value;
+};
+
+$host = $readEnv('DB_HOST') ?? 'localhost';
+$portRaw = $readEnv('DB_PORT') ?? '3306';
+$database = $readEnv('DB_NAME');
+$username = $readEnv('DB_USER');
+$password = $readEnv('DB_PASS');
+
+$missing = [];
+if ($database === null) {
+    $missing[] = 'DB_NAME';
+}
+if ($username === null) {
+    $missing[] = 'DB_USER';
+}
+if ($password === null) {
+    $missing[] = 'DB_PASS';
+}
+
+if (!empty($missing)) {
+    throw new RuntimeException(
+        'Missing required database environment variables: ' . implode(', ', $missing)
+    );
+}
+
+$port = filter_var($portRaw, FILTER_VALIDATE_INT);
+if ($port === false || $port <= 0 || $port > 65535) {
+    throw new RuntimeException('Invalid DB_PORT value: ' . $portRaw);
+}
+
 return [
-    'host' => $_ENV['DB_HOST'] ?? getenv('DB_HOST') ?: 'localhost',
-    'port' => $_ENV['DB_PORT'] ?? getenv('DB_PORT') ?: 3306,
-    'database' => $_ENV['DB_NAME'] ?? getenv('DB_NAME') ?: 'cah_game',
-    'username' => $_ENV['DB_USER'] ?? getenv('DB_USER') ?: 'root',
-    'password' => $_ENV['DB_PASS'] ?? getenv('DB_PASS') ?: '',
+    'host' => $host,
+    'port' => $port,
+    'database' => $database,
+    'username' => $username,
+    'password' => $password,
     'charset' => 'utf8mb4',
 ];
