@@ -29,7 +29,14 @@
     },
     "scripts": {
         "start": "php -S localhost:8080 -t api api/index.php",
-        "test": "phpunit"
+        "test": "phpunit",
+        "phpstan": "phpstan analyse --memory-limit=1G",
+        "phpcs": "phpcs --ignore=api/index.php",
+        "qa": [
+            "@phpstan",
+            "@phpcs",
+            "@test"
+        ]
     },
     "config": {
         "optimize-autoloader": true,

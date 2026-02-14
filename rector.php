@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
-use Rector\ValueObject\PhpVersion;
+use Rector\Set\ValueObject\SetList;
 
 return RectorConfig::configure()
     ->withPaths([
@@ -11,8 +11,12 @@ return RectorConfig::configure()
         __DIR__ . '/config',
         __DIR__ . '/src',
     ])
-    ->withPhpVersion(PhpVersion::PHP_81)
+    // Automatically sets PHP version based on composer.json
     ->withPhpSets()
-    ->withTypeCoverageLevel(10)
-    ->withDeadCodeLevel(10)
-    ->withCodeQualityLevel(10);
+    // Recommended sets for modernizing code
+    ->withSets([
+        SetList::CODE_QUALITY,
+        SetList::DEAD_CODE,
+        SetList::TYPE_DECLARATION,
+        SetList::EARLY_RETURN,
+    ]);

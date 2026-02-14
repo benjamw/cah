@@ -17,7 +17,6 @@ class Pack
     /**
      * Get a pack by ID
      *
-     * @param int $packId
      * @return array<string, mixed>|null Pack data or null if not found
      */
     public static function find(int $packId): ?array
@@ -40,7 +39,7 @@ class Pack
      */
     public static function findMany(array $packIds): array
     {
-        if (empty($packIds)) {
+        if ($packIds === []) {
             return [];
         }
 
@@ -146,13 +145,12 @@ class Pack
     /**
      * Get card count for a specific pack
      *
-     * @param int $packId
      * @param CardType|null $cardType Optional card type enum, null for all
      * @return int Number of cards in this pack
      */
     public static function getCardCount(int $packId, ?CardType $cardType = null): int
     {
-        if ($cardType !== null) {
+        if ($cardType instanceof \CAH\Enums\CardType) {
             $sql = "
                 SELECT COUNT(DISTINCT c.card_id) as count
                 FROM cards c
@@ -202,7 +200,6 @@ class Pack
     /**
      * Update a pack
      *
-     * @param int $packId
      * @param array<string, mixed> $data Associative array of fields to update
      * @return int Number of affected rows
      */
@@ -219,7 +216,7 @@ class Pack
             }
         }
 
-        if (empty($fields)) {
+        if ($fields === []) {
             return 0;
         }
 
@@ -236,8 +233,6 @@ class Pack
     /**
      * Toggle pack active status
      *
-     * @param int $packId
-     * @param bool $active
      * @return int Number of affected rows
      */
     public static function setActive(int $packId, bool $active): int
@@ -259,7 +254,7 @@ class Pack
      */
     public static function setActiveBulk(array $packIds, bool $active): int
     {
-        if (empty($packIds)) {
+        if ($packIds === []) {
             return 0;
         }
 
@@ -281,7 +276,6 @@ class Pack
     /**
      * Delete a pack (hard delete)
      *
-     * @param int $packId
      * @return int Number of affected rows
      */
     public static function delete(int $packId): int
@@ -296,8 +290,6 @@ class Pack
     /**
      * Add a pack to a card
      *
-     * @param int $cardId
-     * @param int $packId
      * @return bool True if added, false if already exists
      */
     public static function addToCard(int $cardId, int $packId): bool
@@ -321,13 +313,12 @@ class Pack
     /**
      * Add multiple packs to a single card
      *
-     * @param int $cardId
      * @param array<int> $packIds Array of pack IDs
      * @return int Number of packs successfully added
      */
     public static function addMultiplePacksToCard(int $cardId, array $packIds): int
     {
-        if (empty($packIds)) {
+        if ($packIds === []) {
             return 0;
         }
 
@@ -345,12 +336,11 @@ class Pack
      * Add a single pack to multiple cards (bulk operation)
      *
      * @param array<int> $cardIds Array of card IDs
-     * @param int $packId
      * @return int Number of cards successfully added to pack
      */
     public static function addPackToMultipleCards(array $cardIds, int $packId): int
     {
-        if (empty($cardIds)) {
+        if ($cardIds === []) {
             return 0;
         }
 
@@ -389,8 +379,6 @@ class Pack
     /**
      * Remove a pack from a card
      *
-     * @param int $cardId
-     * @param int $packId
      * @return int Number of affected rows
      */
     public static function removeFromCard(int $cardId, int $packId): int
@@ -407,7 +395,6 @@ class Pack
     /**
      * Get all packs for a card
      *
-     * @param int $cardId
      * @param bool $activeOnly If true (default), only return active packs
      * @return array<int, array<string, mixed>> Array of pack data
      */
@@ -419,11 +406,11 @@ class Pack
             INNER JOIN cards_to_packs cp ON p.pack_id = cp.pack_id
             WHERE cp.card_id = ?
         ";
-        
+
         if ($activeOnly) {
             $sql .= " AND p.active = 1";
         }
-        
+
         $sql .= " ORDER BY p.name ASC, p.version ASC";
 
         return Database::fetchAll($sql, [$cardId]);
@@ -438,7 +425,7 @@ class Pack
      */
     public static function getCardPacksForMultipleCards(array $cardIds, bool $activeOnly = true): array
     {
-        if (empty($cardIds)) {
+        if ($cardIds === []) {
             return [];
         }
 
@@ -449,11 +436,11 @@ class Pack
             INNER JOIN cards_to_packs cp ON p.pack_id = cp.pack_id
             WHERE cp.card_id IN ({$placeholders})
         ";
-        
+
         if ($activeOnly) {
             $sql .= " AND p.active = 1";
         }
-        
+
         $sql .= " ORDER BY cp.card_id, p.name ASC, p.version ASC";
 
         $results = Database::fetchAll($sql, $cardIds);

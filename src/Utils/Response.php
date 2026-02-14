@@ -16,11 +16,9 @@ class Response
     /**
      * Send a success response
      *
-     * @param ResponseInterface $response
      * @param mixed $data Response data
      * @param string|null $message Optional success message
      * @param int $statusCode HTTP status code
-     * @return ResponseInterface
      */
     public static function success(
         ResponseInterface $response,
@@ -47,12 +45,10 @@ class Response
     /**
      * Send an error response
      *
-     * @param ResponseInterface $response
      * @param string $message Error message
      * @param int $statusCode HTTP status code
      * @param array<string, string>|null $errors Additional error details
      * @param mixed $data Optional data to include in response
-     * @return ResponseInterface
      */
     public static function error(
         ResponseInterface $response,
@@ -81,10 +77,8 @@ class Response
     /**
      * Send a validation error response
      *
-     * @param ResponseInterface $response
      * @param array<string, string> $errors Validation errors
      * @param string $message Error message
-     * @return ResponseInterface
      */
     public static function validationError(
         ResponseInterface $response,
@@ -97,9 +91,7 @@ class Response
     /**
      * Send a not found response
      *
-     * @param ResponseInterface $response
      * @param string $message Error message
-     * @return ResponseInterface
      */
     public static function notFound(
         ResponseInterface $response,
@@ -111,9 +103,7 @@ class Response
     /**
      * Send an unauthorized response
      *
-     * @param ResponseInterface $response
      * @param string $message Error message
-     * @return ResponseInterface
      */
     public static function unauthorized(
         ResponseInterface $response,
@@ -125,10 +115,8 @@ class Response
     /**
      * Send a rate limit exceeded response
      *
-     * @param ResponseInterface $response
      * @param string $message Error message
      * @param int|null $retryAfter Seconds until retry is allowed
-     * @return ResponseInterface
      */
     public static function rateLimitExceeded(
         ResponseInterface $response,
@@ -138,7 +126,7 @@ class Response
         $resp = self::error($response, $message, 429);
 
         if ($retryAfter !== null) {
-            $resp = $resp->withHeader('Retry-After', (string) $retryAfter);
+            return $resp->withHeader('Retry-After', (string) $retryAfter);
         }
 
         return $resp;
@@ -147,10 +135,8 @@ class Response
     /**
      * Send a JSON response
      *
-     * @param ResponseInterface $response
      * @param mixed $data Data to encode as JSON
      * @param int $statusCode HTTP status code
-     * @return ResponseInterface
      */
     private static function json(
         ResponseInterface $response,

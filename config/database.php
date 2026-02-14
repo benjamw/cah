@@ -38,7 +38,7 @@ if ($password === null) {
     $missing[] = 'DB_PASS';
 }
 
-if (!empty($missing)) {
+if ($missing !== []) {
     throw new RuntimeException(
         'Missing required database environment variables: ' . implode(', ', $missing)
     );

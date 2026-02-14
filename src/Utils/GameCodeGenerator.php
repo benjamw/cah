@@ -21,7 +21,6 @@ class GameCodeGenerator
     /**
      * Generate a unique 4-character game code
      *
-     * @return string
      * @throws GameCodeGenerationException If unable to generate unique code after max attempts
      */
     public static function generate(): string
@@ -47,8 +46,6 @@ class GameCodeGenerator
     /**
      * Generate a random 4-character code without checking uniqueness
      * Used when the caller will handle duplicate key errors
-     *
-     * @return string
      */
     public static function generateCode(): string
     {
@@ -64,9 +61,6 @@ class GameCodeGenerator
 
     /**
      * Check if a game code already exists in the database
-     *
-     * @param string $code
-     * @return bool
      */
     private static function codeExists(string $code): bool
     {
@@ -82,9 +76,6 @@ class GameCodeGenerator
 
     /**
      * Validate a game code format
-     *
-     * @param string $code
-     * @return bool
      */
     public static function isValid(string $code): bool
     {

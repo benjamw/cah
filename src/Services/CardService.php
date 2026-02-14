@@ -72,7 +72,7 @@ class CardService
      */
     public static function drawPromptCard(array $promptPile): array
     {
-        if (empty($promptPile)) {
+        if ($promptPile === []) {
             throw new InsufficientCardsException(CardType::PROMPT->value, 1, 0);
         }
 
@@ -87,7 +87,6 @@ class CardService
     /**
      * Get the number of response cards needed for a prompt card
      *
-     * @param int $promptCardId
      *
      * @return int Number of response cards needed (defaults to 1 if not found)
      */

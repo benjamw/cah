@@ -19,7 +19,6 @@ class Card
     /**
      * Get a card by ID
      *
-     * @param int $cardId
      * @return array<string, mixed>|null Card data or null if not found
      */
     public static function getById(int $cardId): ?array
@@ -42,7 +41,7 @@ class Card
      */
     public static function getByIds(array $cardIds): array
     {
-        if (empty($cardIds)) {
+        if ($cardIds === []) {
             return [];
         }
 
@@ -76,7 +75,7 @@ class Card
      */
     public static function getActiveCardsByTypeAndTags(CardType $cardType, array $tagIds): array
     {
-        if (empty($tagIds)) {
+        if ($tagIds === []) {
             $sql = "
                 SELECT DISTINCT c.card_id
                 FROM cards c
@@ -186,8 +185,14 @@ class Card
      * @param string|null $special Optional special (e.g. "Pick 2", "Draw 2, Pick 3")
      * @return int The new card ID
      */
-    public static function create(CardType $cardType, string $copy, ?int $choices = null, bool $active = true, ?string $notes = null, ?string $special = null): int
-    {
+    public static function create(
+        CardType $cardType,
+        string $copy,
+        ?int $choices = null,
+        bool $active = true,
+        ?string $notes = null,
+        ?string $special = null
+    ): int {
         $sql = "
             INSERT INTO cards (type, copy, choices, active, notes, special)
             VALUES (?, ?, ?, ?, ?, ?)
@@ -201,7 +206,6 @@ class Card
     /**
      * Update a card
      *
-     * @param int $cardId
      * @param array<string, mixed> $data Associative array of fields to update
      * @return int Number of affected rows
      */
@@ -218,7 +222,7 @@ class Card
             }
         }
 
-        if (empty($fields)) {
+        if ($fields === []) {
             return 0;
         }
 
@@ -235,7 +239,6 @@ class Card
     /**
      * Delete a card (soft delete by setting active = 0)
      *
-     * @param int $cardId
      * @return int Number of affected rows
      */
     public static function softDelete(int $cardId): int
@@ -397,7 +400,7 @@ class Card
                 $params[] = '%' . $word . '%';
             }
 
-            if ( ! empty($relevanceConditions)) {
+            if ($relevanceConditions !== []) {
                 $selectFields = "c.*, (" . implode(" + ", $relevanceConditions) . ") as relevance";
                 $orderBy = "relevance DESC, c.card_id ASC";
             }
@@ -413,12 +416,12 @@ class Card
         $conditions = array_merge($tagFilters['conditions'], $packFilters['conditions']);
 
         // Add joins to SQL
-        if ( ! empty($joins)) {
+        if ($joins !== []) {
             $sql .= " " . implode(" ", $joins);
         }
 
         // Add card type filter
-        if ($cardType !== null) {
+        if ($cardType instanceof \CAH\Enums\CardType) {
             $conditions[] = "c.type = ?";
             $params[] = $cardType->value;
         }
@@ -456,11 +459,11 @@ class Card
         );
 
         $countSql = "SELECT COUNT(DISTINCT c.card_id) as total FROM cards c";
-        if ( ! empty($countJoins)) {
+        if ($countJoins !== []) {
             $countSql .= " " . implode(" ", $countJoins);
         }
 
-        if ($cardType !== null) {
+        if ($cardType instanceof \CAH\Enums\CardType) {
             $countConditions[] = "c.type = ?";
             $countParams[] = $cardType->value;
         }
@@ -497,7 +500,7 @@ class Card
             WHERE c.active = 1
                 AND c.type = 'prompt'
         ";
-        
+
         if ($activePacksOnly) {
             $sql .= "
                 AND (
@@ -516,9 +519,9 @@ class Card
                 )
             ";
         }
-        
+
         $sql .= " ORDER BY RAND() LIMIT 1";
-        
+
         $result = Database::fetchOne($sql, []);
         return $result ?: null;
     }
@@ -538,7 +541,7 @@ class Card
             WHERE c.active = 1
                 AND c.type = 'response'
         ";
-        
+
         if ($activePacksOnly) {
             $sql .= "
                 AND (
@@ -557,9 +560,9 @@ class Card
                 )
             ";
         }
-        
+
         $sql .= " ORDER BY RAND() LIMIT ?";
-        
+
         return Database::fetchAll($sql, [$count]);
     }
 }

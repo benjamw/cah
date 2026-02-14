@@ -57,8 +57,6 @@ class ConfigService
 
     /**
      * Clear cached configuration (useful for testing)
-     *
-     * @return void
      */
     public static function clearCache(): void
     {

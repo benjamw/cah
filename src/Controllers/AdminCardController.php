@@ -211,6 +211,9 @@ class AdminCardController
 
             // Read CSV file
             $stream = $file->getStream();
+            if ($stream->isSeekable()) {
+                $stream->rewind();
+            }
             $csvContent = $stream->getContents();
 
             // Use CardImportService to handle the import
@@ -296,13 +299,13 @@ class AdminCardController
                 $currentTags = Tag::getCardTags($cardId, false); // Get all tags, not just active
                 $currentTagIds = array_column($currentTags, 'tag_id');
                 $newTagIds = array_map(intval(...), $data['tags']);
-                
+
                 // Remove tags that are no longer selected
                 $tagsToRemove = array_diff($currentTagIds, $newTagIds);
                 foreach ($tagsToRemove as $tagId) {
                     Tag::removeFromCard($cardId, $tagId);
                 }
-                
+
                 // Add new tags
                 $tagsToAdd = array_diff($newTagIds, $currentTagIds);
                 foreach ($tagsToAdd as $tagId) {
@@ -316,13 +319,13 @@ class AdminCardController
                 $currentPacks = Pack::getCardPacks($cardId, false); // Get all packs, not just active
                 $currentPackIds = array_column($currentPacks, 'pack_id');
                 $newPackIds = array_map(intval(...), $data['packs']);
-                
+
                 // Remove packs that are no longer selected
                 $packsToRemove = array_diff($currentPackIds, $newPackIds);
                 foreach ($packsToRemove as $packId) {
                     Pack::removeFromCard($cardId, $packId);
                 }
-                
+
                 // Add new packs
                 $packsToAdd = array_diff($newPackIds, $currentPackIds);
                 foreach ($packsToAdd as $packId) {

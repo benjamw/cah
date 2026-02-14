@@ -35,7 +35,6 @@ class PlayerHelper
      *
      * @param array<string, mixed> $playerData Game player data
      * @param string $playerId Player ID to check
-     * @return bool
      */
     public static function isCreator(array $playerData, string $playerId): bool
     {
@@ -47,7 +46,6 @@ class PlayerHelper
      *
      * @param array<string, mixed> $playerData Game player data
      * @param string $playerId Player ID to check
-     * @return bool
      */
     public static function isCzar(array $playerData, string $playerId): bool
     {

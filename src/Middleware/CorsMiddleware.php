@@ -36,10 +36,6 @@ class CorsMiddleware implements MiddlewareInterface
 
     /**
      * Process CORS headers
-     *
-     * @param ServerRequestInterface $request
-     * @param RequestHandlerInterface $handler
-     * @return ResponseInterface
      */
     public function process(
         ServerRequestInterface $request,
@@ -57,10 +53,6 @@ class CorsMiddleware implements MiddlewareInterface
 
     /**
      * Add CORS headers to response
-     *
-     * @param ResponseInterface $response
-     * @param ServerRequestInterface $request
-     * @return ResponseInterface
      */
     private function addCorsHeaders(
         ResponseInterface $response,
@@ -85,7 +77,7 @@ class CorsMiddleware implements MiddlewareInterface
         }
 
         if ($this->config['credentials']) {
-            $response = $response->withHeader('Access-Control-Allow-Credentials', 'true');
+            return $response->withHeader('Access-Control-Allow-Credentials', 'true');
         }
 
         return $response;
@@ -93,15 +85,12 @@ class CorsMiddleware implements MiddlewareInterface
 
     /**
      * Get the allowed origin for the request
-     *
-     * @param ServerRequestInterface $request
-     * @return string|null
      */
     private function getOrigin(ServerRequestInterface $request): ?string
     {
         $requestOrigin = $request->getHeaderLine('Origin');
 
-        if (empty($requestOrigin)) {
+        if ($requestOrigin === '' || $requestOrigin === '0') {
             return null;
         }
 

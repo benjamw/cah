@@ -156,8 +156,6 @@ class LockService
     /**
      * Release all active locks
      * Should be called at the end of request or in error handlers
-     *
-     * @return void
      */
     public static function releaseAllLocks(): void
     {

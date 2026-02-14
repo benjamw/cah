@@ -18,10 +18,6 @@ class Validator
 
     /**
      * Validate required field
-     *
-     * @param mixed $value
-     * @param string $fieldName
-     * @return self
      */
     public function required(mixed $value, string $fieldName): self
     {
@@ -34,12 +30,6 @@ class Validator
 
     /**
      * Validate string length
-     *
-     * @param string|null $value
-     * @param string $fieldName
-     * @param int $min
-     * @param int|null $max
-     * @return self
      */
     public function stringLength(?string $value, string $fieldName, int $min = 0, ?int $max = null): self
     {
@@ -62,12 +52,6 @@ class Validator
 
     /**
      * Validate integer value
-     *
-     * @param mixed $value
-     * @param string $fieldName
-     * @param int|null $min
-     * @param int|null $max
-     * @return self
      */
     public function integer(mixed $value, string $fieldName, ?int $min = null, ?int $max = null): self
     {
@@ -95,10 +79,6 @@ class Validator
 
     /**
      * Validate boolean value
-     *
-     * @param mixed $value
-     * @param string $fieldName
-     * @return self
      */
     public function boolean(mixed $value, string $fieldName): self
     {
@@ -115,12 +95,6 @@ class Validator
 
     /**
      * Validate array
-     *
-     * @param mixed $value
-     * @param string $fieldName
-     * @param int|null $minItems
-     * @param int|null $maxItems
-     * @return self
      */
     public function array(mixed $value, string $fieldName, ?int $minItems = null, ?int $maxItems = null): self
     {
@@ -149,10 +123,7 @@ class Validator
     /**
      * Validate value is in a list of allowed values
      *
-     * @param mixed $value
-     * @param string $fieldName
      * @param array<int, mixed> $allowedValues
-     * @return self
      */
     public function in(mixed $value, string $fieldName, array $allowedValues): self
     {
@@ -170,18 +141,14 @@ class Validator
 
     /**
      * Check if validation passed
-     *
-     * @return bool
      */
     public function passes(): bool
     {
-        return empty($this->errors);
+        return $this->errors === [];
     }
 
     /**
      * Check if validation failed
-     *
-     * @return bool
      */
     public function fails(): bool
     {
@@ -208,7 +175,7 @@ class Validator
     {
         $sanitized = trim($name);
 
-        if (empty($sanitized)) {
+        if ($sanitized === '' || $sanitized === '0') {
             return ['valid' => false, 'name' => $sanitized, 'error' => 'Player name is required'];
         }
 
@@ -257,7 +224,7 @@ class Validator
      */
     public static function validateCardIds(array $cardIds): array
     {
-        if (empty($cardIds)) {
+        if ($cardIds === []) {
             return ['valid' => false, 'card_ids' => [], 'error' => 'Card IDs are required'];
         }
 
@@ -288,7 +255,7 @@ class Validator
     {
         $normalized = strtoupper(trim($code));
 
-        if (empty($normalized)) {
+        if ($normalized === '' || $normalized === '0') {
             return ['valid' => false, 'code' => $normalized, 'error' => 'Game code is required'];
         }
 

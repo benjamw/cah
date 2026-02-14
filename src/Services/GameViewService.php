@@ -31,9 +31,8 @@ class GameViewService
 
         $playerData = self::hydratePlayerHands($playerData, $cardMap);
         $playerData = self::hydratePromptCard($playerData, $cardMap);
-        $playerData = self::hydrateSubmissions($playerData, $cardMap);
 
-        return $playerData;
+        return self::hydrateSubmissions($playerData, $cardMap);
     }
 
     /**
@@ -94,7 +93,7 @@ class GameViewService
         }
 
         $missingCardIds = array_diff($cardIds, array_keys($cardMap));
-        if ( ! empty($missingCardIds)) {
+        if ($missingCardIds !== []) {
             \CAH\Utils\Logger::warning('Missing cards during hydration', [
                 'missing_card_ids' => $missingCardIds,
                 'game_state' => $playerData['state'] ?? 'unknown',
@@ -194,7 +193,7 @@ class GameViewService
             // Count expected submissions (exclude czar, Rando auto-submits, exclude paused players)
             $activePlayers = array_filter(
                 $playerData['players'],
-                fn($p): bool => $p['id'] !== $playerData['current_czar_id'] && empty($p['is_paused'])
+                fn(array $p): bool => $p['id'] !== $playerData['current_czar_id'] && empty($p['is_paused'])
             );
             $expectedSubmissions = count($activePlayers);
 
@@ -215,17 +214,15 @@ class GameViewService
                         $playerData['submissions']
                     );
                 }
-            } else {
+            } elseif ($isCzar) {
                 // All players have submitted (or forced) - shuffle submissions for anonymity (czar only sees them)
-                if ($isCzar) {
-                    shuffle($playerData['submissions']);
-                } else {
-                    // Non-czar players: send placeholders so they know all submitted
-                    $playerData['submissions'] = array_map(
-                        fn(): array => ['submitted' => true],
-                        $playerData['submissions']
-                    );
-                }
+                shuffle($playerData['submissions']);
+            } else {
+                // Non-czar players: send placeholders so they know all submitted
+                $playerData['submissions'] = array_map(
+                    fn(): array => ['submitted' => true],
+                    $playerData['submissions']
+                );
             }
         }
 
@@ -281,7 +278,7 @@ class GameViewService
 
         $playerData['toasts'] = array_values(array_filter(
             $playerData['toasts'],
-            fn($toast): bool => ( $now - $toast['created_at'] ) < $maxAge
+            fn(array $toast): bool => ( $now - $toast['created_at'] ) < $maxAge
         ));
 
         return $playerData;

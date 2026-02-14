@@ -91,7 +91,6 @@ class Game
     /**
      * Update game state
      *
-     * @param string $gameId
      * @param array<string, mixed> $data Associative array of fields to update
      * @return int Number of affected rows
      */
@@ -108,7 +107,7 @@ class Game
             }
         }
 
-        if (empty($fields)) {
+        if ($fields === []) {
             return 0;
         }
 
@@ -125,7 +124,6 @@ class Game
     /**
      * Delete a game
      *
-     * @param string $gameId
      * @return int Number of affected rows
      */
     public static function delete(string $gameId): int
@@ -173,9 +171,6 @@ class Game
 
     /**
      * Check if a game exists
-     *
-     * @param string $gameId
-     * @return bool
      */
     public static function exists(string $gameId): bool
     {
@@ -192,7 +187,6 @@ class Game
     /**
      * Update only the player_data field
      *
-     * @param string $gameId
      * @param array<string, mixed> $playerData
      * @return int Number of affected rows
      */
@@ -214,7 +208,6 @@ class Game
     /**
      * Update draw and discard piles
      *
-     * @param string $gameId
      * @param array<string, array<int>> $drawPile
      * @param array<int> $discardPile
      * @return int Number of affected rows
@@ -237,7 +230,6 @@ class Game
     /**
      * Get the draw pile for a game
      *
-     * @param string $gameId
      * @return array<string, array<int>>|null Array of card IDs or null if game not found
      */
     public static function getDrawPile(string $gameId): ?array
@@ -259,7 +251,6 @@ class Game
     /**
      * Get the player data for a game
      *
-     * @param string $gameId
      * @return array<string, mixed>|null Player data or null if game not found
      */
     public static function getPlayerData(string $gameId): ?array
@@ -280,8 +271,6 @@ class Game
 
     /**
      * Get count of active games
-     *
-     * @return int
      */
     public static function getActiveCount(): int
     {
@@ -316,7 +305,6 @@ class Game
     /**
      * Append a round to the round_history
      *
-     * @param string $gameId
      * @param array<string, mixed> $roundData Round data to append
      * @return int Number of affected rows
      */
@@ -341,7 +329,6 @@ class Game
     /**
      * Get round history for a game
      *
-     * @param string $gameId
      * @return array<int, array<string, mixed>>|null Round history or null if game not found
      */
     public static function getRoundHistory(string $gameId): ?array
@@ -362,11 +349,6 @@ class Game
 
     /**
      * Monitor JSON size and log warning if large
-     *
-     * @param string $gameId
-     * @param string $fieldName
-     * @param string $json
-     * @return void
      */
     private static function monitorJsonSize(string $gameId, string $fieldName, string $json): void
     {

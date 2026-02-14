@@ -135,9 +135,6 @@ class RateLimitService
 
     /**
      * Get client IP address from request
-     *
-     * @param \Psr\Http\Message\ServerRequestInterface $request
-     * @return string
      */
     public static function getClientIp(\Psr\Http\Message\ServerRequestInterface $request): string
     {

@@ -65,7 +65,7 @@ $appLogger = new PsrLoggerAdapter();
 $errorMiddleware = $app->addErrorMiddleware($displayErrorDetails, true, true, $appLogger);
 
 // API routes
-$app->get('/api', function (Request $request, Response $response) {
+$app->get('/api', function (Request $request, Response $response): \Psr\Http\Message\MessageInterface {
     $response->getBody()->write(json_encode([
         'success' => true,
         'message' => 'Cards API Hub Game API',

@@ -37,12 +37,11 @@ class Database
     /**
      * Get PDO connection instance (singleton)
      *
-     * @return PDO
      * @throws DatabaseException
      */
     public static function getConnection(): PDO
     {
-        if (self::$connection === null) {
+        if ( ! self::$connection instanceof \PDO) {
             self::connect();
         }
 
@@ -56,7 +55,7 @@ class Database
      */
     private static function connect(): void
     {
-        if (empty(self::$config)) {
+        if (self::$config === []) {
             throw new DatabaseException('Database configuration not initialized. Call Database::init() first.');
         }
 
@@ -100,7 +99,6 @@ class Database
      *
      * @param string $sql SQL query
      * @param array<int|string, mixed> $params Query parameters
-     * @return \PDOStatement
      */
     public static function query(string $sql, array $params = []): \PDOStatement
     {
@@ -151,8 +149,6 @@ class Database
 
     /**
      * Get last insert ID
-     *
-     * @return string
      */
     public static function lastInsertId(): string
     {

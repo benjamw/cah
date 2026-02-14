@@ -89,13 +89,13 @@ class GameService
         }
 
         // Validate that all tag IDs exist and are active
-        if ( ! empty($tagIds)) {
+        if ($tagIds !== []) {
             $validTags = Tag::findMany($tagIds);
             $validTagIds = array_column($validTags, 'tag_id');
 
             // Check if all provided tag IDs were found
             $invalidTagIds = array_diff($tagIds, $validTagIds);
-            if ( ! empty($invalidTagIds)) {
+            if ($invalidTagIds !== []) {
                 // remove the invalid tags from the list of tags
                 $tagIds = array_diff($tagIds, $invalidTagIds);
             }
@@ -220,7 +220,7 @@ class GameService
         }
         $playerName = $nameValidation['name'];
 
-        return LockService::withGameLock($gameId, function () use ($gameId, $playerName) {
+        return LockService::withGameLock($gameId, function () use ($gameId, $playerName): array {
             $game = Game::find($gameId);
 
             if ( ! $game) {
@@ -294,7 +294,7 @@ class GameService
      */
     public static function startGame(string $gameId, string $playerId): array
     {
-        return LockService::withGameLock($gameId, function () use ($gameId, $playerId) {
+        return LockService::withGameLock($gameId, function () use ($gameId, $playerId): array {
             $game = Game::find($gameId);
 
             if ( ! $game) {
@@ -402,7 +402,7 @@ class GameService
             );
         }
 
-        if (empty($promptPile)) {
+        if ($promptPile === []) {
             throw new InsufficientCardsException(CardType::PROMPT->value, 1, 0);
         }
     }
@@ -460,7 +460,7 @@ class GameService
      */
     private static function dealStartBonusCards(array &$playerData, array $responsePile, int $bonusCards): array
     {
-        $nonRandoPlayers = array_filter($playerData['players'], fn($p): bool => empty($p['is_rando']));
+        $nonRandoPlayers = array_filter($playerData['players'], fn(array $p): bool => empty($p['is_rando']));
         $responsePile = CardService::dealBonusCards($nonRandoPlayers, $responsePile, $bonusCards);
 
         foreach ($playerData['players'] as &$player) {
@@ -484,7 +484,7 @@ class GameService
      */
     private static function selectFirstCzar(array $players): array
     {
-        $eligiblePlayers = array_filter($players, fn($p): bool => empty($p['is_rando']));
+        $eligiblePlayers = array_filter($players, fn(array $p): bool => empty($p['is_rando']));
         $eligiblePlayers = array_values($eligiblePlayers);
         $randomIndex = random_int(0, count($eligiblePlayers) - 1);
 
@@ -504,7 +504,7 @@ class GameService
      */
     public static function removePlayer(string $gameId, string $creatorId, string $targetPlayerId): array
     {
-        return LockService::withGameLock($gameId, function () use ($gameId, $creatorId, $targetPlayerId) {
+        return LockService::withGameLock($gameId, function () use ($gameId, $creatorId, $targetPlayerId): array {
             $game = Game::find($gameId);
 
             if ( ! $game) {
@@ -587,7 +587,6 @@ class GameService
      * Find the player to remove and return their index and hand
      *
      * @param array<string, mixed> $playerData
-     * @param string $targetPlayerId
      * @return array{0: int, 1: array<int>} [playerIndex, playerHand]
      * @throws PlayerNotFoundException
      */
@@ -606,8 +605,6 @@ class GameService
      * Determine if the round should be reset due to czar removal
      *
      * @param array<string, mixed> $playerData
-     * @param bool $isCzar
-     * @return bool
      */
     private static function shouldResetRound(array $playerData, bool $isCzar): bool
     {
@@ -686,7 +683,7 @@ class GameService
         $minPlayers = 3;
         $eligiblePlayers = array_filter(
             $playerData['players'],
-            fn($p): bool => empty($p['is_rando'])
+            fn(array $p): bool => empty($p['is_rando'])
         );
 
         if (count($eligiblePlayers) < $minPlayers && $playerData['state'] === GameState::PLAYING->value) {
@@ -716,8 +713,6 @@ class GameService
      * Find player IDs by their names
      *
      * @param array<string, mixed> $playerData
-     * @param string $playerName1
-     * @param string $playerName2
      * @return array{0: string|null, 1: string|null} [player1Id, player2Id]
      */
     private static function findPlayerIdsByNames(array $playerData, string $playerName1, string $playerName2): array
@@ -741,9 +736,6 @@ class GameService
      * Insert new player into player order between two adjacent players
      *
      * @param array<int, string> $playerOrder
-     * @param string $newPlayerId
-     * @param string $player1Id
-     * @param string $player2Id
      * @return array<int, string> Updated player order
      */
     private static function insertIntoPlayerOrder(
@@ -777,9 +769,6 @@ class GameService
     /**
      * Find the insertion index if two players are adjacent in the order
      *
-     * @param int $index1
-     * @param int $index2
-     * @param int $orderCount
      * @return int|null Insert index, or null if not adjacent
      */
     private static function findAdjacentInsertIndex(int $index1, int $index2, int $orderCount): ?int
@@ -816,16 +805,16 @@ class GameService
         // Filter out Rando and paused players from eligible czars
         $eligiblePlayers = array_filter(
             $playerData['players'],
-            fn($p): bool => empty($p['is_rando']) && empty($p['is_paused'])
+            fn(array $p): bool => empty($p['is_rando']) && empty($p['is_paused'])
         );
 
-        if (empty($eligiblePlayers)) {
+        if ($eligiblePlayers === []) {
             return null;
         }
 
         if ($playerData['order_locked'] && ! empty($playerData['player_order'])) {
             // Get list of current player IDs (excluding Rando and paused players)
-            $currentPlayerIds = array_map(fn($p) => $p['id'], $eligiblePlayers);
+            $currentPlayerIds = array_map(fn(array $p) => $p['id'], $eligiblePlayers);
 
             // Filter player_order to only include players still in game (exclude Rando and paused)
             $eligibleOrder = array_filter(
@@ -834,7 +823,7 @@ class GameService
             );
             $eligibleOrder = array_values($eligibleOrder);
 
-            if ( ! empty($eligibleOrder)) {
+            if ($eligibleOrder !== []) {
                 $currentIndex = array_search($playerData['current_czar_id'], $eligibleOrder);
                 if ($currentIndex !== false) {
                     $nextIndex = ( $currentIndex + 1 ) % count($eligibleOrder);
@@ -859,7 +848,7 @@ class GameService
      */
     public static function forceEarlyReview(string $gameId, string $playerId): array
     {
-        return LockService::withGameLock($gameId, function () use ($gameId, $playerId) {
+        return LockService::withGameLock($gameId, function () use ($gameId, $playerId): array {
             $game = Game::find($gameId);
 
             if ( ! $game) {
@@ -903,7 +892,7 @@ class GameService
      */
     public static function refreshPlayerHand(string $gameId, string $playerId): array
     {
-        return LockService::withGameLock($gameId, function () use ($gameId, $playerId) {
+        return LockService::withGameLock($gameId, function () use ($gameId, $playerId): array {
             $game = Game::find($gameId);
 
             if ( ! $game) {
@@ -977,7 +966,7 @@ class GameService
      */
     public static function togglePlayerPause(string $gameId, string $creatorId, string $targetPlayerId): array
     {
-        return LockService::withGameLock($gameId, function () use ($gameId, $creatorId, $targetPlayerId) {
+        return LockService::withGameLock($gameId, function () use ($gameId, $creatorId, $targetPlayerId): array {
             $game = Game::find($gameId);
 
             if ( ! $game) {
@@ -1272,13 +1261,13 @@ class GameService
     private static function handleOrderCompletion(array &$playerData): void
     {
         $eligiblePlayerIds = array_map(
-            fn($p) => $p['id'],
-            array_filter($playerData['players'], fn($p): bool => empty($p['is_rando']))
+            fn(array $p) => $p['id'],
+            array_filter($playerData['players'], fn(array $p): bool => empty($p['is_rando']))
         );
 
         $skippedPlayers = array_diff($eligiblePlayerIds, $playerData['player_order']);
 
-        if (empty($skippedPlayers)) {
+        if ($skippedPlayers === []) {
             $playerData['order_locked'] = true;
             return;
         }
@@ -1414,7 +1403,12 @@ class GameService
         }
         $playerName = $nameValidation['name'];
 
-        return LockService::withGameLock($gameId, function () use ($gameId, $playerName, $playerName1, $playerName2) {
+        return LockService::withGameLock($gameId, function () use (
+            $gameId,
+            $playerName,
+            $playerName1,
+            $playerName2
+        ): array {
             $game = Game::find($gameId);
 
             if ( ! $game) {
@@ -1506,7 +1500,6 @@ class GameService
      *
      * @param array<string, mixed> $playerData Game player data
      * @param string $playerId Player ID to check
-     * @return bool
      */
     public static function isCreator(array $playerData, string $playerId): bool
     {
@@ -1518,7 +1511,6 @@ class GameService
      *
      * @param array<string, mixed> $playerData Game player data
      * @param string $playerId Player ID to check
-     * @return bool
      */
     public static function isCzar(array $playerData, string $playerId): bool
     {
@@ -1564,7 +1556,7 @@ class GameService
      */
     public static function reshuffleDiscardPile(string $gameId, string $creatorId): array
     {
-        return LockService::withGameLock($gameId, function () use ($gameId, $creatorId) {
+        return LockService::withGameLock($gameId, function () use ($gameId, $creatorId): array {
             $game = Game::find($gameId);
 
             if ( ! $game) {
@@ -1683,7 +1675,7 @@ class GameService
                     // Remove submissions if player was in current round
                     $playerData['submissions'] = array_values(array_filter(
                         $playerData['submissions'],
-                        fn($sub): bool => $sub['player_id'] !== $currentHostId
+                        fn(array $sub): bool => $sub['player_id'] !== $currentHostId
                     ));
                 }
             }
@@ -1711,7 +1703,7 @@ class GameService
      */
     public static function leaveGame(string $gameId, string $playerId): array
     {
-        return LockService::withGameLock($gameId, function () use ($gameId, $playerId) {
+        return LockService::withGameLock($gameId, function () use ($gameId, $playerId): array {
             $game = Game::find($gameId);
 
             if ( ! $game) {
@@ -1776,7 +1768,7 @@ class GameService
             // Remove submissions from player
             $playerData['submissions'] = array_values(array_filter(
                 $playerData['submissions'],
-                fn($sub): bool => $sub['player_id'] !== $playerId
+                fn(array $sub): bool => $sub['player_id'] !== $playerId
             ));
 
             // Check if too few players remain and end game if needed

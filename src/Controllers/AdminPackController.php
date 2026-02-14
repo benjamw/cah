@@ -58,7 +58,7 @@ class AdminPackController
                 $data['name'],
                 $data['version'] ?? null,
                 $data['data'] ?? null,
-                self::normalizeReleaseDate($data['release_date'] ?? null),
+                $this->normalizeReleaseDate($data['release_date'] ?? null),
                 $data['active'] ?? true
             );
 
@@ -76,7 +76,7 @@ class AdminPackController
     /**
      * Normalize release_date to date-only (Y-m-d). Time component is not stored.
      */
-    private static function normalizeReleaseDate(mixed $value): ?string
+    private function normalizeReleaseDate(mixed $value): ?string
     {
         if ($value === null || $value === '') {
             return null;
@@ -119,7 +119,7 @@ class AdminPackController
                 $updateData['data'] = $data['data'];
             }
             if (isset($data['release_date'])) {
-                $updateData['release_date'] = self::normalizeReleaseDate($data['release_date']);
+                $updateData['release_date'] = $this->normalizeReleaseDate($data['release_date']);
             }
             if (isset($data['active'])) {
                 $updateData['active'] = $data['active'] ? 1 : 0;
@@ -208,7 +208,7 @@ class AdminPackController
             }
 
             $packIds = $data['pack_ids'];
-            if ( ! is_array($packIds) || empty($packIds)) {
+            if ( ! is_array($packIds) || $packIds === []) {
                 throw new ValidationException('pack_ids must be a non-empty array');
             }
 

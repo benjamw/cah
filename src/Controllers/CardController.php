@@ -56,42 +56,42 @@ class CardController
         try {
             // Get a random active prompt card
             $promptCard = Card::getRandomPromptCard(true); // activePacksOnly = true
-            
-            if (!$promptCard) {
+
+            if ( ! $promptCard) {
                 return JsonResponse::error($response, 'No active prompt cards available', 404);
             }
-            
+
             // Get the number of response cards needed (based on choices)
-            $choices = (int) ($promptCard['choices'] ?? 1);
-            
+            $choices = (int) ( $promptCard['choices'] ?? 1 );
+
             // Get random active response cards
             $responseCards = Card::getRandomResponseCards($choices, true); // activePacksOnly = true
-            
+
             if (count($responseCards) < $choices) {
                 return JsonResponse::error($response, 'Not enough active response cards available', 404);
             }
-            
+
             // Hydrate with packs and tags
             $promptCardId = (int) $promptCard['card_id'];
-            $responseCardIds = array_map(fn($card): int => (int) $card['card_id'], $responseCards);
-            
+            $responseCardIds = array_map(fn(array $card): int => (int) $card['card_id'], $responseCards);
+
             $allCardIds = array_merge([$promptCardId], $responseCardIds);
-            
+
             // Get packs and tags for all cards
             $packsByCardId = Pack::getCardPacksForMultipleCards($allCardIds, true); // activeOnly = true
             $tagsByCardId = Tag::getCardTagsForMultipleCards($allCardIds, true); // activeOnly = true
-            
+
             // Attach packs and tags to prompt card
             $promptCard['packs'] = $packsByCardId[$promptCardId] ?? [];
             $promptCard['tags'] = $tagsByCardId[$promptCardId] ?? [];
-            
+
             // Attach packs and tags to response cards
             foreach ($responseCards as &$card) {
                 $cardId = (int) $card['card_id'];
                 $card['packs'] = $packsByCardId[$cardId] ?? [];
                 $card['tags'] = $tagsByCardId[$cardId] ?? [];
             }
-            
+
             return JsonResponse::success($response, [
                 'prompt' => $promptCard,
                 'responses' => $responseCards,

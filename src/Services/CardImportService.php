@@ -219,7 +219,7 @@ class CardImportService
             $tagValues = [];
             foreach ($tagColumns as $tag) {
                 $tag = trim((string) $tag);
-                if ( ! empty($tag)) {
+                if ($tag !== '' && $tag !== '0') {
                     $tagValues[] = $tag;
                 }
             }

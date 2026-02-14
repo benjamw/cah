@@ -81,7 +81,7 @@ class AdminGameController
             }
 
             // Add WHERE clause
-            if ( ! empty($conditions)) {
+            if ($conditions !== []) {
                 $sql .= " WHERE " . implode(' AND ', $conditions);
             }
 

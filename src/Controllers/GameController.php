@@ -170,7 +170,7 @@ class GameController
 
             // Check If-Modified-Since header for conditional request
             $ifModifiedSince = $request->getHeaderLine('If-Modified-Since');
-            if ($ifModifiedSince) {
+            if ($ifModifiedSince !== '' && $ifModifiedSince !== '0') {
                 $updatedAtTimestamp = strtotime((string) $game['updated_at']);
                 $ifModifiedSinceTimestamp = strtotime($ifModifiedSince);
 

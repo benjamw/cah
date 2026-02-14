@@ -37,10 +37,6 @@ class SessionMiddleware implements MiddlewareInterface
 
     /**
      * Process request and start session
-     *
-     * @param ServerRequestInterface $request
-     * @param RequestHandlerInterface $handler
-     * @return ResponseInterface
      */
     public function process(
         ServerRequestInterface $request,

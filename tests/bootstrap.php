@@ -39,8 +39,30 @@ $dbConfig['password'] = $_ENV['TEST_DB_PASS'] ?? getenv('TEST_DB_PASS') ?: $dbCo
 // Initialize database
 Database::init($dbConfig);
 
-// Clean up any leftover test data first
+// Ensure test schema has required card columns used by current model code.
+// This keeps tests resilient when local test DB lags behind schema.sql.
 $connection = Database::getConnection();
+try {
+    $columnExists = static function (\PDO $pdo, string $table, string $column): bool {
+        $stmt = $pdo->prepare("SHOW COLUMNS FROM `{$table}` LIKE ?");
+        $stmt->execute([$column]);
+        return (bool) $stmt->fetch();
+    };
+
+    if (! $columnExists($connection, 'cards', 'special')) {
+        $connection->exec("ALTER TABLE cards ADD COLUMN special VARCHAR(255) NULL DEFAULT NULL");
+    }
+    if (! $columnExists($connection, 'cards', 'notes')) {
+        $connection->exec("ALTER TABLE cards ADD COLUMN notes TEXT NULL DEFAULT NULL");
+    }
+    if (! $columnExists($connection, 'cards', 'metadata')) {
+        $connection->exec("ALTER TABLE cards ADD COLUMN metadata TEXT NULL DEFAULT NULL");
+    }
+} catch (\Exception $e) {
+    // Let tests fail naturally later with clearer DB errors if migration fails
+}
+
+// Clean up any leftover test data first
 try {
     $connection->exec("DELETE FROM cards_to_packs");
     $connection->exec("DELETE FROM cards_to_tags");

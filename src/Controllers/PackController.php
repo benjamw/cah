@@ -32,7 +32,7 @@ class PackController
     public function listAll(Request $request, Response $response): Response
     {
         try {
-            $packs = Pack::getAllWithCounts(null);
+            $packs = Pack::getAllWithCounts();
 
             return JsonResponse::success($response, ['packs' => $packs]);
         } catch (\Exception $e) {

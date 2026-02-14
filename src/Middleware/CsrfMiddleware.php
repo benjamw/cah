@@ -45,7 +45,7 @@ class CsrfMiddleware implements MiddlewareInterface
         // Get token from header or body
         $token = $request->getHeaderLine('X-CSRF-Token');
 
-        if (empty($token)) {
+        if ($token === '' || $token === '0') {
             $body = $request->getParsedBody();
             $token = is_array($body) ? ( $body['csrf_token'] ?? null ) : null;
         }

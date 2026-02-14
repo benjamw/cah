@@ -17,7 +17,6 @@ class Tag
     /**
      * Get a tag by ID
      *
-     * @param int $tagId
      * @return array<string, mixed>|null Tag data or null if not found
      */
     public static function find(int $tagId): ?array
@@ -40,7 +39,7 @@ class Tag
      */
     public static function findMany(array $tagIds): array
     {
-        if (empty($tagIds)) {
+        if ($tagIds === []) {
             return [];
         }
 
@@ -149,13 +148,12 @@ class Tag
      * Get card count for a specific tag
      * Only counts cards that are in at least one active pack (or have no packs)
      *
-     * @param int $tagId
      * @param CardType|null $cardType Optional card type enum, null for all
      * @return int Number of active cards with this tag
      */
     public static function getCardCount(int $tagId, ?CardType $cardType = null): int
     {
-        if ($cardType !== null) {
+        if ($cardType instanceof \CAH\Enums\CardType) {
             $sql = "
                 SELECT COUNT(DISTINCT c.card_id) as count
                 FROM cards c
@@ -246,7 +244,6 @@ class Tag
     /**
      * Update a tag
      *
-     * @param int $tagId
      * @param array<string, mixed> $data Associative array of fields to update
      * @return int Number of affected rows
      */
@@ -263,7 +260,7 @@ class Tag
             }
         }
 
-        if (empty($fields)) {
+        if ($fields === []) {
             return 0;
         }
 
@@ -280,7 +277,6 @@ class Tag
     /**
      * Delete a tag (soft delete by setting active = 0)
      *
-     * @param int $tagId
      * @return int Number of affected rows
      */
     public static function softDelete(int $tagId): int
@@ -296,8 +292,6 @@ class Tag
     /**
      * Add a tag to a card
      *
-     * @param int $cardId
-     * @param int $tagId
      * @return bool True if added, false if already exists
      */
     public static function addToCard(int $cardId, int $tagId): bool
@@ -321,13 +315,12 @@ class Tag
     /**
      * Add multiple tags to a single card
      *
-     * @param int $cardId
      * @param array<int> $tagIds Array of tag IDs
      * @return int Number of tags successfully added
      */
     public static function addMultipleTagsToCard(int $cardId, array $tagIds): int
     {
-        if (empty($tagIds)) {
+        if ($tagIds === []) {
             return 0;
         }
 
@@ -345,12 +338,11 @@ class Tag
      * Add a single tag to multiple cards (bulk operation)
      *
      * @param array<int> $cardIds Array of card IDs
-     * @param int $tagId
      * @return int Number of cards successfully tagged
      */
     public static function addTagToMultipleCards(array $cardIds, int $tagId): int
     {
-        if (empty($cardIds)) {
+        if ($cardIds === []) {
             return 0;
         }
 
@@ -389,8 +381,6 @@ class Tag
     /**
      * Remove a tag from a card
      *
-     * @param int $cardId
-     * @param int $tagId
      * @return int Number of affected rows
      */
     public static function removeFromCard(int $cardId, int $tagId): int
@@ -407,7 +397,6 @@ class Tag
     /**
      * Get all tags for a card
      *
-     * @param int $cardId
      * @param bool $activeOnly If true (default), only return active tags
      * @return array<int, array<string, mixed>> Array of tag data
      */
@@ -419,11 +408,11 @@ class Tag
             INNER JOIN cards_to_tags ct ON t.tag_id = ct.tag_id
             WHERE ct.card_id = ?
         ";
-        
+
         if ($activeOnly) {
             $sql .= " AND t.active = 1";
         }
-        
+
         $sql .= " ORDER BY t.name ASC";
 
         return Database::fetchAll($sql, [$cardId]);
@@ -438,7 +427,7 @@ class Tag
      */
     public static function getCardTagsForMultipleCards(array $cardIds, bool $activeOnly = true): array
     {
-        if (empty($cardIds)) {
+        if ($cardIds === []) {
             return [];
         }
 
@@ -449,11 +438,11 @@ class Tag
             INNER JOIN cards_to_tags ct ON t.tag_id = ct.tag_id
             WHERE ct.card_id IN ({$placeholders})
         ";
-        
+
         if ($activeOnly) {
             $sql .= " AND t.active = 1";
         }
-        
+
         $sql .= " ORDER BY ct.card_id, t.name ASC";
 
         $results = Database::fetchAll($sql, $cardIds);

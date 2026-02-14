@@ -22,10 +22,6 @@ class AuthMiddleware implements MiddlewareInterface
 {
     /**
      * Process request and validate session
-     *
-     * @param ServerRequestInterface $request
-     * @param RequestHandlerInterface $handler
-     * @return ResponseInterface
      */
     public function process(
         ServerRequestInterface $request,

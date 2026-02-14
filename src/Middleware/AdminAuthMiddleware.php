@@ -25,7 +25,7 @@ class AdminAuthMiddleware implements MiddlewareInterface
         // Get token from Authorization header
         $authHeader = $request->getHeaderLine('Authorization');
 
-        if (empty($authHeader)) {
+        if ($authHeader === '' || $authHeader === '0') {
             Logger::notice('Admin API request rejected: missing Authorization header', [
                 'path' => $request->getUri()->getPath(),
             ]);

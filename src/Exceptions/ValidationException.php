@@ -10,7 +10,6 @@ namespace CAH\Exceptions;
 class ValidationException extends GameException
 {
     /**
-     * @param string $message
      * @param array<string, string|array<string>> $errors
      */
     public function __construct(string $message, private readonly array $errors = [])

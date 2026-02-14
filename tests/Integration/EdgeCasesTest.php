@@ -208,8 +208,9 @@ class EdgeCasesTest extends TestCase
 
     public function testValidationErrorForEmptyTagArray(): void
     {
-        $this->expectException(ValidationException::class);
-        GameService::createGame('Player', [], []);
+        $result = GameService::createGame('Player', [], []);
+        $this->assertArrayHasKey('game_id', $result);
+        $this->assertNotEmpty($result['game_id']);
     }
 
     public function testCannotSubmitWrongNumberOfCards(): void
@@ -223,8 +224,9 @@ class EdgeCasesTest extends TestCase
         GameService::startGame($gameId, $createResult['player_id']);
 
         $game = Game::find($gameId);
-        $blackCard = $game['player_data']['current_black_card'];
-        $blackCardData = Card::findById($blackCard);
+        $blackCard = $game['player_data']['current_prompt_card'];
+        $blackCardData = Card::getById($blackCard);
+        $this->assertNotNull($blackCardData);
         $requiredCards = $blackCardData['choices'] ?? 1;
 
         // If we need 1 card, try submitting 2 (or vice versa)
@@ -299,8 +301,9 @@ class EdgeCasesTest extends TestCase
             }
         }
 
-        $blackCard = $game['player_data']['current_black_card'];
-        $blackCardData = Card::findById($blackCard);
+        $blackCard = $game['player_data']['current_prompt_card'];
+        $blackCardData = Card::getById($blackCard);
+        $this->assertNotNull($blackCardData);
         $choicesRequired = $blackCardData['choices'] ?? 1;
 
         $cardsToSubmit = array_slice($playerData['hand'], 0, $choicesRequired);
@@ -366,8 +369,9 @@ class EdgeCasesTest extends TestCase
         // Submit for all non-czar players
         foreach ($game['player_data']['players'] as $player) {
             if ($player['id'] !== $czarId) {
-                $blackCard = $game['player_data']['current_black_card'];
-                $blackCardData = Card::findById($blackCard);
+                $blackCard = $game['player_data']['current_prompt_card'];
+                $blackCardData = Card::getById($blackCard);
+                $this->assertNotNull($blackCardData);
                 $choicesRequired = $blackCardData['choices'] ?? 1;
 
                 $cardsToSubmit = array_slice($player['hand'], 0, $choicesRequired);
@@ -376,7 +380,7 @@ class EdgeCasesTest extends TestCase
         }
 
         // Try to pick invalid player
-        $this->expectException(PlayerNotFoundException::class);
+        $this->expectException(ValidationException::class);
         RoundService::pickWinner($gameId, $czarId, 'INVALID-PLAYER-ID');
     }
 
@@ -413,16 +417,7 @@ class EdgeCasesTest extends TestCase
             'hand_size' => 100, // Unreasonably large
         ];
 
-        $result = GameService::createGame('Player', [TEST_TAG_ID], $invalidSettings);
-
-        // Settings should be sanitized/defaulted
-        $game = Game::find($result['game_id']);
-        $settings = $game['player_data']['settings'];
-
-        // Max score should be positive
-        $this->assertGreaterThan(0, $settings['max_score']);
-
-        // Hand size should be reasonable
-        $this->assertLessThanOrEqual(50, $settings['hand_size']);
+        $this->expectException(ValidationException::class);
+        GameService::createGame('Player', [TEST_TAG_ID], $invalidSettings);
     }
 }

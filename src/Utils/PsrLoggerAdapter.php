@@ -23,9 +23,9 @@ class PsrLoggerAdapter extends AbstractLogger
         $context = array_merge($context, ['level' => $level]);
 
         match ($level) {
-            LogLevel::EMERGENCY, 
-            LogLevel::ALERT, 
-            LogLevel::CRITICAL, 
+            LogLevel::EMERGENCY,
+            LogLevel::ALERT,
+            LogLevel::CRITICAL,
             LogLevel::ERROR => Logger::error($message, $context),
             LogLevel::WARNING => Logger::warning($message, $context),
             LogLevel::NOTICE => Logger::notice($message, $context),

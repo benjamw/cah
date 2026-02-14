@@ -220,7 +220,7 @@ class RoundService
      */
     public static function advanceToNextRound(string $gameId): array
     {
-        return LockService::withGameLock($gameId, function () use ($gameId) {
+        return LockService::withGameLock($gameId, function () use ($gameId): array {
             $game = Game::find($gameId);
 
             if ( ! $game) {
@@ -299,10 +299,12 @@ class RoundService
         $handSize = $playerData['settings']['hand_size'];
 
         foreach ($playerData['players'] as &$player) {
-            if ($player['id'] === $playerData['current_czar_id'] || ! empty($player['is_rando'])) {
+            if ($player['id'] === $playerData['current_czar_id']) {
                 continue;
             }
-
+            if ( ! empty($player['is_rando'])) {
+                continue;
+            }
             $playerSubmission = self::findPlayerSubmission($playerData['submissions'], $player['id']);
 
             if ($playerSubmission) {

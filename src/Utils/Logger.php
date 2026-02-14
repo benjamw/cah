@@ -32,16 +32,14 @@ class Logger
      */
     private static function getInstance(): MonologLogger
     {
-        if (self::$instance === null) {
+        if ( ! self::$instance instanceof \Monolog\Logger) {
             self::$instance = new MonologLogger('cah');
 
             $logPath = __DIR__ . '/../../logs/app.log';
             $logDir = dirname($logPath);
 
-            if ( ! is_dir($logDir)) {
-                if ( ! mkdir($logDir, 0755, true) && ! is_dir($logDir)) {
-                    throw new FileSystemException(sprintf('Directory "%s" could not be created', $logDir));
-                }
+            if ( ! is_dir($logDir) && ( ! mkdir($logDir, 0755, true) && ! is_dir($logDir) )) {
+                throw new FileSystemException(sprintf('Directory "%s" could not be created', $logDir));
             }
 
             $envLogLevel = $_ENV['LOG_LEVEL'] ?? getenv('LOG_LEVEL');
@@ -61,7 +59,6 @@ class Logger
     /**
      * Log a notice message
      *
-     * @param string $message
      * @param array<string, mixed> $context
      */
     public static function notice(string $message, array $context = []): void
@@ -72,7 +69,6 @@ class Logger
     /**
      * Log a warning message
      *
-     * @param string $message
      * @param array<string, mixed> $context
      */
     public static function warning(string $message, array $context = []): void
@@ -83,7 +79,6 @@ class Logger
     /**
      * Log an error message
      *
-     * @param string $message
      * @param array<string, mixed> $context
      */
     public static function error(string $message, array $context = []): void
@@ -94,7 +89,6 @@ class Logger
     /**
      * Log an info message
      *
-     * @param string $message
      * @param array<string, mixed> $context
      */
     public static function info(string $message, array $context = []): void
@@ -105,7 +99,6 @@ class Logger
     /**
      * Log a debug message
      *
-     * @param string $message
      * @param array<string, mixed> $context
      */
     public static function debug(string $message, array $context = []): void
