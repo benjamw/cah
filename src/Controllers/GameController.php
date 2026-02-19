@@ -19,6 +19,36 @@ use CAH\Utils\Validator;
 class GameController
 {
     /**
+     * Preview card pool counts for selected tags before creating a game.
+     */
+    public function previewCreate(Request $request, Response $response): Response
+    {
+        try {
+            $data = $request->getParsedBody() ?? [];
+
+            $validator = ( new Validator() )
+                ->required($data['tag_ids'] ?? null, 'tag_ids')
+                ->array($data['tag_ids'] ?? null, 'tag_ids', 1);
+
+            if ($validator->fails()) {
+                throw new ValidationException('Validation failed', $validator->getErrors());
+            }
+
+            $cardCounts = GameService::previewCardPool($data['tag_ids']);
+
+            return JsonResponse::success($response, [
+                'card_counts' => $cardCounts,
+            ]);
+        } catch (ValidationException $e) {
+            return JsonResponse::validationError($response, $e->getErrors(), $e->getMessage());
+        } catch (GameException $e) {
+            return JsonResponse::error($response, $e->getMessage(), $e->getCode() ?: 400);
+        } catch (\Exception $e) {
+            return JsonResponse::error($response, $e->getMessage(), 500);
+        }
+    }
+
+    /**
      * Create a new game
      */
     public function create(Request $request, Response $response): Response
@@ -277,7 +307,7 @@ class GameController
     }
 
     /**
-     * Toggle player pause status (creator only)
+     * Toggle player pause status (self allowed; creator required for other players)
      */
     public function togglePlayerPause(Request $request, Response $response): Response
     {

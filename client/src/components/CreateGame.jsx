@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { createGame, getTags } from '../utils/api';
+import { createGame, getTags, previewCreateGame } from '../utils/api';
 import { getCachedTags, setCachedTags } from '../utils/tagCache';
 
 const TAG_GROUP_ORDER = ['rating', 'advisory', 'other', 'source', 'location'];
@@ -92,6 +92,44 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
     setLoading(true);
 
     try {
+      if (selectedTags.length === 0) {
+        setError('Please select at least one card tag before creating a game.');
+        return;
+      }
+
+      const preview = await previewCreateGame(selectedTags);
+      if (!preview.success) {
+        setError(preview.message || 'Unable to validate selected card pool');
+        return;
+      }
+
+      const cardCounts = preview.data?.card_counts;
+      const responseCards = cardCounts?.response_cards ?? 0;
+      const promptCards = cardCounts?.prompt_cards ?? 0;
+
+      if (responseCards === 0 || promptCards === 0) {
+        setError(
+          `Cannot create game with current selection: ${responseCards} white cards and ${promptCards} black cards. `
+            + 'Please choose tags that include at least one of each.'
+        );
+        return;
+      }
+
+      const lowWhiteThreshold = cardCounts?.warning_thresholds?.response_cards ?? 200;
+      const lowBlackThreshold = cardCounts?.warning_thresholds?.prompt_cards ?? 25;
+      const isLowPool = responseCards < lowWhiteThreshold || promptCards < lowBlackThreshold;
+
+      if (isLowPool) {
+        const warningMessage =
+          `Warning: Your selected cards include ${responseCards} white cards and ${promptCards} black cards.\n\n`
+          + `Recommended minimums are ${lowWhiteThreshold} white and ${lowBlackThreshold} black cards.\n\n`
+          + 'You can continue, but the game may run out of cards sooner. Create game anyway?';
+
+        if (!window.confirm(warningMessage)) {
+          return;
+        }
+      }
+
       const response = await createGame({
         player_name: playerName,
         tag_ids: selectedTags.length > 0 ? selectedTags : null,

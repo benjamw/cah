@@ -152,6 +152,7 @@ $app->get('/api/health', function (Request $request, Response $response) {
 });
 
 // Game routes - Public (no auth required)
+$app->post('/api/game/preview-create', [GameController::class, 'previewCreate']);
 $app->post('/api/game/create', [GameController::class, 'create']);
 $app->post('/api/game/join', [GameController::class, 'join']);
 $app->post('/api/game/join-late', [GameController::class, 'joinLate']);

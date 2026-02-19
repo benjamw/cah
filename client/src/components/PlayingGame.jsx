@@ -323,6 +323,87 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
     });
   };
 
+  const renderScoreboardAndPlayerManagement = () => (
+    <>
+      <Scoreboard players={gameState.players || []} currentPlayerId={gameData.playerId} />
+      {currentPlayer?.is_creator && (
+        <PlayerManagement
+          players={gameState.players || []}
+          gameData={gameData}
+          onRemovePlayer={handleRemovePlayer}
+          onTogglePause={handleTogglePause}
+          removing={removing}
+          pausing={pausing}
+        />
+      )}
+    </>
+  );
+
+  const renderPausedMessage = () =>
+    currentPlayer?.is_paused && (
+      <div className="paused-message">
+        <h2>
+          <FontAwesomeIcon icon={faPause} /> Player Paused
+        </h2>
+        <p>Your player is currently paused.</p>
+        <br />
+        <button
+          className="btn btn-success"
+          onClick={handlePauseMyself}
+          disabled={pausing === gameData.playerId}
+        >
+          <FontAwesomeIcon icon={faPlay} /> Unpause
+        </button>
+      </div>
+    );
+
+  const renderLeaveGameSection = () => (
+    <div className="leave-game-section">
+      <button
+        className={`btn ${currentPlayer?.is_paused ? 'btn-success' : 'btn-warning'}`}
+        onClick={handlePauseMyself}
+        disabled={pausing === gameData.playerId}
+      >
+        {currentPlayer?.is_paused ? (
+          <>
+            <FontAwesomeIcon icon={faPlay} /> Resume Game
+          </>
+        ) : (
+          <>
+            <FontAwesomeIcon icon={faPause} /> Pause Game
+          </>
+        )}
+      </button>
+      <button className="btn btn-danger" onClick={onLeaveClick}>
+        <FontAwesomeIcon icon={faRightFromBracket} /> Leave Game
+      </button>
+    </div>
+  );
+
+  const renderSharedModals = () => (
+    <>
+      {showHostTransfer && (
+        <HostTransferModal
+          players={gameState.players || []}
+          currentPlayerId={gameData.playerId}
+          onTransfer={onTransferAndLeave}
+          onCancel={() => setShowHostTransfer(false)}
+          transferring={transferring}
+        />
+      )}
+      {showSkippedPlayerModal && hasSkippedPlayers && (
+        <SkippedPlayerModal
+          skippedPlayers={gameState.skipped_players}
+          players={gameState.players || []}
+          playerOrder={gameState.player_order || []}
+          onPlacePlayer={handlePlaceSkippedPlayer}
+          onCancel={() => setShowSkippedPlayerModal(false)}
+          placing={placingPlayer}
+        />
+      )}
+    </>
+  );
+
   // Show czar view if player is czar
   if (isCzar) {
     return (
@@ -337,68 +418,12 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
             onRefreshHand={handleRefreshHand}
             refreshing={refreshing}
           />
-          <Scoreboard players={gameState.players || []} currentPlayerId={gameData.playerId} />
-          {currentPlayer?.is_creator && (
-            <PlayerManagement
-              players={gameState.players || []}
-              gameData={gameData}
-              onRemovePlayer={handleRemovePlayer}
-              onTogglePause={handleTogglePause}
-              removing={removing}
-              pausing={pausing}
-            />
-          )}
+          {renderScoreboardAndPlayerManagement()}
         </div>
 
-        {currentPlayer?.is_paused && (
-          <div className="paused-message">
-            <h2>
-              <FontAwesomeIcon icon={faPause} /> Game Paused
-            </h2>
-            <p>You are currently paused.</p>
-            <p>Unpause to continue playing. Scroll down for Unpause button</p>
-          </div>
-        )}
-
-        <div className="leave-game-section">
-          <button
-            className={`btn ${currentPlayer?.is_paused ? 'btn-success' : 'btn-warning'}`}
-            onClick={handlePauseMyself}
-            disabled={pausing === gameData.playerId}
-          >
-            {currentPlayer?.is_paused ? (
-              <>
-                <FontAwesomeIcon icon={faPlay} /> Resume Game
-              </>
-            ) : (
-              <>
-                <FontAwesomeIcon icon={faPause} /> Pause Game
-              </>
-            )}
-          </button>
-          <button className="btn btn-danger" onClick={onLeaveClick}>
-            <FontAwesomeIcon icon={faRightFromBracket} /> Leave Game
-          </button>
-        </div>
-        {showHostTransfer && (
-          <HostTransferModal
-            players={gameState.players || []}
-            currentPlayerId={gameData.playerId}
-            onTransfer={onTransferAndLeave}
-            onCancel={() => setShowHostTransfer(false)}
-            transferring={transferring}
-          />
-        )}
-        {showSkippedPlayerModal && hasSkippedPlayers && (
-          <SkippedPlayerModal
-            skippedPlayers={gameState.skipped_players}
-            players={gameState.players || []}
-            playerOrder={gameState.player_order || []}
-            onPlacePlayer={handlePlaceSkippedPlayer}
-            onCancel={() => setShowSkippedPlayerModal(false)}
-            placing={placingPlayer}
-          />
-        )}
+        {renderPausedMessage()}
+        {renderLeaveGameSection()}
+        {renderSharedModals()}
       </>
     );
   }
@@ -525,68 +550,12 @@ function PlayingGame({ gameState, gameData, onLeaveGame, showToast }) {
           )}
         </div>
 
-        <Scoreboard players={gameState.players || []} currentPlayerId={gameData.playerId} />
-
-        {currentPlayer?.is_creator && (
-          <PlayerManagement
-            players={gameState.players || []}
-            gameData={gameData}
-            onRemovePlayer={handleRemovePlayer}
-            onTogglePause={handleTogglePause}
-            removing={removing}
-            pausing={pausing}
-          />
-        )}
+        {renderScoreboardAndPlayerManagement()}
       </div>
 
-      {currentPlayer?.is_paused && (
-        <div className="paused-message">
-          <h2>⏸️ Game Paused</h2>
-          <p>You are currently paused. Unpause to continue playing.</p>
-        </div>
-      )}
-
-      <div className="leave-game-section">
-        <button
-          className={`btn ${currentPlayer?.is_paused ? 'btn-success' : 'btn-warning'}`}
-          onClick={handlePauseMyself}
-          disabled={pausing === gameData.playerId}
-        >
-          {currentPlayer?.is_paused ? (
-            <>
-              <FontAwesomeIcon icon={faPlay} /> Resume Game
-            </>
-          ) : (
-            <>
-              <FontAwesomeIcon icon={faPause} /> Pause Game
-            </>
-          )}
-        </button>
-        <button className="btn btn-danger" onClick={onLeaveClick}>
-          <FontAwesomeIcon icon={faRightFromBracket} /> Leave Game
-        </button>
-      </div>
-
-      {showHostTransfer && (
-        <HostTransferModal
-          players={gameState.players || []}
-          currentPlayerId={gameData.playerId}
-          onTransfer={onTransferAndLeave}
-          onCancel={() => setShowHostTransfer(false)}
-          transferring={transferring}
-        />
-      )}
-
-      {showSkippedPlayerModal && hasSkippedPlayers && (
-        <SkippedPlayerModal
-          skippedPlayers={gameState.skipped_players}
-          players={gameState.players || []}
-          playerOrder={gameState.player_order || []}
-          onPlacePlayer={handlePlaceSkippedPlayer}
-          onCancel={() => setShowSkippedPlayerModal(false)}
-          placing={placingPlayer}
-        />
-      )}
+      {renderPausedMessage()}
+      {renderLeaveGameSection()}
+      {renderSharedModals()}
     </div>
   );
 }

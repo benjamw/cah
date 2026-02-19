@@ -64,6 +64,9 @@ use CAH\Utils\Validator;
  */
 class GameService
 {
+    private const LOW_WHITE_CARD_WARNING_THRESHOLD = 200;
+    private const LOW_BLACK_CARD_WARNING_THRESHOLD = 25;
+
     /**
      * Create a new game
      *
@@ -88,29 +91,19 @@ class GameService
             throw new ValidationException($settingsValidation['error']);
         }
 
-        // Validate that all tag IDs exist and are active
-        if ($tagIds !== []) {
-            $validTags = Tag::findMany($tagIds);
-            $validTagIds = array_column($validTags, 'tag_id');
-
-            // Check if all provided tag IDs were found
-            $invalidTagIds = array_diff($tagIds, $validTagIds);
-            if ($invalidTagIds !== []) {
-                // remove the invalid tags from the list of tags
-                $tagIds = array_diff($tagIds, $invalidTagIds);
-            }
-
-            // Check if all tags are active
-            foreach ($validTags as $tag) {
-                if ( ! $tag['active']) {
-                    // remove the inactive tag from the list of tags
-                    $tagIds = array_diff($tagIds, [$tag['tag_id']]);
-                }
-            }
-        }
+        $tagIds = self::normalizeActiveTagIds($tagIds);
 
         $creatorId = self::generatePlayerId();
         $piles = CardService::buildDrawPile($tagIds);
+        $responseCardCount = count($piles['response']);
+        $promptCardCount = count($piles['prompt']);
+
+        if ($responseCardCount === 0 || $promptCardCount === 0) {
+            throw new ValidationException(
+                "Cannot create game: selected cards include {$responseCardCount} white and {$promptCardCount} black cards. "
+                . 'Select tags with at least 1 white and 1 black card.'
+            );
+        }
 
         $config = ConfigService::getGameConfig();
         $playerData = [
@@ -189,6 +182,64 @@ class GameService
             'player_id' => $creatorId,
             'player_name' => $creatorName,
         ];
+    }
+
+    /**
+     * Preview available card counts for a tag selection.
+     *
+     * @param array<int> $tagIds Selected tag IDs
+     * @return array{
+     *     response_cards: int,
+     *     prompt_cards: int,
+     *     has_required_cards: bool,
+     *     low_card_pool: bool,
+     *     warning_thresholds: array{response_cards: int, prompt_cards: int}
+     * }
+     */
+    public static function previewCardPool(array $tagIds): array
+    {
+        $tagIds = self::normalizeActiveTagIds($tagIds);
+        $piles = CardService::buildDrawPile($tagIds);
+        $responseCardCount = count($piles['response']);
+        $promptCardCount = count($piles['prompt']);
+
+        return [
+            'response_cards' => $responseCardCount,
+            'prompt_cards' => $promptCardCount,
+            'has_required_cards' => $responseCardCount > 0 && $promptCardCount > 0,
+            'low_card_pool' => (
+                $responseCardCount < self::LOW_WHITE_CARD_WARNING_THRESHOLD
+                || $promptCardCount < self::LOW_BLACK_CARD_WARNING_THRESHOLD
+            ),
+            'warning_thresholds' => [
+                'response_cards' => self::LOW_WHITE_CARD_WARNING_THRESHOLD,
+                'prompt_cards' => self::LOW_BLACK_CARD_WARNING_THRESHOLD,
+            ],
+        ];
+    }
+
+    /**
+     * Normalize selected tags to active tag IDs that exist.
+     *
+     * @param array<int> $tagIds
+     * @return array<int>
+     */
+    private static function normalizeActiveTagIds(array $tagIds): array
+    {
+        if ($tagIds === []) {
+            return [];
+        }
+
+        $validTags = Tag::findMany($tagIds);
+        $activeTagIds = [];
+
+        foreach ($validTags as $tag) {
+            if ( ! empty($tag['active'])) {
+                $activeTagIds[] = (int) $tag['tag_id'];
+            }
+        }
+
+        return array_values(array_unique($activeTagIds));
     }
 
     /**
@@ -669,6 +720,11 @@ class GameService
             }
         }
 
+        // Rando should immediately submit for the new prompt card as part of the reset round.
+        if ($playerData['settings']['rando_enabled'] && ! empty($playerData['rando_id'])) {
+            $responsePile = RoundService::submitRandoCards($playerData, $responsePile, $choices);
+        }
+
         return [$playerData, $responsePile, $promptPile];
     }
 
@@ -834,8 +890,15 @@ class GameService
             }
         }
 
-        // Fallback: return first eligible player
+        // Fallback: prefer a different eligible player than current czar when possible.
         $eligiblePlayers = array_values($eligiblePlayers);
+        foreach ($eligiblePlayers as $player) {
+            if ($player['id'] !== $playerData['current_czar_id']) {
+                return $player['id'];
+            }
+        }
+
+        // If only one eligible player remains, they must stay czar.
         return $eligiblePlayers[0]['id'];
     }
 
@@ -956,17 +1019,19 @@ class GameService
     }
 
     /**
-     * Toggle player pause status (creator only)
-     * Paused players: submissions not required, skipped as czar
+     * Toggle player pause status.
+     * - Any player may pause/unpause themselves.
+     * - Only the creator may pause/unpause other players.
+     * Paused players: submissions not required, skipped as czar.
      *
      * @param string $gameId Game code
-     * @param string $creatorId Creator's player ID
+     * @param string $actorPlayerId Player performing the action
      * @param string $targetPlayerId Player to pause/unpause
      * @return array<string, mixed> Updated game state
      */
-    public static function togglePlayerPause(string $gameId, string $creatorId, string $targetPlayerId): array
+    public static function togglePlayerPause(string $gameId, string $actorPlayerId, string $targetPlayerId): array
     {
-        return LockService::withGameLock($gameId, function () use ($gameId, $creatorId, $targetPlayerId): array {
+        return LockService::withGameLock($gameId, function () use ($gameId, $actorPlayerId, $targetPlayerId): array {
             $game = Game::find($gameId);
 
             if ( ! $game) {
@@ -975,7 +1040,10 @@ class GameService
 
             $playerData = $game['player_data'];
 
-            if ($playerData['creator_id'] !== $creatorId) {
+            $isSelfAction = ($actorPlayerId === $targetPlayerId);
+            $isCreator = ($playerData['creator_id'] === $actorPlayerId);
+
+            if ( ! $isSelfAction && ! $isCreator) {
                 throw new UnauthorizedException('Only the game creator can pause players');
             }
 
@@ -1636,6 +1704,10 @@ class GameService
             // Transfer creator status
             $playerData['creator_id'] = $newHostId;
 
+            $responsePile = $game['draw_pile']['response'];
+            $promptPile = $game['draw_pile']['prompt'];
+            $discardPile = $game['discard_pile'] ?? [];
+
             if ($removeCurrentHost) {
                 // Remove the old host from the game
                 $playerIndex = null;
@@ -1662,13 +1734,22 @@ class GameService
 
                     // Return cards to discard pile
                     if ( ! empty($playerHand)) {
-                        $discardPile = $game['discard_pile'] ?? [];
                         $discardPile = array_merge($discardPile, $playerHand);
-                        Game::update($gameId, ['discard_pile' => $discardPile]);
+                    }
+
+                    $isCzar = $playerData['current_czar_id'] === $currentHostId;
+
+                    // If the current czar is being removed mid-round, reset the round state.
+                    if (self::shouldResetRound($playerData, $isCzar)) {
+                        [$playerData, $responsePile, $promptPile] = self::handleCzarRemovalDuringRound(
+                            $playerData,
+                            $responsePile,
+                            $promptPile
+                        );
                     }
 
                     // Handle if removed player was czar
-                    if ($playerData['current_czar_id'] === $currentHostId) {
+                    if ($isCzar) {
                         $playerData['current_czar_id'] = self::getNextCzar($playerData);
                     }
 
@@ -1677,6 +1758,9 @@ class GameService
                         $playerData['submissions'],
                         fn(array $sub): bool => $sub['player_id'] !== $currentHostId
                     ));
+
+                    // Check if too few players remain and end game if needed
+                    $playerData = self::checkAndHandleGameEnd($playerData);
                 }
             }
 
@@ -1686,7 +1770,11 @@ class GameService
             }
             unset($player); // Break the reference
 
-            Game::updatePlayerData($gameId, $playerData);
+            Game::update($gameId, [
+                'draw_pile' => ['response' => $responsePile, 'prompt' => $promptPile],
+                'discard_pile' => $discardPile,
+                'player_data' => $playerData,
+            ]);
 
             return $playerData;
         };

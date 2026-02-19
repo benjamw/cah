@@ -46,24 +46,13 @@ function LateJoin({ gameId, playerName, playerNames, onGameJoined, onBack }) {
     <div className="late-join">
       <h1>Game Already Started</h1>
       <p className="late-join-info">
-        The game has already started, but you can still join! Select two players who are sitting
-        next to each other - you&apos;ll be placed between them.
+        The game has already started, <strong>but you can still join!</strong><br />
+        Select the two players who you are sitting between.
       </p>
-
-      <div className="join-info-box">
-        <div className="info-row">
-          <span className="info-label">Your Name:</span>
-          <span className="info-value">{playerName}</span>
-        </div>
-        <div className="info-row">
-          <span className="info-label">Game Code:</span>
-          <span className="info-value">{gameId}</span>
-        </div>
-      </div>
 
       <form onSubmit={handleSubmit} className="game-form">
         <div className="form-group">
-          <label htmlFor="player1">First Adjacent Player</label>
+          <label htmlFor="player1">Neighbor One</label>
           <select
             id="player1"
             value={adjacentPlayer1}
@@ -81,7 +70,7 @@ function LateJoin({ gameId, playerName, playerNames, onGameJoined, onBack }) {
         </div>
 
         <div className="form-group">
-          <label htmlFor="player2">Second Adjacent Player</label>
+          <label htmlFor="player2">Neighbor Two</label>
           <select
             id="player2"
             value={adjacentPlayer2}

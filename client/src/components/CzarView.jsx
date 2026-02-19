@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faTrophy, faTags, faBoxArchive } from '@fortawesome/free-solid-svg-icons';
-import { pickWinner, setNextCzar, forceEarlyReview } from '../utils/api';
+import { pickWinner, setNextCzar, forceEarlyReview, skipCzar } from '../utils/api';
 import CardSwiper from './CardSwiper';
 import CardCombinationView from './CardCombinationView';
 import CardView from './CardView';
@@ -73,7 +73,7 @@ function CzarView({
     setError('');
 
     try {
-      const response = await setNextCzar(gameData.gameId);
+      const response = await skipCzar(gameData.gameId);
       if (!response.success) {
         setError(response.message || 'Failed to advance round');
       }
@@ -166,7 +166,7 @@ function CzarView({
         <span>You are the Card Czar</span>
       </div>
 
-      {!allSubmitted && (
+      {!allSubmitted && !forcedReview && (
         <div className="card-section">
           {promptCard ? (
             <CardView copy={promptCard.copy} variant="prompt" choices={promptCard.choices}>
@@ -265,6 +265,7 @@ function CzarView({
                 {settingCzar ? 'Skipping...' : 'Skip Round'}
               </button>
             )}
+            {error && <div className="error-message">{error}</div>}
           </div>
 
           <div className="card-section">

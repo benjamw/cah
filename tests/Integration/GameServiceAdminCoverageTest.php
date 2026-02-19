@@ -4,13 +4,59 @@ declare(strict_types=1);
 
 namespace CAH\Tests\Integration;
 
+use CAH\Database\Database;
+use CAH\Exceptions\UnauthorizedException;
 use CAH\Exceptions\ValidationException;
+use CAH\Services\CardService;
 use CAH\Models\Game;
 use CAH\Services\GameService;
+use CAH\Services\RoundService;
 use CAH\Tests\TestCase;
 
 class GameServiceAdminCoverageTest extends TestCase
 {
+    /**
+     * @param string $prefix
+     * @param int $responseCount
+     * @param int $promptCount
+     * @return int tag_id
+     */
+    private function createTagWithCards(string $prefix, int $responseCount, int $promptCount): int
+    {
+        Database::execute("INSERT INTO tags (name, active) VALUES (?, 1)", ["{$prefix}_tag"]);
+        $tagId = (int) Database::lastInsertId();
+
+        for ($i = 0; $i < $responseCount; $i++) {
+            Database::execute(
+                "INSERT INTO cards (type, copy, active) VALUES ('response', ?, 1)",
+                ["{$prefix}_response_{$i}"]
+            );
+            $cardId = (int) Database::lastInsertId();
+            Database::execute("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)", [$cardId, $tagId]);
+        }
+
+        for ($i = 0; $i < $promptCount; $i++) {
+            Database::execute(
+                "INSERT INTO cards (type, copy, choices, active) VALUES ('prompt', ?, 1, 1)",
+                ["{$prefix}_prompt_{$i}"]
+            );
+            $cardId = (int) Database::lastInsertId();
+            Database::execute("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)", [$cardId, $tagId]);
+        }
+
+        return $tagId;
+    }
+
+    private function cleanupTagCards(string $prefix): void
+    {
+        Database::execute(
+            "DELETE FROM cards_to_tags WHERE card_id IN (SELECT card_id FROM cards WHERE copy LIKE ?)",
+            ["{$prefix}_%"]
+        );
+        Database::execute("DELETE FROM cards WHERE copy LIKE ?", ["{$prefix}_%"]);
+        Database::execute("DELETE FROM tags WHERE name = ?", ["{$prefix}_tag"]);
+    }
+
     /**
      * @return array{game_id: string, creator_id: string, player_ids: array<int, string>, player_data: array<string, mixed>}
      */
@@ -114,6 +160,83 @@ class GameServiceAdminCoverageTest extends TestCase
         $this->assertTrue((bool) ($czarPlayer['is_paused'] ?? false));
     }
 
+    public function testPlayerCanPauseAndUnpauseThemselvesWithoutCreatorRole(): void
+    {
+        $setup = $this->createStartedGameWithFourPlayers();
+        $gameId = $setup['game_id'];
+        $creatorId = $setup['creator_id'];
+
+        $selfPlayerId = null;
+        foreach ($setup['player_data']['players'] as $player) {
+            if ($player['id'] !== $creatorId && empty($player['is_rando'])) {
+                $selfPlayerId = $player['id'];
+                break;
+            }
+        }
+
+        $this->assertNotNull($selfPlayerId);
+
+        $paused = GameService::togglePlayerPause($gameId, $selfPlayerId, $selfPlayerId);
+        $pausedPlayer = GameService::findPlayer($paused, $selfPlayerId);
+        $this->assertNotNull($pausedPlayer);
+        $this->assertTrue((bool) ($pausedPlayer['is_paused'] ?? false));
+
+        $unpaused = GameService::togglePlayerPause($gameId, $selfPlayerId, $selfPlayerId);
+        $unpausedPlayer = GameService::findPlayer($unpaused, $selfPlayerId);
+        $this->assertNotNull($unpausedPlayer);
+        $this->assertFalse((bool) ($unpausedPlayer['is_paused'] ?? false));
+    }
+
+    public function testNonCreatorCannotPauseAnotherPlayer(): void
+    {
+        $setup = $this->createStartedGameWithFourPlayers();
+        $gameId = $setup['game_id'];
+        $creatorId = $setup['creator_id'];
+
+        $actorId = null;
+        $targetId = null;
+        foreach ($setup['player_data']['players'] as $player) {
+            if ($player['id'] === $creatorId || ! empty($player['is_rando'])) {
+                continue;
+            }
+            if ($actorId === null) {
+                $actorId = $player['id'];
+                continue;
+            }
+            $targetId = $player['id'];
+            break;
+        }
+
+        $this->assertNotNull($actorId);
+        $this->assertNotNull($targetId);
+
+        $this->expectException(UnauthorizedException::class);
+        $this->expectExceptionMessage('Only the game creator can pause players');
+        GameService::togglePlayerPause($gameId, $actorId, $targetId);
+    }
+
+    public function testCreatorCanPauseAnotherPlayer(): void
+    {
+        $setup = $this->createStartedGameWithFourPlayers();
+        $gameId = $setup['game_id'];
+        $creatorId = $setup['creator_id'];
+
+        $targetId = null;
+        foreach ($setup['player_data']['players'] as $player) {
+            if ($player['id'] !== $creatorId && empty($player['is_rando'])) {
+                $targetId = $player['id'];
+                break;
+            }
+        }
+
+        $this->assertNotNull($targetId);
+
+        $result = GameService::togglePlayerPause($gameId, $creatorId, $targetId);
+        $targetPlayer = GameService::findPlayer($result, $targetId);
+        $this->assertNotNull($targetPlayer);
+        $this->assertTrue((bool) ($targetPlayer['is_paused'] ?? false));
+    }
+
     public function testVoteToSkipCzarSkipsAfterSecondVote(): void
     {
         $setup = $this->createStartedGameWithFourPlayers();
@@ -190,6 +313,62 @@ class GameServiceAdminCoverageTest extends TestCase
         $this->assertCount(2, $result['players']);
     }
 
+    public function testTransferRemovingCzarHostResetsRoundAndResubmitsRando(): void
+    {
+        $create = GameService::createGame('Creator', [TEST_TAG_ID], ['rando_enabled' => true]);
+        $gameId = $create['game_id'];
+        $creatorId = $create['player_id'];
+
+        $playerTwo = GameService::joinGame($gameId, 'Player Two');
+        GameService::joinGame($gameId, 'Player Three');
+        $started = GameService::startGame($gameId, $creatorId);
+
+        // Ensure the creator is the current czar before transfer/removal.
+        if ($started['current_czar_id'] !== $creatorId) {
+            GameService::setNextCzar($gameId, $started['current_czar_id'], $creatorId);
+        }
+
+        // Add a human submission so the round reset path is exercised.
+        $preTransfer = Game::find($gameId)['player_data'];
+        $submitterId = null;
+        foreach ($preTransfer['players'] as $player) {
+            if (
+                $player['id'] !== $creatorId &&
+                empty($player['is_rando']) &&
+                ! empty($player['hand'])
+            ) {
+                $submitterId = $player['id'];
+                RoundService::submitCards($gameId, $submitterId, [$player['hand'][0]]);
+                break;
+            }
+        }
+
+        $this->assertNotNull($submitterId);
+
+        $beforeTransferState = Game::find($gameId)['player_data'];
+        $oldPromptCard = $beforeTransferState['current_prompt_card'];
+        $randoId = $beforeTransferState['rando_id'];
+        $this->assertNotNull($randoId);
+
+        $result = GameService::transferHost($gameId, $creatorId, $playerTwo['player_id'], true);
+
+        $this->assertNull(GameService::findPlayer($result, $creatorId));
+        $this->assertNotSame($creatorId, $result['current_czar_id']);
+        $this->assertNotSame($oldPromptCard, $result['current_prompt_card']);
+
+        $randoSubmission = null;
+        foreach ($result['submissions'] as $submission) {
+            if ($submission['player_id'] === $randoId) {
+                $randoSubmission = $submission;
+                break;
+            }
+        }
+
+        $this->assertNotNull($randoSubmission, 'Rando should auto-submit after host/czar transfer removal');
+        $expectedChoices = CardService::getPromptCardChoices($result['current_prompt_card']);
+        $this->assertCount($expectedChoices, $randoSubmission['cards']);
+    }
+
     public function testTransferHostRejectsTransferToSelf(): void
     {
         $create = GameService::createGame('Creator', [TEST_TAG_ID]);
@@ -199,5 +378,38 @@ class GameServiceAdminCoverageTest extends TestCase
         $this->expectException(ValidationException::class);
         $this->expectExceptionMessage('Cannot transfer host to yourself');
         GameService::transferHost($gameId, $creatorId, $creatorId, false);
+    }
+
+    public function testCreateGameRejectsZeroPromptOrResponsePool(): void
+    {
+        $prefix = 'CoverageNoPrompt';
+        $tagId = $this->createTagWithCards($prefix, 2, 0);
+
+        try {
+            $this->expectException(ValidationException::class);
+            $this->expectExceptionMessage('Cannot create game: selected cards include');
+            GameService::createGame('Creator', [$tagId]);
+        } finally {
+            $this->cleanupTagCards($prefix);
+        }
+    }
+
+    public function testPreviewCardPoolReturnsWarningAndAvailabilityFlags(): void
+    {
+        $prefix = 'CoverageLowPool';
+        $tagId = $this->createTagWithCards($prefix, 10, 3);
+
+        try {
+            $preview = GameService::previewCardPool([$tagId]);
+
+            $this->assertSame(10, $preview['response_cards']);
+            $this->assertSame(3, $preview['prompt_cards']);
+            $this->assertTrue($preview['has_required_cards']);
+            $this->assertTrue($preview['low_card_pool']);
+            $this->assertSame(200, $preview['warning_thresholds']['response_cards']);
+            $this->assertSame(25, $preview['warning_thresholds']['prompt_cards']);
+        } finally {
+            $this->cleanupTagCards($prefix);
+        }
     }
 }

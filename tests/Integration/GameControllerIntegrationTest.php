@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace CAH\Tests\Integration;
 
 use CAH\Controllers\GameController;
+use CAH\Database\Database;
 use CAH\Models\Game;
 use CAH\Services\GameService;
 use CAH\Tests\TestCase;
@@ -73,6 +74,45 @@ class GameControllerIntegrationTest extends TestCase
         return ['game_id' => $gameId, 'creator_id' => $creatorId, 'game' => $game];
     }
 
+    /**
+     * @return int tag_id
+     */
+    private function createTagWithCards(string $prefix, int $responseCount, int $promptCount): int
+    {
+        Database::execute("INSERT INTO tags (name, active) VALUES (?, 1)", ["{$prefix}_tag"]);
+        $tagId = (int) Database::lastInsertId();
+
+        for ($i = 0; $i < $responseCount; $i++) {
+            Database::execute(
+                "INSERT INTO cards (type, copy, active) VALUES ('response', ?, 1)",
+                ["{$prefix}_response_{$i}"]
+            );
+            $cardId = (int) Database::lastInsertId();
+            Database::execute("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)", [$cardId, $tagId]);
+        }
+
+        for ($i = 0; $i < $promptCount; $i++) {
+            Database::execute(
+                "INSERT INTO cards (type, copy, choices, active) VALUES ('prompt', ?, 1, 1)",
+                ["{$prefix}_prompt_{$i}"]
+            );
+            $cardId = (int) Database::lastInsertId();
+            Database::execute("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)", [$cardId, $tagId]);
+        }
+
+        return $tagId;
+    }
+
+    private function cleanupTagCards(string $prefix): void
+    {
+        Database::execute(
+            "DELETE FROM cards_to_tags WHERE card_id IN (SELECT card_id FROM cards WHERE copy LIKE ?)",
+            ["{$prefix}_%"]
+        );
+        Database::execute("DELETE FROM cards WHERE copy LIKE ?", ["{$prefix}_%"]);
+        Database::execute("DELETE FROM tags WHERE name = ?", ["{$prefix}_tag"]);
+    }
+
     public function testCreateAndJoinHappyPath(): void
     {
         $createReq = $this->createJsonRequest('POST', '/api/games', [
@@ -113,6 +153,52 @@ class GameControllerIntegrationTest extends TestCase
         $this->assertSame(422, $response->getStatusCode());
         $this->assertFalse($json['success']);
         $this->assertArrayHasKey('errors', $json);
+    }
+
+    public function testPreviewCreateReportsLowCardPoolAndThresholds(): void
+    {
+        $prefix = 'ControllerPreviewLowPool';
+        $tagId = $this->createTagWithCards($prefix, 10, 3);
+
+        try {
+            $request = $this->createJsonRequest('POST', '/api/game/preview-create', [
+                'tag_ids' => [$tagId],
+            ]);
+            $response = $this->controller->previewCreate($request, $this->responseFactory->createResponse());
+            $json = $this->decode($response);
+
+            $this->assertSame(200, $response->getStatusCode());
+            $this->assertTrue($json['success']);
+            $this->assertSame(10, $json['data']['card_counts']['response_cards']);
+            $this->assertSame(3, $json['data']['card_counts']['prompt_cards']);
+            $this->assertTrue($json['data']['card_counts']['has_required_cards']);
+            $this->assertTrue($json['data']['card_counts']['low_card_pool']);
+            $this->assertSame(200, $json['data']['card_counts']['warning_thresholds']['response_cards']);
+            $this->assertSame(25, $json['data']['card_counts']['warning_thresholds']['prompt_cards']);
+        } finally {
+            $this->cleanupTagCards($prefix);
+        }
+    }
+
+    public function testCreateRejectsTagSelectionWithZeroPromptCards(): void
+    {
+        $prefix = 'ControllerNoPrompt';
+        $tagId = $this->createTagWithCards($prefix, 2, 0);
+
+        try {
+            $request = $this->createJsonRequest('POST', '/api/games', [
+                'player_name' => 'Creator',
+                'tag_ids' => [$tagId],
+            ]);
+            $response = $this->controller->create($request, $this->responseFactory->createResponse());
+            $json = $this->decode($response);
+
+            $this->assertSame(422, $response->getStatusCode());
+            $this->assertFalse($json['success']);
+            $this->assertStringContainsString('Cannot create game: selected cards include', $json['error']);
+        } finally {
+            $this->cleanupTagCards($prefix);
+        }
     }
 
     public function testJoinStartedGameReturnsConflictPayload(): void

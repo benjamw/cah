@@ -73,6 +73,16 @@ export async function createGame(gameSettings) {
   });
 }
 
+// Preview card pool counts for create-game selections
+export async function previewCreateGame(tagIds) {
+  return apiRequest('/game/preview-create', {
+    method: 'POST',
+    body: JSON.stringify({
+      tag_ids: tagIds,
+    }),
+  });
+}
+
 // Start game
 export async function startGame(gameId) {
   return apiRequest('/game/start', {
@@ -126,6 +136,16 @@ export async function setNextCzar(gameId, nextCzarId) {
     body: JSON.stringify({
       game_id: gameId,
       next_czar_id: nextCzarId,
+    }),
+  });
+}
+
+// Skip current round and rotate czar (creator only)
+export async function skipCzar(gameId) {
+  return apiRequest('/game/skip-czar', {
+    method: 'POST',
+    body: JSON.stringify({
+      game_id: gameId,
     }),
   });
 }
@@ -192,7 +212,7 @@ export async function voteSkipCzar(gameId) {
   });
 }
 
-// Toggle player pause status (creator only)
+// Toggle player pause status (self allowed; creator required for other players)
 export async function togglePlayerPause(gameId, targetPlayerId) {
   return apiRequest('/game/toggle-player-pause', {
     method: 'POST',

@@ -84,14 +84,13 @@ Card Text,Tag1,Tag2,Tag3,Tag4,Tag5,Tag6,Tag7,Tag8,Tag9,Tag10
 
 ## Tag Categories
 
-The auto-tagging script (`scripts/add_tags.py`) detects these content warning tags:
+The tag analysis script is now `scripts/tag_cards.php`.
 
-- **Sexually Explicit** - Sexual content
-- **Sexist** - Sexist language or content
-- **Racist** - Racist language or content
-- **Profanity** - Profane language
-- **Violence** - Violent content
-- **Drugs** - Drug-related content
+It applies:
+- A rating tag (`Basic`, `Mild`, `Moderate`, `Severe`)
+- Advisory tags (for example `Sexually Explicit`, `Violence`, `Profanity`, `Drugs`, and `People`)
+
+See `analyzeCard()` and `determineRating()` in `scripts/tag_cards.php` for the complete, source-of-truth rules.
 
 ## Running Tests
 
