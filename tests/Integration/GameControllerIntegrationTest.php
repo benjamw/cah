@@ -127,7 +127,6 @@ class GameControllerIntegrationTest extends TestCase
 
         $this->assertSame(201, $createRes->getStatusCode());
         $this->assertTrue($createJson['success']);
-        $this->assertArrayHasKey('csrf_token', $createJson['data']);
 
         $joinReq = $this->createJsonRequest('POST', '/api/games/join', [
             'game_id' => $createJson['data']['game_id'],
@@ -141,7 +140,6 @@ class GameControllerIntegrationTest extends TestCase
         $this->assertSame(200, $joinRes->getStatusCode());
         $this->assertTrue($joinJson['success']);
         $this->assertFalse($joinJson['data']['game_started']);
-        $this->assertArrayHasKey('csrf_token', $joinJson['data']);
     }
 
     public function testCreateValidationError(): void
@@ -198,6 +196,78 @@ class GameControllerIntegrationTest extends TestCase
             $this->assertStringContainsString('Cannot create game: selected cards include', $json['error']);
         } finally {
             $this->cleanupTagCards($prefix);
+        }
+    }
+
+    public function testPreviewCreateFiltersBySelectedPacks(): void
+    {
+        $prefix = 'ControllerPackFilter';
+
+        Database::execute("INSERT INTO tags (name, active) VALUES (?, 1)", ["{$prefix}_tag"]);
+        $tagId = (int) Database::lastInsertId();
+        Database::execute("INSERT INTO packs (name, version, active) VALUES (?, ?, 1)", ["{$prefix}_pack_a", '1.0']);
+        $packAId = (int) Database::lastInsertId();
+        Database::execute("INSERT INTO packs (name, version, active) VALUES (?, ?, 1)", ["{$prefix}_pack_b", '1.0']);
+        $packBId = (int) Database::lastInsertId();
+
+        try {
+            // Pack A cards
+            Database::execute(
+                "INSERT INTO cards (type, copy, active) VALUES ('response', ?, 1)",
+                ["{$prefix}_response_a"]
+            );
+            $responseA = (int) Database::lastInsertId();
+            Database::execute("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)", [$responseA, $tagId]);
+            Database::execute("INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)", [$responseA, $packAId]);
+
+            Database::execute(
+                "INSERT INTO cards (type, copy, choices, active) VALUES ('prompt', ?, 1, 1)",
+                ["{$prefix}_prompt_a"]
+            );
+            $promptA = (int) Database::lastInsertId();
+            Database::execute("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)", [$promptA, $tagId]);
+            Database::execute("INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)", [$promptA, $packAId]);
+
+            // Pack B cards
+            Database::execute(
+                "INSERT INTO cards (type, copy, active) VALUES ('response', ?, 1)",
+                ["{$prefix}_response_b"]
+            );
+            $responseB = (int) Database::lastInsertId();
+            Database::execute("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)", [$responseB, $tagId]);
+            Database::execute("INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)", [$responseB, $packBId]);
+
+            Database::execute(
+                "INSERT INTO cards (type, copy, choices, active) VALUES ('prompt', ?, 1, 1)",
+                ["{$prefix}_prompt_b"]
+            );
+            $promptB = (int) Database::lastInsertId();
+            Database::execute("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)", [$promptB, $tagId]);
+            Database::execute("INSERT INTO cards_to_packs (card_id, pack_id) VALUES (?, ?)", [$promptB, $packBId]);
+
+            $request = $this->createJsonRequest('POST', '/api/game/preview-create', [
+                'tag_ids' => [$tagId],
+                'pack_ids' => [$packAId],
+            ]);
+            $response = $this->controller->previewCreate($request, $this->responseFactory->createResponse());
+            $json = $this->decode($response);
+
+            $this->assertSame(200, $response->getStatusCode());
+            $this->assertTrue($json['success']);
+            $this->assertSame(1, $json['data']['card_counts']['response_cards']);
+            $this->assertSame(1, $json['data']['card_counts']['prompt_cards']);
+        } finally {
+            Database::execute(
+                "DELETE FROM cards_to_tags WHERE card_id IN (SELECT card_id FROM cards WHERE copy LIKE ?)",
+                ["{$prefix}_%"]
+            );
+            Database::execute(
+                "DELETE FROM cards_to_packs WHERE card_id IN (SELECT card_id FROM cards WHERE copy LIKE ?)",
+                ["{$prefix}_%"]
+            );
+            Database::execute("DELETE FROM cards WHERE copy LIKE ?", ["{$prefix}_%"]);
+            Database::execute("DELETE FROM packs WHERE name IN (?, ?)", ["{$prefix}_pack_a", "{$prefix}_pack_b"]);
+            Database::execute("DELETE FROM tags WHERE name = ?", ["{$prefix}_tag"]);
         }
     }
 

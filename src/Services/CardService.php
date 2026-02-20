@@ -22,12 +22,13 @@ class CardService
      * Build a shuffled draw pile from selected tags
      *
      * @param array<int> $tagIds Array of tag IDs
+     * @param array<int> $packIds Array of pack IDs
      * @return DrawPile
      */
-    public static function buildDrawPile(array $tagIds): array
+    public static function buildDrawPile(array $tagIds, array $packIds = []): array
     {
-        $responseCardIds = Card::getActiveCardsByTypeAndTags(CardType::RESPONSE, $tagIds);
-        $promptCardIds = Card::getActiveCardsByTypeAndTags(CardType::PROMPT, $tagIds);
+        $responseCardIds = Card::getActiveCardsByTypeAndTags(CardType::RESPONSE, $tagIds, $packIds);
+        $promptCardIds = Card::getActiveCardsByTypeAndTags(CardType::PROMPT, $tagIds, $packIds);
 
         shuffle($responseCardIds);
         shuffle($promptCardIds);

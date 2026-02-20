@@ -13,6 +13,7 @@ use CAH\Enums\CardType;
 use CAH\Models\Game;
 use CAH\Models\Card;
 use CAH\Models\Tag;
+use CAH\Models\Pack;
 use CAH\Exceptions\GameNotFoundException;
 use CAH\Exceptions\PlayerNotFoundException;
 use CAH\Exceptions\InvalidGameStateException;
@@ -73,11 +74,12 @@ class GameService
      * @param string $creatorName Creator's display name
      * @param array<int> $tagIds Selected tag IDs
      * @param array<string, mixed> $settings Optional game settings
+     * @param array<int> $packIds Selected pack IDs
      * @return array{game_id: string, player_id: string, player_name: string}
      * @throws ValidationException
      * @throws GameCodeGenerationException
      */
-    public static function createGame(string $creatorName, array $tagIds, array $settings = []): array
+    public static function createGame(string $creatorName, array $tagIds, array $settings = [], array $packIds = []): array
     {
         $nameValidation = Validator::validatePlayerName($creatorName);
         if ( ! $nameValidation['valid']) {
@@ -92,9 +94,10 @@ class GameService
         }
 
         $tagIds = self::normalizeActiveTagIds($tagIds);
+        $packIds = self::normalizeActivePackIds($packIds);
 
         $creatorId = self::generatePlayerId();
-        $piles = CardService::buildDrawPile($tagIds);
+        $piles = CardService::buildDrawPile($tagIds, $packIds);
         $responseCardCount = count($piles['response']);
         $promptCardCount = count($piles['prompt']);
 
@@ -188,6 +191,7 @@ class GameService
      * Preview available card counts for a tag selection.
      *
      * @param array<int> $tagIds Selected tag IDs
+     * @param array<int> $packIds Selected pack IDs
      * @return array{
      *     response_cards: int,
      *     prompt_cards: int,
@@ -196,10 +200,11 @@ class GameService
      *     warning_thresholds: array{response_cards: int, prompt_cards: int}
      * }
      */
-    public static function previewCardPool(array $tagIds): array
+    public static function previewCardPool(array $tagIds, array $packIds = []): array
     {
         $tagIds = self::normalizeActiveTagIds($tagIds);
-        $piles = CardService::buildDrawPile($tagIds);
+        $packIds = self::normalizeActivePackIds($packIds);
+        $piles = CardService::buildDrawPile($tagIds, $packIds);
         $responseCardCount = count($piles['response']);
         $promptCardCount = count($piles['prompt']);
 
@@ -240,6 +245,30 @@ class GameService
         }
 
         return array_values(array_unique($activeTagIds));
+    }
+
+    /**
+     * Normalize selected packs to active pack IDs that exist.
+     *
+     * @param array<int> $packIds
+     * @return array<int>
+     */
+    private static function normalizeActivePackIds(array $packIds): array
+    {
+        if ($packIds === []) {
+            return [];
+        }
+
+        $validPacks = Pack::findMany($packIds);
+        $activePackIds = [];
+
+        foreach ($validPacks as $pack) {
+            if ( ! empty($pack['active'])) {
+                $activePackIds[] = (int) $pack['pack_id'];
+            }
+        }
+
+        return array_values(array_unique($activePackIds));
     }
 
     /**

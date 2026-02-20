@@ -8,14 +8,22 @@ if (file_exists(__DIR__ . '/../.env')) {
 }
 
 $dbConfig = require __DIR__ . '/../config/database.php';
+$testHost = $_ENV['TEST_DB_HOST'] ?? getenv('TEST_DB_HOST') ?: $dbConfig['host'];
+$testName = $_ENV['TEST_DB_NAME'] ?? getenv('TEST_DB_NAME') ?: null;
+$testUser = $_ENV['TEST_DB_USER'] ?? getenv('TEST_DB_USER') ?: $dbConfig['username'];
+$testPass = $_ENV['TEST_DB_PASS'] ?? getenv('TEST_DB_PASS') ?: $dbConfig['password'];
+
+if ($testName === null || trim((string) $testName) === '') {
+    throw new RuntimeException('TEST_DB_NAME is required for cleanup-test-db.php');
+}
 
 $pdo = new PDO(
-    "mysql:host={$dbConfig['host']};dbname={$dbConfig['database']}",
-    $dbConfig['username'],
-    $dbConfig['password']
+    "mysql:host={$testHost};dbname={$testName}",
+    $testUser,
+    $testPass
 );
 
-echo "Cleaning test database...\n";
+echo "Cleaning test database: {$testName}\n";
 
 $pdo->exec('DELETE FROM cards_to_tags');
 $pdo->exec('DELETE FROM tags');

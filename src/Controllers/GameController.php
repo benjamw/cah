@@ -30,11 +30,15 @@ class GameController
                 ->required($data['tag_ids'] ?? null, 'tag_ids')
                 ->array($data['tag_ids'] ?? null, 'tag_ids', 1);
 
+            if (isset($data['pack_ids'])) {
+                $validator->array($data['pack_ids'], 'pack_ids', 1);
+            }
+
             if ($validator->fails()) {
                 throw new ValidationException('Validation failed', $validator->getErrors());
             }
 
-            $cardCounts = GameService::previewCardPool($data['tag_ids']);
+            $cardCounts = GameService::previewCardPool($data['tag_ids'], $data['pack_ids']);
 
             return JsonResponse::success($response, [
                 'card_counts' => $cardCounts,
@@ -61,6 +65,10 @@ class GameController
                 ->required($data['tag_ids'] ?? null, 'tag_ids')
                 ->array($data['tag_ids'] ?? null, 'tag_ids', 1);
 
+            if (isset($data['pack_ids'])) {
+                $validator->array($data['pack_ids'], 'pack_ids', 1);
+            }
+
             if ($validator->fails()) {
                 throw new ValidationException('Validation failed', $validator->getErrors());
             }
@@ -68,19 +76,16 @@ class GameController
             $settings = $data['settings'] ?? [];
 
             $result = GameService::createGame(
-                $data['player_name'],
-                $data['tag_ids'],
-                $settings
+                creatorName: $data['player_name'],
+                tagIds: $data['tag_ids'],
+                packIds: $data['pack_ids'],
+                settings: $settings
             );
-
-            // Generate CSRF token for the session
-            $csrfToken = \CAH\Services\CsrfService::generateToken();
 
             return JsonResponse::success($response, [
                 'game_id' => $result['game_id'],
                 'player_id' => $result['player_id'],
                 'player_name' => $result['player_name'],
-                'csrf_token' => $csrfToken,
             ], null, 201);
         } catch (ValidationException $e) {
             return JsonResponse::validationError($response, $e->getErrors(), $e->getMessage());
@@ -111,9 +116,6 @@ class GameController
 
             $result = GameService::joinGame($data['game_id'], $data['player_name']);
 
-            // Generate CSRF token for the session
-            $csrfToken = \CAH\Services\CsrfService::generateToken();
-
             // Game already started - return error with player names for late join
             if ($result['game_started']) {
                 return JsonResponse::error(
@@ -124,7 +126,6 @@ class GameController
                     [
                         'game_started' => true,
                         'player_names' => $result['player_names'],
-                        'csrf_token' => $csrfToken,
                     ]
                 );
             }
@@ -134,7 +135,6 @@ class GameController
                 'player_id' => $result['player_id'],
                 'player_name' => $result['player_name'],
                 'game_state' => $result['game_state'],
-                'csrf_token' => $csrfToken,
             ]);
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());
@@ -432,14 +432,10 @@ class GameController
                 $data['adjacent_player_2']
             );
 
-            // Generate CSRF token for the session
-            $csrfToken = \CAH\Services\CsrfService::generateToken();
-
             return JsonResponse::success($response, [
                 'player_id' => $result['player_id'],
                 'player_name' => $result['player_name'],
                 'game_state' => $result['game_state'],
-                'csrf_token' => $csrfToken,
             ]);
         } catch (GameNotFoundException $e) {
             return JsonResponse::notFound($response, $e->getMessage());

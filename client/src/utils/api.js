@@ -74,11 +74,12 @@ export async function createGame(gameSettings) {
 }
 
 // Preview card pool counts for create-game selections
-export async function previewCreateGame(tagIds) {
+export async function previewCreateGame(tagIds, packIds = []) {
   return apiRequest('/game/preview-create', {
     method: 'POST',
     body: JSON.stringify({
       tag_ids: tagIds,
+      pack_ids: packIds,
     }),
   });
 }
@@ -153,6 +154,13 @@ export async function skipCzar(gameId) {
 // Get tags
 export async function getTags() {
   return apiRequest('/tags/list', {
+    method: 'GET',
+  });
+}
+
+// Get active packs
+export async function getPacks() {
+  return apiRequest('/packs/list', {
     method: 'GET',
   });
 }

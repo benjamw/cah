@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 /**
  * Create Test Database
- * 
- * Creates the cah_test database and runs the schema migration
+ *
+ * Creates the test database and runs the schema migration.
+ * Prefers TEST_DB_* env vars, then falls back to DB_*.
  */
 
 require __DIR__ . '/vendor/autoload.php';
@@ -16,10 +17,11 @@ if (file_exists(__DIR__ . '/.env')) {
     $dotenv->load();
 }
 
-$host = $_ENV['DB_HOST'] ?? '127.0.0.1';
-$port = $_ENV['DB_PORT'] ?? 3306;
-$username = $_ENV['DB_USER'] ?? 'root';
-$password = $_ENV['DB_PASS'] ?? '';
+$host = $_ENV['TEST_DB_HOST'] ?? $_ENV['DB_HOST'] ?? '127.0.0.1';
+$port = $_ENV['TEST_DB_PORT'] ?? $_ENV['DB_PORT'] ?? 3306;
+$database = $_ENV['TEST_DB_NAME'] ?? 'cah_game_test';
+$username = $_ENV['TEST_DB_USER'] ?? $_ENV['DB_USER'] ?? 'root';
+$password = $_ENV['TEST_DB_PASS'] ?? $_ENV['DB_PASS'] ?? '';
 
 echo "Creating test database...\n";
 echo "Host: {$host}:{$port}\n";
@@ -33,11 +35,11 @@ try {
     ]);
 
     // Create test database
-    $pdo->exec("CREATE DATABASE IF NOT EXISTS cah_game_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-    echo "Database 'cah_game_test' created (or already exists)\n";
+    $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+    echo "Database '{$database}' created (or already exists)\n";
 
     // Switch to test database
-    $pdo->exec("USE cah_game_test");
+    $pdo->exec("USE `{$database}`");
 
     // Read and execute schema
     $schemaFile = __DIR__ . '/database/schema.sql';

@@ -71,34 +71,56 @@ class Card
      *
      * @param CardType $cardType Card type enum
      * @param array<int> $tagIds Array of tag IDs to filter by
+     * @param array<int> $packIds Array of pack IDs to filter by (empty = all active packs)
      * @return array<int> Array of card IDs
      */
-    public static function getActiveCardsByTypeAndTags(CardType $cardType, array $tagIds): array
+    public static function getActiveCardsByTypeAndTags(CardType $cardType, array $tagIds, array $packIds = []): array
     {
+        $packFilterSql = '';
+        $packFilterParams = [];
+        if ($packIds !== []) {
+            $packPlaceholders = implode(',', array_fill(0, count($packIds), '?'));
+            $packFilterSql = "
+                AND EXISTS (
+                    SELECT 1
+                    FROM cards_to_packs cp_selected
+                    INNER JOIN packs p_selected ON cp_selected.pack_id = p_selected.pack_id
+                    WHERE cp_selected.card_id = c.card_id
+                        AND p_selected.active = 1
+                        AND cp_selected.pack_id IN ({$packPlaceholders})
+                )
+            ";
+            $packFilterParams = $packIds;
+        } else {
+            $packFilterSql = "
+                AND (
+                    -- Include cards that have at least one active pack
+                    EXISTS (
+                        SELECT 1
+                        FROM cards_to_packs cp
+                        INNER JOIN packs p ON cp.pack_id = p.pack_id
+                        WHERE cp.card_id = c.card_id
+                            AND p.active = 1
+                    )
+                    -- OR include cards that have no packs at all
+                    OR NOT EXISTS (
+                        SELECT 1
+                        FROM cards_to_packs cp
+                        WHERE cp.card_id = c.card_id
+                    )
+                )
+            ";
+        }
+
         if ($tagIds === []) {
             $sql = "
                 SELECT DISTINCT c.card_id
                 FROM cards c
                 WHERE c.active = 1
                     AND c.type = ?
-                    AND (
-                        -- Include cards that have at least one active pack
-                        EXISTS (
-                            SELECT 1
-                            FROM cards_to_packs cp
-                            INNER JOIN packs p ON cp.pack_id = p.pack_id
-                            WHERE cp.card_id = c.card_id
-                                AND p.active = 1
-                        )
-                        -- OR include cards that have no packs at all
-                        OR NOT EXISTS (
-                            SELECT 1
-                            FROM cards_to_packs cp
-                            WHERE cp.card_id = c.card_id
-                        )
-                    )
+                    {$packFilterSql}
             ";
-            return array_column(Database::fetchAll($sql, [$cardType->value]), 'card_id');
+            return array_column(Database::fetchAll($sql, array_merge([$cardType->value], $packFilterParams)), 'card_id');
         }
 
         // Get cards where ALL of the card's tags are in the selected tags list
@@ -118,25 +140,10 @@ class Card
                     FROM cards_to_tags ct
                     WHERE ct.tag_id NOT IN ({$placeholders})
                 )
-                AND (
-                    -- Include cards that have at least one active pack
-                    EXISTS (
-                        SELECT 1
-                        FROM cards_to_packs cp
-                        INNER JOIN packs p ON cp.pack_id = p.pack_id
-                        WHERE cp.card_id = c.card_id
-                            AND p.active = 1
-                    )
-                    -- OR include cards that have no packs at all
-                    OR NOT EXISTS (
-                        SELECT 1
-                        FROM cards_to_packs cp
-                        WHERE cp.card_id = c.card_id
-                    )
-                )
+                {$packFilterSql}
         ";
 
-        $params = array_merge([$cardType->value], $tagIds);
+        $params = array_merge([$cardType->value], $tagIds, $packFilterParams);
         return array_column(Database::fetchAll($sql, $params), 'card_id');
     }
 

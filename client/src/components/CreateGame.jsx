@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { createGame, getTags, previewCreateGame } from '../utils/api';
+import { createGame, getTags, getPacks, previewCreateGame } from '../utils/api';
 import { getCachedTags, setCachedTags } from '../utils/tagCache';
 
 const TAG_GROUP_ORDER = ['rating', 'advisory', 'other', 'source', 'location'];
@@ -36,6 +36,10 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
   const [tagsLoading, setTagsLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [packs, setPacks] = useState([]);
+  const [selectedPacks, setSelectedPacks] = useState([]);
+  const [packsLoading, setPacksLoading] = useState(true);
+  const [packSearch, setPackSearch] = useState('');
 
   // Filter out dangerous characters that could be used for attacks or cause display issues
   const handleNameChange = (e) => {
@@ -86,6 +90,27 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
       });
   }, []);
 
+  useEffect(() => {
+    // Load active packs for pack-level card filtering
+    setPacksLoading(true);
+
+    getPacks()
+      .then((response) => {
+        if (response.success && response.data && response.data.packs) {
+          const activePacks = response.data.packs;
+          setPacks(activePacks);
+          // All active packs are selected by default.
+          setSelectedPacks(activePacks.map((pack) => pack.pack_id));
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load packs:', err);
+      })
+      .finally(() => {
+        setPacksLoading(false);
+      });
+  }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -97,7 +122,12 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
         return;
       }
 
-      const preview = await previewCreateGame(selectedTags);
+      if (selectedPacks.length === 0) {
+        setError('Please select at least one card pack before creating a game.');
+        return;
+      }
+
+      const preview = await previewCreateGame(selectedTags, selectedPacks);
       if (!preview.success) {
         setError(preview.message || 'Unable to validate selected card pool');
         return;
@@ -133,6 +163,7 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
       const response = await createGame({
         player_name: playerName,
         tag_ids: selectedTags.length > 0 ? selectedTags : null,
+        pack_ids: selectedPacks.length > 0 ? selectedPacks : null,
         settings: {
           max_players: maxPlayers,
           max_score: maxScore,
@@ -177,6 +208,27 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
     setSelectedTags((prev) => {
       const allTagIds = tags.map((tag) => tag.tag_id);
       return allTagIds.filter((id) => !prev.includes(id));
+    });
+  };
+
+  const togglePack = (packId) => {
+    setSelectedPacks((prev) =>
+      prev.includes(packId) ? prev.filter((id) => id !== packId) : [...prev, packId]
+    );
+  };
+
+  const selectAllPacks = () => {
+    setSelectedPacks(packs.map((pack) => pack.pack_id));
+  };
+
+  const selectNoPacks = () => {
+    setSelectedPacks([]);
+  };
+
+  const invertPackSelection = () => {
+    setSelectedPacks((prev) => {
+      const allPackIds = packs.map((pack) => pack.pack_id);
+      return allPackIds.filter((id) => !prev.includes(id));
     });
   };
 
@@ -225,6 +277,19 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
 
     return groups;
   }, [tags]);
+
+  const filteredPacks = useMemo(() => {
+    const search = packSearch.trim().toLowerCase();
+    if (!search) {
+      return packs;
+    }
+
+    return packs.filter((pack) => {
+      const versionText = pack.version ? ` ${pack.version}` : '';
+      const haystack = `${pack.name}${versionText}`.toLowerCase();
+      return haystack.includes(search);
+    });
+  }, [packs, packSearch]);
 
   return (
     <div className="create-game">
@@ -372,6 +437,82 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        ) : null}
+
+        {packsLoading ? (
+          <div className="form-group">
+            <label>Card Packs</label>
+            <div className="loading">Loading packs...</div>
+          </div>
+        ) : packs.length > 0 ? (
+          <div className="form-group">
+            <label>Card Packs</label>
+            <small className="form-hint">
+              Click packs to add/remove them from the game card pool
+            </small>
+            <div className="tag-controls">
+              <button
+                type="button"
+                className="btn-tag-control"
+                onClick={selectAllPacks}
+                disabled={loading}
+              >
+                Check All
+              </button>
+              <button
+                type="button"
+                className="btn-tag-control"
+                onClick={selectNoPacks}
+                disabled={loading}
+              >
+                Check None
+              </button>
+              <button
+                type="button"
+                className="btn-tag-control"
+                onClick={invertPackSelection}
+                disabled={loading}
+              >
+                Invert
+              </button>
+            </div>
+            <div className="tag-selection-info">
+              {selectedPacks.length} of {packs.length} selected
+            </div>
+            <input
+              type="text"
+              className="pack-search-input"
+              placeholder="Search packs..."
+              value={packSearch}
+              onChange={(e) => setPackSearch(e.target.value)}
+              disabled={loading}
+            />
+            <div className="pack-selection-box" role="listbox" aria-multiselectable="true">
+              {filteredPacks.length > 0 ? (
+                filteredPacks.map((pack) => {
+                  const selected = selectedPacks.includes(pack.pack_id);
+                  const versionText = pack.version ? ` ${pack.version}` : '';
+                  return (
+                    <button
+                      key={pack.pack_id}
+                      type="button"
+                      className={`pack-row-button ${selected ? 'selected' : ''}`}
+                      onClick={() => togglePack(pack.pack_id)}
+                      disabled={loading}
+                      aria-selected={selected}
+                    >
+                      <span>{pack.name}{versionText}</span>
+                      <span className="pack-row-count">
+                        {pack.response_card_count || 0}W / {pack.prompt_card_count || 0}B
+                      </span>
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="pack-empty-state">No packs match your search.</div>
+              )}
             </div>
           </div>
         ) : null}

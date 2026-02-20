@@ -498,6 +498,75 @@ h3 {
   cursor: not-allowed;
 }
 
+/* Pack selector */
+.pack-search-input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: 14px;
+  border: 2px solid var(--color-gray-medium);
+  border-radius: var(--border-radius);
+  margin-bottom: var(--spacing-sm);
+}
+
+.pack-search-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.pack-selection-box {
+  max-height: 260px;
+  overflow-y: auto;
+  border: 2px solid var(--color-gray-medium);
+  border-radius: var(--border-radius);
+  background-color: var(--color-white);
+}
+
+.pack-row-button {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 10px var(--spacing-md);
+  border: none;
+  border-bottom: 1px solid var(--color-gray-medium);
+  background-color: var(--color-white);
+  color: var(--color-gray-dark);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pack-row-button:last-child {
+  border-bottom: none;
+}
+
+.pack-row-button:hover:not(:disabled) {
+  background-color: var(--color-gray-light);
+}
+
+.pack-row-button.selected {
+  background-color: #e7f1ff;
+  box-shadow: inset 3px 0 0 var(--color-primary);
+}
+
+.pack-row-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.pack-row-count {
+  color: var(--color-secondary);
+  white-space: nowrap;
+}
+
+.pack-empty-state {
+  padding: var(--spacing-md);
+  text-align: center;
+  color: var(--color-gray-dark);
+  font-size: 14px;
+}
+
 /* Game Header */
 .game-header {
   position: sticky;
