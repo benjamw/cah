@@ -37,13 +37,51 @@ class ExcelFormatter
         // Handle plain text with cell-level formatting
         $text = (string) $value;
 
+        // Excel hyperlink formulas can contain the visible card text as the second argument.
+        // Convert '=HYPERLINK("url","Visible text")' to just 'Visible text'.
+        $hyperlinkText = self::extractHyperlinkDisplayText($text);
+        if ($hyperlinkText !== null) {
+            $text = $hyperlinkText;
+        }
+
         if ($text === '' || $text === '0') {
             return '';
         }
 
         $formatted = self::formatPlainCellText($cell, $text, $cellWarnings);
+        $formatted = self::stripWholeCellUnderlineWrapper($formatted);
         self::mergeWarnings($warnings, $cellWarnings);
         return self::cleanWhitespace($formatted);
+    }
+
+    private static function extractHyperlinkDisplayText(string $value): ?string
+    {
+        $formula = trim($value);
+        if (!preg_match('/^=HYPERLINK\(/i', $formula)) {
+            return null;
+        }
+
+        // Match '=HYPERLINK("url","text")' and locale variants using ';' separator.
+        $matched = preg_match(
+            '/^=HYPERLINK\(\s*"(?:""|[^"])*"\s*[,;]\s*"((?:""|[^"])*)"\s*\)$/i',
+            $formula,
+            $matches
+        );
+        if ($matched !== 1) {
+            return null;
+        }
+
+        return str_replace('""', '"', $matches[1]);
+    }
+
+    private static function stripWholeCellUnderlineWrapper(string $text): string
+    {
+        $trimmed = trim($text);
+        if (str_starts_with($trimmed, '<u>') && str_ends_with($trimmed, '</u>')) {
+            return substr($trimmed, 3, -4);
+        }
+
+        return $text;
     }
 
     /**

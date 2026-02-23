@@ -37,7 +37,7 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [packs, setPacks] = useState([]);
-  const [selectedPacks, setSelectedPacks] = useState([]);
+  const [selectedPackNames, setSelectedPackNames] = useState([]);
   const [packsLoading, setPacksLoading] = useState(true);
   const [packSearch, setPackSearch] = useState('');
 
@@ -99,8 +99,6 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
         if (response.success && response.data && response.data.packs) {
           const activePacks = response.data.packs;
           setPacks(activePacks);
-          // All active packs are selected by default.
-          setSelectedPacks(activePacks.map((pack) => pack.pack_id));
         }
       })
       .catch((err) => {
@@ -110,6 +108,49 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
         setPacksLoading(false);
       });
   }, []);
+
+  const packNameOptions = useMemo(() => {
+    const groups = new Map();
+
+    for (const pack of packs) {
+      const name = String(pack.name || '').trim();
+      if (!name) {
+        continue;
+      }
+
+      if (!groups.has(name)) {
+        groups.set(name, {
+          name,
+          packIds: [],
+          promptCardCount: 0,
+          responseCardCount: 0,
+        });
+      }
+
+      const group = groups.get(name);
+      group.packIds.push(pack.pack_id);
+      group.promptCardCount += Number(pack.prompt_card_count || 0);
+      group.responseCardCount += Number(pack.response_card_count || 0);
+    }
+
+    return Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [packs]);
+
+  useEffect(() => {
+    // All pack names selected by default.
+    setSelectedPackNames(packNameOptions.map((pack) => pack.name));
+  }, [packNameOptions]);
+
+  const selectedPackIds = useMemo(() => {
+    const selectedNames = new Set(selectedPackNames);
+    const ids = [];
+    for (const pack of packNameOptions) {
+      if (selectedNames.has(pack.name)) {
+        ids.push(...pack.packIds);
+      }
+    }
+    return ids;
+  }, [packNameOptions, selectedPackNames]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -122,12 +163,12 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
         return;
       }
 
-      if (selectedPacks.length === 0) {
+      if (selectedPackIds.length === 0) {
         setError('Please select at least one card pack before creating a game.');
         return;
       }
 
-      const preview = await previewCreateGame(selectedTags, selectedPacks);
+      const preview = await previewCreateGame(selectedTags, selectedPackIds);
       if (!preview.success) {
         setError(preview.message || 'Unable to validate selected card pool');
         return;
@@ -163,7 +204,7 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
       const response = await createGame({
         player_name: playerName,
         tag_ids: selectedTags.length > 0 ? selectedTags : null,
-        pack_ids: selectedPacks.length > 0 ? selectedPacks : null,
+        pack_ids: selectedPackIds.length > 0 ? selectedPackIds : null,
         settings: {
           max_players: maxPlayers,
           max_score: maxScore,
@@ -211,24 +252,24 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
     });
   };
 
-  const togglePack = (packId) => {
-    setSelectedPacks((prev) =>
-      prev.includes(packId) ? prev.filter((id) => id !== packId) : [...prev, packId]
+  const togglePack = (packName) => {
+    setSelectedPackNames((prev) =>
+      prev.includes(packName) ? prev.filter((name) => name !== packName) : [...prev, packName]
     );
   };
 
   const selectAllPacks = () => {
-    setSelectedPacks(packs.map((pack) => pack.pack_id));
+    setSelectedPackNames(packNameOptions.map((pack) => pack.name));
   };
 
   const selectNoPacks = () => {
-    setSelectedPacks([]);
+    setSelectedPackNames([]);
   };
 
   const invertPackSelection = () => {
-    setSelectedPacks((prev) => {
-      const allPackIds = packs.map((pack) => pack.pack_id);
-      return allPackIds.filter((id) => !prev.includes(id));
+    setSelectedPackNames((prev) => {
+      const allPackNames = packNameOptions.map((pack) => pack.name);
+      return allPackNames.filter((name) => !prev.includes(name));
     });
   };
 
@@ -281,15 +322,11 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
   const filteredPacks = useMemo(() => {
     const search = packSearch.trim().toLowerCase();
     if (!search) {
-      return packs;
+      return packNameOptions;
     }
 
-    return packs.filter((pack) => {
-      const versionText = pack.version ? ` ${pack.version}` : '';
-      const haystack = `${pack.name}${versionText}`.toLowerCase();
-      return haystack.includes(search);
-    });
-  }, [packs, packSearch]);
+    return packNameOptions.filter((pack) => pack.name.toLowerCase().includes(search));
+  }, [packNameOptions, packSearch]);
 
   return (
     <div className="create-game">
@@ -479,7 +516,7 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
               </button>
             </div>
             <div className="tag-selection-info">
-              {selectedPacks.length} of {packs.length} selected
+              {selectedPackNames.length} of {packNameOptions.length} selected
             </div>
             <input
               type="text"
@@ -492,20 +529,19 @@ function CreateGame({ onGameCreated, onSwitchToJoin, playerName, setPlayerName }
             <div className="pack-selection-box" role="listbox" aria-multiselectable="true">
               {filteredPacks.length > 0 ? (
                 filteredPacks.map((pack) => {
-                  const selected = selectedPacks.includes(pack.pack_id);
-                  const versionText = pack.version ? ` ${pack.version}` : '';
+                  const selected = selectedPackNames.includes(pack.name);
                   return (
                     <button
-                      key={pack.pack_id}
+                      key={pack.name}
                       type="button"
                       className={`pack-row-button ${selected ? 'selected' : ''}`}
-                      onClick={() => togglePack(pack.pack_id)}
+                      onClick={() => togglePack(pack.name)}
                       disabled={loading}
                       aria-selected={selected}
                     >
-                      <span>{pack.name}{versionText}</span>
+                      <span>{pack.name}</span>
                       <span className="pack-row-count">
-                        {pack.response_card_count || 0}W / {pack.prompt_card_count || 0}B
+                        {pack.responseCardCount || 0}W / {pack.promptCardCount || 0}B
                       </span>
                     </button>
                   );
