@@ -62,7 +62,7 @@ export function setupPacksListeners() {
         const createUrl = `/admin/edit-pack.html?return=${encodeURIComponent(returnUrl)}`;
         window.location.href = createUrl;
     });
-    
+
     // Apply filters button
     document.getElementById('apply-pack-filters-btn').addEventListener('click', () => {
         stateManager.set({
@@ -75,25 +75,25 @@ export function setupPacksListeners() {
         });
         loadPacks();
     });
-    
+
     // Search on Enter key
     packSearchFilter.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             document.getElementById('apply-pack-filters-btn').click();
         }
     });
-    
+
     // Select all checkbox
     selectAllPacksCheckbox.addEventListener('change', (e) => {
         const checkboxes = document.querySelectorAll('.pack-checkbox');
         checkboxes.forEach(cb => cb.checked = e.target.checked);
         updateBulkActionButtons();
     });
-    
+
     // Bulk action buttons
     bulkActivateBtn.addEventListener('click', () => bulkTogglePacks(true));
     bulkDeactivateBtn.addEventListener('click', () => bulkTogglePacks(false));
-    
+
     // Pagination
     document.querySelectorAll('.pagination-prev').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -104,7 +104,7 @@ export function setupPacksListeners() {
             }
         });
     });
-    
+
     document.querySelectorAll('.pagination-next').forEach(btn => {
         btn.addEventListener('click', () => {
             const state = stateManager.get();
@@ -112,14 +112,14 @@ export function setupPacksListeners() {
             loadPacks();
         });
     });
-    
+
     // Event delegation for pack action buttons and checkboxes
     packsList.addEventListener('click', (e) => {
         const button = e.target.closest('[data-action]');
         if (button) {
             const action = button.dataset.action;
             const packId = parseInt(button.dataset.packId);
-            
+
             if (action === 'edit') {
                 editPack(packId);
             } else if (action === 'toggle') {
@@ -130,7 +130,7 @@ export function setupPacksListeners() {
             }
         }
     });
-    
+
     // Event delegation for checkbox changes
     packsList.addEventListener('change', (e) => {
         if (e.target.classList.contains('pack-checkbox')) {
@@ -166,24 +166,24 @@ export async function loadPacks() {
 
         if (data.success) {
             let packs = data.data.packs;
-            
+
             // Apply filters
             if (state.active !== '') {
                 const activeVal = state.active === '1';
                 packs = packs.filter(pack => (pack.active === 1 || pack.active === '1' || pack.active === true) === activeVal);
             }
-            
+
             if (state.search) {
                 const searchLower = state.search.toLowerCase();
-                packs = packs.filter(pack => 
+                packs = packs.filter(pack =>
                     pack.name.toLowerCase().includes(searchLower) ||
                     (pack.version && pack.version.toLowerCase().includes(searchLower))
                 );
             }
-            
+
             // Apply sorting
             packs = sortPacks(packs, state.sort, state.order);
-            
+
             // Render with pagination
             renderPacks(packs, state);
         } else {
@@ -200,7 +200,7 @@ export async function loadPacks() {
 function sortPacks(packs, sortBy, order) {
     const sorted = [...packs].sort((a, b) => {
         let aVal, bVal;
-        
+
         switch (sortBy) {
             case 'name':
                 aVal = a.name.toLowerCase();
@@ -226,12 +226,12 @@ function sortPacks(packs, sortBy, order) {
                 aVal = a.name.toLowerCase();
                 bVal = b.name.toLowerCase();
         }
-        
+
         if (aVal < bVal) return order === 'asc' ? -1 : 1;
         if (aVal > bVal) return order === 'asc' ? 1 : -1;
         return 0;
     });
-    
+
     return sorted;
 }
 
@@ -258,7 +258,7 @@ function renderPacks(packs, state) {
         const whiteCount = parseInt(pack.response_card_count) || 0;
         const blackCount = parseInt(pack.prompt_card_count) || 0;
         const totalCount = whiteCount + blackCount;
-        
+
         return `
             <div class="pack-item" data-id="${pack.pack_id}">
                 <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
@@ -290,7 +290,7 @@ function renderPacks(packs, state) {
             </div>
         `;
     }).join('');
-    
+
     // Reset checkbox states
     selectAllPacksCheckbox.checked = false;
     updateBulkActionButtons();
@@ -302,7 +302,7 @@ function updatePagination(total, state) {
     const pageText = `Page ${state.page} of ${totalPages} (${total} packs)`;
     const prevDisabled = state.page <= 1;
     const nextDisabled = state.page >= totalPages || total === 0;
-    
+
     // Update all pagination controls
     document.querySelectorAll('.pagination-info').forEach(el => {
         el.textContent = pageText;
@@ -426,7 +426,7 @@ export async function deletePack(packId) {
 export function updateBulkActionButtons() {
     const selectedCheckboxes = document.querySelectorAll('.pack-checkbox:checked');
     const hasSelection = selectedCheckboxes.length > 0;
-    
+
     bulkActivateBtn.style.display = hasSelection ? 'inline-block' : 'none';
     bulkDeactivateBtn.style.display = hasSelection ? 'inline-block' : 'none';
 }
@@ -436,24 +436,24 @@ export function updateBulkActionButtons() {
  */
 async function bulkTogglePacks(active) {
     const selectedCheckboxes = document.querySelectorAll('.pack-checkbox:checked');
-    
+
     if (selectedCheckboxes.length === 0) {
         alert('Please select at least one pack');
         return;
     }
-    
+
     const packIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.dataset.packId));
     const action = active ? 'activate' : 'deactivate';
-    
+
     if ( ! confirm(`Are you sure you want to ${action} ${packIds.length} pack(s)?`)) {
         return;
     }
-    
+
     try {
         // Disable bulk buttons during request
         bulkActivateBtn.disabled = true;
         bulkDeactivateBtn.disabled = true;
-        
+
         const data = await apiRequest('/admin/packs/bulk-toggle', {
             method: 'PUT',
             body: JSON.stringify({
@@ -461,7 +461,7 @@ async function bulkTogglePacks(active) {
                 active: active
             })
         });
-        
+
         if (data.success) {
             // Success - reload packs without scrolling to top
             await loadPacks();

@@ -30,12 +30,12 @@
 
                 <form id="edit-card-form" class="edit-form">
                     <input type="hidden" id="card-id" value="">
-                    
+
                     <div class="form-group">
                         <label for="card-text">Card Text</label>
                         <textarea id="card-text" name="text" rows="3" required></textarea>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="card-type">Type</label>
                         <select id="card-type" name="type" required>
@@ -43,7 +43,7 @@
                             <option value="prompt">Prompt (Black)</option>
                         </select>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="card-choices">Choices (0-10, 0 = None)</label>
                         <input type="number" id="card-choices" name="choices" min="0" max="10" step="1" value="0">
@@ -60,7 +60,7 @@
                         <label for="card-notes">Notes</label>
                         <textarea id="card-notes" name="notes" rows="4" placeholder="Optional card notes"></textarea>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="card-tags">Tags</label>
                         <select id="card-tags" name="tags" multiple size="8">
@@ -68,7 +68,7 @@
                         </select>
                         <small>Hold Ctrl (Cmd on Mac) to select multiple. Select "None" to remove all tags.</small>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="card-packs">Packs</label>
                         <select id="card-packs" name="packs" multiple size="8">
@@ -76,19 +76,19 @@
                         </select>
                         <small>Hold Ctrl (Cmd on Mac) to select multiple. Select "None" to remove all packs.</small>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>
                             <input type="checkbox" id="card-active" name="active" checked>
                             Active
                         </label>
                     </div>
-                    
+
                     <div class="form-actions">
                         <button type="submit" id="save-card-btn" class="btn btn-primary">Save Card</button>
                         <a href="#" id="cancel-link" class="btn btn-secondary">Cancel</a>
                     </div>
-                    
+
                     <div id="save-status" class="status-message"></div>
                 </form>
             </div>
@@ -102,24 +102,24 @@
 
         const cardId = getParamInt('id');
         const returnUrl = getParam('return', '/admin/cards.html');
-        
+
         // Set return links
         document.getElementById('return-link').href = returnUrl;
         document.getElementById('cancel-link').href = returnUrl;
-        
+
         if (!cardId) {
             alert('No card ID specified');
             window.location.href = returnUrl;
         }
-        
+
         // Load card data
         async function loadCard() {
             try {
                 const response = await apiRequest(`/admin/cards/${cardId}`);
-                
+
                 if (response.success && response.data.card) {
                     const card = response.data.card;
-                    
+
                     // Populate form
                     document.getElementById('card-id').value = card.card_id;
                     document.getElementById('card-text').value = card.copy;
@@ -129,13 +129,13 @@
                     document.getElementById('card-notes').value = card.notes ?? '';
                     document.getElementById('card-active').checked = card.active;
                     document.getElementById('edit-card-title').textContent = `Edit Card #${card.card_id}`;
-                    
+
                     // Update choices field visibility after type is set
                     updateChoicesVisibility();
-                    
+
                     // Load and select tags
                     await loadTags(card.tags || []);
-                    
+
                     // Load and select packs
                     await loadPacks(card.packs || []);
                 } else {
@@ -147,22 +147,22 @@
                 alert('Error loading card');
             }
         }
-        
+
         async function loadTags(selectedTags) {
             try {
                 const response = await apiRequest('/tags/list');
                 const tagsSelect = document.getElementById('card-tags');
-                
+
                 if (response.success && response.data.tags) {
                     // Add "None" option first
-                    tagsSelect.innerHTML = '<option value="none">— None —</option>' + 
-                        response.data.tags.map(tag => 
+                    tagsSelect.innerHTML = '<option value="none">— None —</option>' +
+                        response.data.tags.map(tag =>
                             `<option value="${tag.tag_id}">${tag.name}</option>`
                         ).join('');
-                    
+
                     // Select the tags this card has
                     const selectedIds = selectedTags.map(t => t.tag_id);
-                    
+
                     if (selectedIds.length === 0) {
                         // No tags selected - select "None"
                         tagsSelect.querySelector('option[value="none"]').selected = true;
@@ -174,7 +174,7 @@
                             }
                         });
                     }
-                    
+
                     // Setup change handler
                     setupMultiSelectNoneHandler(tagsSelect);
                 }
@@ -182,12 +182,12 @@
                 console.error('Error loading tags:', error);
             }
         }
-        
+
         async function loadPacks(selectedPacks) {
             try {
                 const response = await apiRequest('/packs/list-all');
                 const packsSelect = document.getElementById('card-packs');
-                
+
                 if (response.success && response.data.packs) {
                     // Add "None" option first
                     packsSelect.innerHTML = '<option value="none">— None —</option>' +
@@ -195,10 +195,10 @@
                             const version = pack.version ? ` v${pack.version}` : '';
                             return `<option value="${pack.pack_id}">${pack.name}${version}</option>`;
                         }).join('');
-                    
+
                     // Select the packs this card has
                     const selectedIds = selectedPacks.map(p => p.pack_id);
-                    
+
                     if (selectedIds.length === 0) {
                         // No packs selected - select "None"
                         packsSelect.querySelector('option[value="none"]').selected = true;
@@ -210,7 +210,7 @@
                             }
                         });
                     }
-                    
+
                     // Setup change handler
                     setupMultiSelectNoneHandler(packsSelect);
                 }
@@ -218,7 +218,7 @@
                 console.error('Error loading packs:', error);
             }
         }
-        
+
         /**
          * Setup handler for multi-select with "None" option
          * When "None" is selected, deselect all others
@@ -228,7 +228,7 @@
             selectElement.addEventListener('change', () => {
                 const noneOption = selectElement.querySelector('option[value="none"]');
                 const selectedOptions = Array.from(selectElement.selectedOptions);
-                
+
                 // If "None" was just selected
                 if (selectedOptions.some(opt => opt.value === 'none')) {
                     // Deselect all other options
@@ -250,33 +250,33 @@
                 }
             });
         }
-        
+
         // Handle form submission
         document.getElementById('edit-card-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const saveBtn = document.getElementById('save-card-btn');
             const statusDiv = document.getElementById('save-status');
-            
+
             try {
                 saveBtn.disabled = true;
                 statusDiv.textContent = 'Saving...';
                 statusDiv.className = 'status-message';
-                
+
                 // Get selected tags, filtering out "none"
                 const selectedTags = Array.from(document.getElementById('card-tags').selectedOptions)
                     .map(opt => opt.value)
                     .filter(val => val !== 'none');
-                
+
                 // Get selected packs, filtering out "none"
                 const selectedPacks = Array.from(document.getElementById('card-packs').selectedOptions)
                     .map(opt => opt.value)
                     .filter(val => val !== 'none');
-                
+
                 // Get choices value (convert 0 to null)
                 const choicesValue = parseInt(document.getElementById('card-choices').value);
                 const choices = choicesValue === 0 ? null : choicesValue;
-                
+
                 const formData = {
                     copy: document.getElementById('card-text').value,
                     type: document.getElementById('card-type').value,
@@ -287,16 +287,16 @@
                     tags: selectedTags.map(id => parseInt(id)),
                     packs: selectedPacks.map(id => parseInt(id))
                 };
-                
+
                 const response = await apiRequest(`/admin/cards/edit/${cardId}`, {
                     method: 'PUT',
                     body: JSON.stringify(formData)
                 });
-                
+
                 if (response.success) {
                     statusDiv.textContent = 'Card saved successfully!';
                     statusDiv.className = 'status-message success';
-                    
+
                     // Redirect back after short delay
                     setTimeout(() => {
                         window.location.href = returnUrl;
@@ -312,11 +312,11 @@
                 saveBtn.disabled = false;
             }
         });
-        
+
         // Toggle choices field visibility based on card type
         const cardTypeSelect = document.getElementById('card-type');
         const choicesField = document.getElementById('card-choices').closest('.form-group');
-        
+
         function updateChoicesVisibility() {
             const cardType = cardTypeSelect.value;
             if (cardType === 'prompt') {
@@ -325,9 +325,9 @@
                 choicesField.style.display = 'none';
             }
         }
-        
+
         cardTypeSelect.addEventListener('change', updateChoicesVisibility);
-        
+
         // Load card on page load
         loadCard();
     </script>

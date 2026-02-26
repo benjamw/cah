@@ -29,7 +29,7 @@ class GameCodeGeneratorTest extends TestCase
         }
 
         $uniqueCodes = array_unique($codes);
-        
+
         // With 100 codes, we should have high probability of uniqueness
         // Allow for small chance of collision (>95% unique)
         $this->assertGreaterThan(95, count($uniqueCodes));
@@ -79,7 +79,7 @@ class GameCodeGeneratorTest extends TestCase
     {
         // Generate many codes and check they only use allowed characters
         $allowedPattern = '/^[A-Z]+$/';
-        
+
         for ($i = 0; $i < 50; $i++) {
             $code = GameCodeGenerator::generate();
             $this->assertMatchesRegularExpression(

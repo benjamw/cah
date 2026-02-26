@@ -12,7 +12,7 @@ use CAH\Models\Card;
 
 /**
  * Admin Card Management Functional Tests
- * 
+ *
  * Tests admin functionality for creating, editing, and deleting cards
  */
 class AdminCardManagementTest extends TestCase
@@ -20,7 +20,7 @@ class AdminCardManagementTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Setup admin authentication
         $adminPassword = 'test_admin_pass';
         $_ENV['ADMIN_PASSWORD_HASH'] = password_hash($adminPassword, PASSWORD_DEFAULT);
@@ -70,7 +70,7 @@ class AdminCardManagementTest extends TestCase
         // Assert - choices should be auto-detected from blanks
         $card = Card::findById((int) $cardId);
         $blankCount = substr_count($cardValue, '_____');
-        
+
         // Note: Auto-detection would be done by service layer
         // For now, test the expected behavior
         $this->assertEquals('black', $card['card_type']);
@@ -273,14 +273,14 @@ class AdminCardManagementTest extends TestCase
             ['white', 'Card in game', 1]
         );
         $cardId = (int) Database::lastInsertId();
-        
+
         // Act - Soft delete the card
         Database::execute("UPDATE cards SET active = ? WHERE card_id = ?", [0, $cardId]);
 
         // Assert - Card can still be retrieved by ID (for active games)
         $card = Card::findById($cardId);
         $this->assertNotNull($card, 'Card should still be retrievable by ID');
-        
+
         // New games won't include it (only active cards)
         $activeCards = Card::getActiveCardsByTypeAndTags('white', []);
         $this->assertNotContains($cardId, $activeCards, 'Soft-deleted card not in new games');
@@ -294,13 +294,13 @@ class AdminCardManagementTest extends TestCase
             ['white', 'Card with tags']
         );
         $cardId = (int) Database::lastInsertId();
-        
+
         Database::execute(
             "INSERT INTO tags (name) VALUES (?)",
             ['test_tag']
         );
         $tagId = (int) Database::lastInsertId();
-        
+
         Database::execute(
             "INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)",
             [$cardId, $tagId]
@@ -313,7 +313,7 @@ class AdminCardManagementTest extends TestCase
         // Assert
         $card = Card::findById($cardId);
         $this->assertNull($card, 'Card should be deleted');
-        
+
         $associations = Database::fetchAll(
             "SELECT * FROM cards_to_tags WHERE card_id = ?",
             [$cardId]
@@ -339,7 +339,7 @@ class AdminCardManagementTest extends TestCase
             ['white', 'CSV card 1']
         );
         $card1Id = Database::lastInsertId();
-        
+
         Database::execute(
             "INSERT INTO cards (card_type, value) VALUES (?, ?)",
             ['white', 'CSV card 2']
@@ -349,12 +349,12 @@ class AdminCardManagementTest extends TestCase
         // Assert
         $card1 = Card::findById((int) $card1Id);
         $card2 = Card::findById((int) $card2Id);
-        
+
         $this->assertNotNull($card1);
         $this->assertNotNull($card2);
         $this->assertEquals('CSV card 1', $card1['value']);
         $this->assertEquals('CSV card 2', $card2['value']);
-        
+
         unlink($tempFile);
     }
 
@@ -363,24 +363,24 @@ class AdminCardManagementTest extends TestCase
         // This test documents expected behavior:
         // - Rows with missing required fields are skipped
         // - Errors are tracked and returned to user
-        
+
         // Arrange - CSV with one valid row and one invalid row
         $csvRows = [
             ['type' => 'white', 'text' => 'Valid card'],
             ['type' => '', 'text' => 'Missing type'], // Invalid - missing card_type
             ['type' => 'black', 'text' => ''], // Invalid - missing value
         ];
-        
+
         $imported = 0;
         $errors = [];
-        
+
         // Act - Import logic
         foreach ($csvRows as $index => $row) {
             if (empty($row['type']) || empty($row['text'])) {
                 $errors[] = "Row " . ($index + 1) . ": Missing required field";
                 continue;
             }
-            
+
             Database::execute(
                 "INSERT INTO cards (card_type, value) VALUES (?, ?)",
                 [$row['type'], $row['text']]
@@ -397,10 +397,10 @@ class AdminCardManagementTest extends TestCase
     {
         // This test documents expected behavior:
         // - If CSV structure is invalid (missing columns), entire import fails
-        
+
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Invalid CSV structure');
-        
+
         // Simulate CardImportService detecting missing card_type column
         throw new \Exception('Invalid CSV structure: missing required column "card_type"');
     }

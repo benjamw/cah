@@ -48,7 +48,7 @@ export function initCards() {
     cardPackStatusFilter = document.getElementById('card-pack-status-filter');
     cardSearchFilter = document.getElementById('card-search-filter');
     cardLimitFilter = document.getElementById('card-limit-filter');
-    
+
     importModal = document.getElementById('import-modal');
     uploadCsvBtn = document.getElementById('upload-csv-btn');
     csvFileInput = document.getElementById('csv-file');
@@ -76,7 +76,7 @@ export function setupCardsListeners() {
         });
         loadCards();
     });
-    
+
     // Search on Enter key
     cardSearchFilter.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
@@ -110,15 +110,15 @@ export function setupCardsListeners() {
     uploadCsvBtn.addEventListener('click', handleImportCards);
     importCardType.addEventListener('change', updateImportFormatInfo);
     saveCardBtn.addEventListener('click', handleSaveCard);
-    
+
     // Event delegation for card action buttons
     cardsList.addEventListener('click', (e) => {
         const button = e.target.closest('[data-action]');
         if (!button) return;
-        
+
         const action = button.dataset.action;
         const cardId = parseInt(button.dataset.cardId);
-        
+
         if (action === 'edit') {
             editCard(cardId);
         } else if (action === 'delete') {
@@ -134,12 +134,12 @@ export function setPackFilter(packId) {
     // Select the pack in the filter dropdown
     const packOptions = Array.from(cardPackFilter.options);
     packOptions.forEach(opt => opt.selected = false);
-    
+
     const targetOption = packOptions.find(opt => opt.value === String(packId));
     if (targetOption) {
         targetOption.selected = true;
     }
-    
+
     // Update state and reload
     stateManager.set({ pack: [String(packId)], page: 1 });
     loadCards();
@@ -172,7 +172,7 @@ export async function loadTagsFilter() {
                 data.data.tags.map(tag =>
                     `<option value="${tag.tag_id}">${tag.name} (${tag.total_card_count || 0})</option>`
                 ).join('');
-            
+
             // Restore tag selection from URL
             const state = stateManager.get();
             if (state.tag.length > 0) {
@@ -201,7 +201,7 @@ export async function loadPacksFilter() {
                     const count = (pack.response_card_count || 0) + (pack.prompt_card_count || 0);
                     return `<option value="${pack.pack_id}">${pack.name}${version} (${count})</option>`;
                 }).join('');
-            
+
             // Restore pack selection from URL
             const state = stateManager.get();
             if (state.pack.length > 0) {
@@ -273,7 +273,7 @@ function renderCards(cards) {
             const version = p.version ? ` (${p.version})` : '';
             return `${p.name}${version}`;
         }).join(', ') || 'None';
-        
+
         return `
         <div class="card-item" data-id="${card.card_id}">
             <div class="item-info">
@@ -308,7 +308,7 @@ function updatePagination(total) {
     const pageText = `Page ${state.page} of ${totalPages} (${total} cards)`;
     const prevDisabled = state.page <= 1;
     const nextDisabled = state.page >= totalPages;
-    
+
     // Update all pagination controls
     document.querySelectorAll('.pagination-info').forEach(el => {
         el.textContent = pageText;
@@ -340,10 +340,10 @@ export async function editCardModal(card) {
     document.getElementById('edit-card-text').value = card.copy;
     document.getElementById('edit-card-type').value = card.type;
     document.getElementById('edit-card-active').checked = card.active;
-    
+
     // Load tags and packs for the select boxes
     await loadCardTagsAndPacks(card.card_id);
-    
+
     editCardModalElement.classList.add('active');
 }
 
@@ -353,7 +353,7 @@ export async function editCardModal(card) {
 async function loadCardTagsAndPacks(cardId) {
     const tagsSelect = document.getElementById('edit-card-tags');
     const packsSelect = document.getElementById('edit-card-packs');
-    
+
     try {
         // Load all available tags and packs in parallel
         const [tagsResponse, packsResponse, cardTagsResponse, cardPacksResponse] = await Promise.all([
@@ -362,13 +362,13 @@ async function loadCardTagsAndPacks(cardId) {
             apiRequest(`/admin/cards/${cardId}/tags`),
             apiRequest(`/admin/cards/${cardId}/packs`)
         ]);
-        
+
         // Populate tags select box
         if (tagsResponse.success && tagsResponse.data.tags) {
-            const currentTagIds = cardTagsResponse.success 
-                ? cardTagsResponse.data.tags.map(t => t.tag_id) 
+            const currentTagIds = cardTagsResponse.success
+                ? cardTagsResponse.data.tags.map(t => t.tag_id)
                 : [];
-            
+
             tagsSelect.innerHTML = tagsResponse.data.tags.map(tag => {
                 const selected = currentTagIds.includes(tag.tag_id) ? 'selected' : '';
                 return `<option value="${tag.tag_id}" ${selected}>${tag.name}</option>`;
@@ -376,13 +376,13 @@ async function loadCardTagsAndPacks(cardId) {
         } else {
             tagsSelect.innerHTML = '<option value="">Error loading tags</option>';
         }
-        
+
         // Populate packs select box
         if (packsResponse.success && packsResponse.data.packs) {
-            const currentPackIds = cardPacksResponse.success 
-                ? cardPacksResponse.data.packs.map(p => p.pack_id) 
+            const currentPackIds = cardPacksResponse.success
+                ? cardPacksResponse.data.packs.map(p => p.pack_id)
                 : [];
-            
+
             packsSelect.innerHTML = packsResponse.data.packs.map(pack => {
                 const selected = currentPackIds.includes(pack.pack_id) ? 'selected' : '';
                 const version = pack.version ? ` v${pack.version}` : '';
@@ -403,7 +403,7 @@ async function handleSaveCard() {
     const text = document.getElementById('edit-card-text').value;
     const type = document.getElementById('edit-card-type').value;
     const active = document.getElementById('edit-card-active').checked;
-    
+
     const selectedTagIds = Array.from(document.getElementById('edit-card-tags').selectedOptions)
         .map(opt => parseInt(opt.value));
     const selectedPackIds = Array.from(document.getElementById('edit-card-packs').selectedOptions)
@@ -422,7 +422,7 @@ async function handleSaveCard() {
             alert(data.message || 'Failed to update card');
             return;
         }
-        
+
         // Sync tags and packs
         await syncCardTagsAndPacks(cardId, selectedTagIds, selectedPackIds);
 
@@ -445,41 +445,41 @@ async function syncCardTagsAndPacks(cardId, selectedTagIds, selectedPackIds) {
             apiRequest(`/admin/cards/${cardId}/tags`),
             apiRequest(`/admin/cards/${cardId}/packs`)
         ]);
-        
-        const currentTagIds = cardTagsResponse.success 
-            ? cardTagsResponse.data.tags.map(t => t.tag_id) 
+
+        const currentTagIds = cardTagsResponse.success
+            ? cardTagsResponse.data.tags.map(t => t.tag_id)
             : [];
-        const currentPackIds = cardPacksResponse.success 
-            ? cardPacksResponse.data.packs.map(p => p.pack_id) 
+        const currentPackIds = cardPacksResponse.success
+            ? cardPacksResponse.data.packs.map(p => p.pack_id)
             : [];
-        
+
         // Determine which tags to add and remove
         const tagsToAdd = selectedTagIds.filter(id => ! currentTagIds.includes(id));
         const tagsToRemove = currentTagIds.filter(id => ! selectedTagIds.includes(id));
-        
+
         // Determine which packs to add and remove
         const packsToAdd = selectedPackIds.filter(id => ! currentPackIds.includes(id));
         const packsToRemove = currentPackIds.filter(id => ! selectedPackIds.includes(id));
-        
+
         // Execute all changes in parallel
         const promises = [];
-        
+
         tagsToAdd.forEach(tagId => {
             promises.push(apiRequest(`/admin/cards/${cardId}/tags/${tagId}`, { method: 'POST' }));
         });
-        
+
         tagsToRemove.forEach(tagId => {
             promises.push(apiRequest(`/admin/cards/${cardId}/tags/${tagId}`, { method: 'DELETE' }));
         });
-        
+
         packsToAdd.forEach(packId => {
             promises.push(apiRequest(`/admin/cards/${cardId}/packs/${packId}`, { method: 'POST' }));
         });
-        
+
         packsToRemove.forEach(packId => {
             promises.push(apiRequest(`/admin/cards/${cardId}/packs/${packId}`, { method: 'DELETE' }));
         });
-        
+
         if (promises.length > 0) {
             await Promise.all(promises);
         }

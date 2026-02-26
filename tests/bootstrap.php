@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * PHPUnit Bootstrap File
- * 
+ *
  * Loads environment, sets up database, and seeds test data
  */
 

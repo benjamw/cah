@@ -227,7 +227,7 @@ The `.htaccess` files have HSTS (HTTP Strict Transport Security) headers comment
    ```apache
    # Change this:
    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-   
+
    # To this:
    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
    ```

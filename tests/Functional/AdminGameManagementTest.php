@@ -11,7 +11,7 @@ use CAH\Database\Database;
 
 /**
  * Admin Game Management Functional Tests
- * 
+ *
  * Tests admin functionality for viewing and deleting games
  */
 class AdminGameManagementTest extends TestCase
@@ -37,7 +37,7 @@ class AdminGameManagementTest extends TestCase
             []
         );
         $gameId = $createResult['game_id'];
-        
+
         GameService::joinGame($gameId, 'Player 2');
         GameService::joinGame($gameId, 'Player 3');
         GameService::startGame($gameId, $createResult['player_id']);
@@ -48,7 +48,7 @@ class AdminGameManagementTest extends TestCase
         // Assert - Can see all player hands (not filtered)
         $this->assertArrayHasKey('player_data', $game);
         $players = $game['player_data']['players'];
-        
+
         foreach ($players as $player) {
             $this->assertArrayHasKey('hand', $player, 'Admin can see player hands');
             $this->assertNotEmpty($player['hand'], 'Player hands are revealed to admin');
@@ -64,15 +64,15 @@ class AdminGameManagementTest extends TestCase
             []
         );
         $gameId = $createResult['game_id'];
-        
+
         GameService::joinGame($gameId, 'Player 2');
         GameService::joinGame($gameId, 'Player 3');
         GameService::startGame($gameId, $createResult['player_id']);
-        
+
         // Get a non-czar player to submit
         $game = Game::find($gameId);
         $czarId = $game['player_data']['current_czar_id'];
-        
+
         $nonCzarPlayer = null;
         foreach ($game['player_data']['players'] as $player) {
             if ($player['id'] !== $czarId) {
@@ -80,13 +80,13 @@ class AdminGameManagementTest extends TestCase
                 break;
             }
         }
-        
+
         // Submit cards
         $blackCard = $game['player_data']['current_black_card'];
         $blackCardData = \CAH\Models\Card::findById($blackCard);
         $choicesRequired = $blackCardData['choices'] ?? 1;
         $cardsToSubmit = array_slice($nonCzarPlayer['hand'], 0, $choicesRequired);
-        
+
         \CAH\Services\RoundService::submitCards($gameId, $nonCzarPlayer['id'], $cardsToSubmit);
 
         // Act - Admin views game before czar picks winner
@@ -95,7 +95,7 @@ class AdminGameManagementTest extends TestCase
         // Assert - Admin can see submissions (not hidden until czar picks)
         $this->assertArrayHasKey('submissions', $gameAfterSubmit['player_data']);
         $this->assertNotEmpty($gameAfterSubmit['player_data']['submissions']);
-        
+
         $submission = $gameAfterSubmit['player_data']['submissions'][0];
         $this->assertArrayHasKey('player_id', $submission);
         $this->assertArrayHasKey('cards', $submission);
@@ -110,7 +110,7 @@ class AdminGameManagementTest extends TestCase
             ['max_score' => 5, 'hand_size' => 10]
         );
         $gameId = $createResult['game_id'];
-        
+
         GameService::joinGame($gameId, 'Player 2');
         GameService::joinGame($gameId, 'Player 3');
         GameService::startGame($gameId, $createResult['player_id']);
@@ -126,7 +126,7 @@ class AdminGameManagementTest extends TestCase
         $this->assertArrayHasKey('player_data', $game);
         $this->assertArrayHasKey('created_at', $game);
         $this->assertArrayHasKey('updated_at', $game);
-        
+
         // Player data includes everything
         $playerData = $game['player_data'];
         $this->assertArrayHasKey('settings', $playerData);
@@ -146,7 +146,7 @@ class AdminGameManagementTest extends TestCase
             []
         );
         $gameId = $createResult['game_id'];
-        
+
         GameService::joinGame($gameId, 'Player 2');
         GameService::joinGame($gameId, 'Player 3');
         GameService::startGame($gameId, $createResult['player_id']);
@@ -158,7 +158,7 @@ class AdminGameManagementTest extends TestCase
         $this->assertArrayHasKey('draw_pile', $game);
         $this->assertArrayHasKey('white', $game['draw_pile']);
         $this->assertArrayHasKey('black', $game['draw_pile']);
-        
+
         $this->assertArrayHasKey('discard_pile', $game);
         $this->assertArrayHasKey('white', $game['discard_pile']);
         $this->assertArrayHasKey('black', $game['discard_pile']);
@@ -176,7 +176,7 @@ class AdminGameManagementTest extends TestCase
 
         // Assert
         $this->assertGreaterThanOrEqual(3, count($allGames));
-        
+
         $gameIds = array_column($allGames, 'game_id');
         $this->assertContains($game1['game_id'], $gameIds);
         $this->assertContains($game2['game_id'], $gameIds);
@@ -196,7 +196,7 @@ class AdminGameManagementTest extends TestCase
             []
         );
         $gameId = $createResult['game_id'];
-        
+
         // Manually set game to finished state
         Database::execute(
             "UPDATE games SET player_data = JSON_SET(player_data, '$.state', 'finished') WHERE game_id = ?",
@@ -216,7 +216,7 @@ class AdminGameManagementTest extends TestCase
         // This test documents expected behavior:
         // - Games in 'waiting' state require confirmation before deletion
         // - After confirmation, deletion proceeds
-        
+
         // Arrange
         $createResult = GameService::createGame(
             'Player 1',
@@ -224,7 +224,7 @@ class AdminGameManagementTest extends TestCase
             []
         );
         $gameId = $createResult['game_id'];
-        
+
         $game = Game::find($gameId);
         $gameState = $game['player_data']['state'];
 
@@ -246,11 +246,11 @@ class AdminGameManagementTest extends TestCase
             []
         );
         $gameId = $createResult['game_id'];
-        
+
         GameService::joinGame($gameId, 'Player 2');
         GameService::joinGame($gameId, 'Player 3');
         GameService::startGame($gameId, $createResult['player_id']);
-        
+
         $game = Game::find($gameId);
         $gameState = $game['player_data']['state'];
 
@@ -267,7 +267,7 @@ class AdminGameManagementTest extends TestCase
     {
         // This test documents expected behavior:
         // - Finished games can be deleted without warning
-        
+
         // Arrange
         $createResult = GameService::createGame(
             'Player 1',
@@ -275,7 +275,7 @@ class AdminGameManagementTest extends TestCase
             []
         );
         $gameId = $createResult['game_id'];
-        
+
         // Set to finished
         Database::execute(
             "UPDATE games SET player_data = JSON_SET(player_data, '$.state', 'finished') WHERE game_id = ?",
@@ -294,12 +294,12 @@ class AdminGameManagementTest extends TestCase
     {
         // Arrange - Create games in different states
         $waitingGame = GameService::createGame('P1', [$this->testCards['tag_id']], []);
-        
+
         $playingGame = GameService::createGame('P2', [$this->testCards['tag_id']], []);
         GameService::joinGame($playingGame['game_id'], 'P3');
         GameService::joinGame($playingGame['game_id'], 'P4');
         GameService::startGame($playingGame['game_id'], $playingGame['player_id']);
-        
+
         $finishedGame = GameService::createGame('P5', [$this->testCards['tag_id']], []);
         Database::execute(
             "UPDATE games SET player_data = JSON_SET(player_data, '$.state', 'finished') WHERE game_id = ?",
@@ -312,7 +312,7 @@ class AdminGameManagementTest extends TestCase
             $playingGame['game_id'],
             $finishedGame['game_id'],
         ];
-        
+
         foreach ($gameIds as $gameId) {
             Database::execute("DELETE FROM games WHERE game_id = ?", [$gameId]);
         }
@@ -340,7 +340,7 @@ class AdminGameManagementTest extends TestCase
         // Assert - All data is gone (no orphaned records)
         $game = Game::find($gameId);
         $this->assertNull($game);
-        
+
         // Verify no partial data remains
         $gameRecord = Database::fetchOne("SELECT * FROM games WHERE game_id = ?", [$gameId]);
         $this->assertNull($gameRecord, 'Game record should be completely removed');
@@ -355,7 +355,7 @@ class AdminGameManagementTest extends TestCase
         // This test documents expected behavior:
         // - Admins can VIEW and DELETE games
         // - Admins CANNOT modify game state (no edit endpoints)
-        
+
         // Arrange
         $createResult = GameService::createGame(
             'Player 1',
@@ -370,12 +370,12 @@ class AdminGameManagementTest extends TestCase
         // - Modifying game settings
         // - Force ending games
         // - Skipping rounds
-        
+
         // Admin can only:
         $canView = true; // Admin can view full state
         $canDelete = true; // Admin can delete games
         $canModify = false; // Admin CANNOT modify
-        
+
         $this->assertTrue($canView, 'Admin can view games');
         $this->assertTrue($canDelete, 'Admin can delete games');
         $this->assertFalse($canModify, 'Admin cannot modify games');
@@ -390,7 +390,7 @@ class AdminGameManagementTest extends TestCase
             []
         );
         $gameId = $createResult['game_id'];
-        
+
         GameService::joinGame($gameId, 'Player 2');
         GameService::joinGame($gameId, 'Player 3');
         GameService::startGame($gameId, $createResult['player_id']);
@@ -406,7 +406,7 @@ class AdminGameManagementTest extends TestCase
             $this->assertArrayHasKey('hand', $player);
             $this->assertNotEmpty($player['hand'], 'All hands visible to admin');
         }
-        
+
         // All submissions visible (even before revealed)
         if (isset($hydratedGame['submissions'])) {
             foreach ($hydratedGame['submissions'] as $submission) {

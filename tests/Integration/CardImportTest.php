@@ -19,7 +19,7 @@ use CAH\Database\Database;
 class CardImportTest extends TestCase
 {
     private static bool $needsReseed = false;
-    
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -37,7 +37,7 @@ class CardImportTest extends TestCase
     {
         parent::tearDown();
     }
-    
+
     public static function tearDownAfterClass(): void
     {
         // Re-seed base test data once after all tests in this class complete
@@ -140,7 +140,7 @@ class CardImportTest extends TestCase
     {
         // Create a tag with unique name for this test
         $tagId1 = Tag::create('Profanity_duplicateTest', null, true);
-        
+
         // Try to find existing tag (simulating import logic)
         $existingTags = Tag::getAll();
         $tagId2 = null;
@@ -152,7 +152,7 @@ class CardImportTest extends TestCase
         }
 
         $this->assertEquals($tagId1, $tagId2);
-        
+
         // Verify only one tag exists
         $allTags = Tag::getAll();
         $profanityTags = array_filter($allTags, fn(array $tag) => strcasecmp((string) $tag['name'], 'Profanity_duplicateTest') === 0);
@@ -166,7 +166,7 @@ class CardImportTest extends TestCase
     {
         // Create a tag with mixed case and unique name for this test
         $tagId1 = Tag::create('Profanity_caseTest', null, true);
-        
+
         // Try to find with different case
         $existingTags = Tag::getAll();
         $tagId2 = null;

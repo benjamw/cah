@@ -27,10 +27,10 @@ RewriteRule ^ index.php [QSA,L]
 
     # Enable XSS protection
     Header set X-XSS-Protection "1; mode=block"
-    
+
     # HTTP Strict Transport Security (HSTS)
     Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-    
+
     # Content Security Policy for API
     Header set Content-Security-Policy "default-src 'none'; frame-ancestors 'none';"
 </IfModule>

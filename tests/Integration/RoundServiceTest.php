@@ -36,7 +36,7 @@ class RoundServiceTest extends TestCase
             'game_state' => $gameState,
         ];
     }
-    
+
     /**
      * Extract card ID from hydrated card (which might be an array or int)
      */
@@ -44,7 +44,7 @@ class RoundServiceTest extends TestCase
     {
         return is_array($card) ? $card['card_id'] : $card;
     }
-    
+
     /**
      * Extract card IDs from array of cards (which might be hydrated or not)
      */
@@ -60,7 +60,7 @@ class RoundServiceTest extends TestCase
     {
         $game = $this->createPlayingGame();
         $gameId = $game['game_id'];
-        
+
         // Fetch fresh game state from database (not the filtered one returned by startGame)
         $gameData = Game::find($gameId);
         $gameState = $gameData['player_data'];
@@ -193,7 +193,7 @@ class RoundServiceTest extends TestCase
                 break;
             }
         }
-        
+
         // Use getCardIds to extract just the IDs from the hand
         $newCardsToSubmit = $this->getCardIds(array_slice($updatedPlayer['hand'], 0, $requiredCards));
 

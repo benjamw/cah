@@ -30,7 +30,7 @@ class EdgeCasesTest extends TestCase
     {
         return is_array($card) ? $card['card_id'] : $card;
     }
-    
+
     /**
      * Extract card IDs from array of cards (which might be hydrated or not)
      */
@@ -41,7 +41,7 @@ class EdgeCasesTest extends TestCase
         }
         return is_array($cards[0]) ? array_column($cards, 'card_id') : $cards;
     }
-    
+
     public function testGameWithRandoCardrissian(): void
     {
         $createResult = GameService::createGame('Creator', [TEST_TAG_ID], [

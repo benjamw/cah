@@ -32,7 +32,7 @@ export function setupTagsListeners() {
         const createUrl = `/admin/edit-tag.html?return=${encodeURIComponent(returnUrl)}`;
         window.location.href = createUrl;
     });
-    
+
     // Pagination
     document.querySelectorAll('.pagination-prev').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -42,7 +42,7 @@ export function setupTagsListeners() {
             }
         });
     });
-    
+
     document.querySelectorAll('.pagination-next').forEach(btn => {
         btn.addEventListener('click', () => {
             const totalPages = Math.ceil(allTags.length / itemsPerPage);
@@ -52,15 +52,15 @@ export function setupTagsListeners() {
             }
         });
     });
-    
+
     // Event delegation for tag action buttons
     tagsList.addEventListener('click', (e) => {
         const button = e.target.closest('[data-action]');
         if (!button) return;
-        
+
         const action = button.dataset.action;
         const tagId = parseInt(button.dataset.tagId);
-        
+
         if (action === 'edit') {
             editTag(tagId);
         } else if (action === 'toggle') {
@@ -134,7 +134,7 @@ function renderTags(tags) {
             </div>
         `;
     }).join('');
-    
+
     updatePagination(tags.length);
 }
 
@@ -143,7 +143,7 @@ function updatePagination(total) {
     const pageText = `Page ${currentPage} of ${totalPages} (${total} tags)`;
     const prevDisabled = currentPage <= 1;
     const nextDisabled = currentPage >= totalPages || total === 0;
-    
+
     // Update all pagination controls
     document.querySelectorAll('.pagination-info').forEach(el => {
         el.textContent = pageText;

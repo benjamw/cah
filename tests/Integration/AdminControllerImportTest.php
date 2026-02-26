@@ -29,7 +29,7 @@ class AdminControllerImportTest extends TestCase
     {
         parent::setUp();
         $this->controller = new AdminCardController();
-        
+
         // Don't delete between tests - let each test use unique names
         if ( ! self::$needsReseed) {
             // Only delete once at the start
@@ -44,7 +44,7 @@ class AdminControllerImportTest extends TestCase
     {
         parent::tearDown();
     }
-    
+
     public static function tearDownAfterClass(): void
     {
         // Re-seed base test data once after all tests in this class complete
@@ -137,7 +137,7 @@ class AdminControllerImportTest extends TestCase
 
         // Check response
         $this->assertEquals(200, $result->getStatusCode());
-        
+
         $body = (string) $result->getBody();
         $data = json_decode($body, true);
 
@@ -174,7 +174,7 @@ class AdminControllerImportTest extends TestCase
 
         // Check response
         $this->assertEquals(200, $result->getStatusCode());
-        
+
         $body = (string) $result->getBody();
         $data = json_decode($body, true);
 

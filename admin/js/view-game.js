@@ -13,11 +13,11 @@ let gameId;
  */
 export function initViewGame() {
     contentContainer = document.getElementById('game-details-content');
-    
+
     // Get game ID from URL
     const urlParams = new URLSearchParams(window.location.search);
     gameId = urlParams.get('id');
-    
+
     if (!gameId) {
         contentContainer.innerHTML = '<div class="loading">Error: No game ID provided</div>';
     }
@@ -30,24 +30,24 @@ export async function loadGameDetails() {
     if (!gameId) {
         return;
     }
-    
+
     contentContainer.innerHTML = '<div class="loading">Loading game details...</div>';
-    
+
     try {
         // Fetch game data including history
         const [gameData, historyData] = await Promise.all([
             apiRequest(`/games/view/${gameId}`),
             apiRequest(`/admin/games/${gameId}/history`).catch(() => ({ success: false, data: { history: [] } }))
         ]);
-        
+
         if (!gameData.success) {
             contentContainer.innerHTML = '<div class="loading">Failed to load game details</div>';
             return;
         }
-        
+
         const game = gameData.data.game;
         const history = historyData.success ? historyData.data.history : [];
-        
+
         renderGameDetails(game, history);
     } catch (error) {
         console.error('Error loading game:', error);
@@ -62,7 +62,7 @@ function renderGameDetails(game, history) {
     const playerData = typeof game.player_data === 'string'
         ? JSON.parse(game.player_data)
         : game.player_data;
-    
+
     contentContainer.innerHTML = `
         ${renderOverview(game, playerData)}
         ${renderSettings(playerData.settings || {})}
@@ -83,7 +83,7 @@ function renderOverview(game, playerData) {
     const currentRound = playerData.current_round || 0;
     const playerCount = playerData.players?.length || 0;
     const maxPlayers = playerData.settings?.max_players || 10;
-    
+
     return `
         <div class="detail-card">
             <h3>Game Overview</h3>
@@ -176,10 +176,10 @@ function renderPlayers(players) {
             </div>
         `;
     }
-    
+
     // Sort players by score (descending)
     const sortedPlayers = [...players].sort((a, b) => (b.score || 0) - (a.score || 0));
-    
+
     const playersHtml = sortedPlayers.map(player => {
         const isCzar = player.is_czar || false;
         const isPaused = player.paused || false;
@@ -187,7 +187,7 @@ function renderPlayers(players) {
         const classes = ['player-card'];
         if (isCzar) classes.push('czar');
         if (isPaused) classes.push('paused');
-        
+
         return `
             <div class="${classes.join(' ')}">
                 <div class="player-name">
@@ -204,7 +204,7 @@ function renderPlayers(players) {
             </div>
         `;
     }).join('');
-    
+
     return `
         <div class="detail-card">
             <h3>Players (${players.length})</h3>
@@ -227,24 +227,24 @@ function renderCurrentRound(playerData) {
             </div>
         `;
     }
-    
+
     const promptCard = playerData.current_prompt_card;
     const submissions = playerData.submissions || [];
     const submittedCount = submissions.filter(s => s.cards && s.cards.length > 0).length;
     const totalPlayers = (playerData.players?.length || 1) - 1; // Exclude czar
-    
+
     const submissionsHtml = submissions.length > 0
         ? `
             <h4 style="margin-top: 1.5rem; margin-bottom: 1rem;">Submissions (${submittedCount} / ${totalPlayers})</h4>
             <div class="response-cards">
                 ${submissions.map(sub => {
                     if (!sub.cards || sub.cards.length === 0) return '';
-                    
+
                     const cardsText = sub.cards.map(card => {
                         const cardText = typeof card === 'object' ? card.copy : card;
                         return escapeHtml(cardText);
                     }).join(' / ');
-                    
+
                     return `
                         <div class="response-card">
                             <div style="font-size: 0.75rem; color: var(--secondary-color); margin-bottom: 0.5rem;">
@@ -257,7 +257,7 @@ function renderCurrentRound(playerData) {
             </div>
         `
         : '<p style="color: var(--secondary-color);">No submissions yet</p>';
-    
+
     return `
         <div class="detail-card">
             <h3>Current Round (Round ${playerData.current_round || 0})</h3>
@@ -281,16 +281,16 @@ function renderHistory(history, players) {
             </div>
         `;
     }
-    
+
     // Sort history by round number (descending)
     const sortedHistory = [...history].sort((a, b) => (b.round || 0) - (a.round || 0));
-    
+
     const historyHtml = sortedHistory.map(round => {
         const czarName = getPlayerName(round.czar_id, players);
         const winnerName = getPlayerName(round.winner_id, players);
-        
+
         const promptText = round.prompt_card?.copy || round.prompt_card?.text || 'Unknown prompt';
-        
+
         const submissionsHtml = round.submissions && round.submissions.length > 0
             ? `
                 <h4 style="margin-top: 1rem; margin-bottom: 0.75rem;">Submissions</h4>
@@ -298,12 +298,12 @@ function renderHistory(history, players) {
                     ${round.submissions.map(sub => {
                         const isWinner = sub.player_id === round.winner_id;
                         const playerName = getPlayerName(sub.player_id, players);
-                        
+
                         const cardsText = (sub.cards || []).map(card => {
                             const cardText = typeof card === 'object' ? card.copy : card;
                             return escapeHtml(cardText);
                         }).join(' / ');
-                        
+
                         return `
                             <div class="response-card ${isWinner ? 'winner' : ''}">
                                 ${isWinner ? '<div class="winner-badge">WINNER</div>' : ''}
@@ -317,7 +317,7 @@ function renderHistory(history, players) {
                 </div>
             `
             : '';
-        
+
         return `
             <div class="history-item">
                 <div class="history-header">
@@ -333,7 +333,7 @@ function renderHistory(history, players) {
             </div>
         `;
     }).join('');
-    
+
     return `
         <div class="detail-card">
             <h3>Round History (${history.length} ${history.length === 1 ? 'round' : 'rounds'})</h3>
@@ -347,7 +347,7 @@ function renderHistory(history, players) {
  */
 function renderRawData(game) {
     const jsonStr = JSON.stringify(game, null, 2);
-    
+
     return `
         <div class="detail-card">
             <h3>Raw Game Data</h3>

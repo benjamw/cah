@@ -9,7 +9,7 @@ use CAH\Database\Database;
 
 /**
  * Admin Tag Management Functional Tests
- * 
+ *
  * Tests admin functionality for creating, editing, and deleting tags
  */
 class AdminTagManagementTest extends TestCase
@@ -210,10 +210,10 @@ class AdminTagManagementTest extends TestCase
         // Arrange - Create tag, card, and association
         Database::execute("INSERT INTO tags (name) VALUES (?)", ['test_tag']);
         $tagId = (int) Database::lastInsertId();
-        
+
         Database::execute("INSERT INTO cards (card_type, value) VALUES (?, ?)", ['white', 'Test']);
         $cardId = (int) Database::lastInsertId();
-        
+
         Database::execute(
             "INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)",
             [$cardId, $tagId]
@@ -235,7 +235,7 @@ class AdminTagManagementTest extends TestCase
         // Arrange - Create active and inactive tags
         Database::execute("INSERT INTO tags (name, active) VALUES (?, ?)", ['active_tag', 1]);
         $activeTagId = (int) Database::lastInsertId();
-        
+
         Database::execute("INSERT INTO tags (name, active) VALUES (?, ?)", ['inactive_tag', 0]);
         $inactiveTagId = (int) Database::lastInsertId();
 
@@ -253,10 +253,10 @@ class AdminTagManagementTest extends TestCase
         // Arrange - Create card with tag association
         Database::execute("INSERT INTO cards (card_type, value) VALUES (?, ?)", ['white', 'Card']);
         $cardId = (int) Database::lastInsertId();
-        
+
         Database::execute("INSERT INTO tags (name) VALUES (?)", ['tag1']);
         $tagId = (int) Database::lastInsertId();
-        
+
         Database::execute(
             "INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)",
             [$cardId, $tagId]
@@ -283,7 +283,7 @@ class AdminTagManagementTest extends TestCase
         // Arrange
         Database::execute("INSERT INTO cards (card_type, value) VALUES (?, ?)", ['white', 'Card']);
         $cardId = (int) Database::lastInsertId();
-        
+
         Database::execute("INSERT INTO tags (name) VALUES (?)", ['new_tag']);
         $tagId = (int) Database::lastInsertId();
 
@@ -306,10 +306,10 @@ class AdminTagManagementTest extends TestCase
         // Arrange
         Database::execute("INSERT INTO cards (card_type, value) VALUES (?, ?)", ['white', 'Card']);
         $cardId = (int) Database::lastInsertId();
-        
+
         Database::execute("INSERT INTO tags (name) VALUES (?)", ['tag']);
         $tagId = (int) Database::lastInsertId();
-        
+
         Database::execute(
             "INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)",
             [$cardId, $tagId]
@@ -328,10 +328,10 @@ class AdminTagManagementTest extends TestCase
         // Arrange
         Database::execute("INSERT INTO cards (card_type, value) VALUES (?, ?)", ['white', 'Card']);
         $cardId = (int) Database::lastInsertId();
-        
+
         Database::execute("INSERT INTO tags (name) VALUES (?)", ['tag']);
         $tagId = (int) Database::lastInsertId();
-        
+
         Database::execute(
             "INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)",
             [$cardId, $tagId]
@@ -372,10 +372,10 @@ class AdminTagManagementTest extends TestCase
         // Arrange - Card with one tag
         Database::execute("INSERT INTO cards (card_type, value) VALUES (?, ?)", ['white', 'Card']);
         $cardId = (int) Database::lastInsertId();
-        
+
         Database::execute("INSERT INTO tags (name) VALUES (?)", ['only_tag']);
         $tagId = (int) Database::lastInsertId();
-        
+
         Database::execute(
             "INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)",
             [$cardId, $tagId]
@@ -400,13 +400,13 @@ class AdminTagManagementTest extends TestCase
         // Arrange
         Database::execute("INSERT INTO cards (card_type, value) VALUES (?, ?)", ['white', 'Multi-tag']);
         $cardId = (int) Database::lastInsertId();
-        
+
         Database::execute("INSERT INTO tags (name) VALUES (?)", ['tag1']);
         $tag1Id = (int) Database::lastInsertId();
-        
+
         Database::execute("INSERT INTO tags (name) VALUES (?)", ['tag2']);
         $tag2Id = (int) Database::lastInsertId();
-        
+
         Database::execute("INSERT INTO tags (name) VALUES (?)", ['tag3']);
         $tag3Id = (int) Database::lastInsertId();
 

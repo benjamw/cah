@@ -33,7 +33,7 @@ function setupPaginationListeners() {
             }
         });
     });
-    
+
     document.querySelectorAll('.pagination-next').forEach(btn => {
         btn.addEventListener('click', () => {
             const totalPages = Math.ceil(allGames.length / itemsPerPage);
@@ -52,10 +52,10 @@ function setupGameActionsListener() {
     gamesList.addEventListener('click', (e) => {
         const button = e.target.closest('[data-action]');
         if (!button) return;
-        
+
         const action = button.dataset.action;
         const gameId = button.dataset.gameId;
-        
+
         if (action === 'view') {
             viewGame(gameId);
         } else if (action === 'delete') {
@@ -125,7 +125,7 @@ function renderGames(games) {
             </div>
         `;
     }).join('');
-    
+
     updatePagination(games.length);
 }
 
@@ -134,7 +134,7 @@ function updatePagination(total) {
     const pageText = `Page ${currentPage} of ${totalPages} (${total} games)`;
     const prevDisabled = currentPage <= 1;
     const nextDisabled = currentPage >= totalPages || total === 0;
-    
+
     // Update all pagination controls
     document.querySelectorAll('.pagination-info').forEach(el => {
         el.textContent = pageText;

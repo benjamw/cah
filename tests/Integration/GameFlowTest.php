@@ -28,7 +28,7 @@ class GameFlowTest extends TestCase
     {
         return is_array($card) ? $card['card_id'] : $card;
     }
-    
+
     /**
      * Extract card IDs from array of cards (which might be hydrated or not)
      */
@@ -39,7 +39,7 @@ class GameFlowTest extends TestCase
         }
         return is_array($cards[0]) ? array_column($cards, 'card_id') : $cards;
     }
-    
+
     public function testCreateGameSuccessfully(): void
     {
         $result = GameService::createGame('Test Player', [TEST_TAG_ID], [
@@ -161,7 +161,7 @@ class GameFlowTest extends TestCase
         $gameState = GameService::startGame($gameId, $creatorId);
 
         $czarId = $gameState['current_czar_id'];
-        
+
         // Get full game state from database (startGame filters hands)
         $game = Game::find($gameId);
         $players = $game['player_data']['players'];

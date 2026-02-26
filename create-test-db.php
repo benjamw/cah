@@ -44,7 +44,7 @@ try {
     // Read and execute schema
     $schemaFile = __DIR__ . '/database/schema.sql';
     $sql = file_get_contents($schemaFile);
-    
+
     // Remove comments and split by semicolons
     $sql = preg_replace('/--.*$/m', '', $sql);
     $sql = preg_replace('/\/\*.*?\*\//s', '', $sql);

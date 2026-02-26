@@ -1,6 +1,6 @@
 /**
  * URL State Management
- * 
+ *
  * Global utility for managing page state in URL query parameters
  */
 
@@ -52,23 +52,23 @@ export function getParamAll(key) {
 export function updateURL(state, options = {}) {
     const { exclude = [], defaults = {} } = options;
     const params = new URLSearchParams();
-    
+
     for (const [key, value] of Object.entries(state)) {
         // Skip excluded keys
         if (exclude.includes(key)) {
             continue;
         }
-        
+
         // Skip if value is null or undefined
         if (value === null || value === undefined) {
             continue;
         }
-        
+
         // Skip if value matches default
         if (defaults[key] !== undefined && value === defaults[key]) {
             continue;
         }
-        
+
         // Handle arrays (for multi-select)
         if (Array.isArray(value)) {
             value.forEach(v => {
@@ -89,11 +89,11 @@ export function updateURL(state, options = {}) {
             params.set(key, String(value));
         }
     }
-    
-    const newURL = params.toString() 
+
+    const newURL = params.toString()
         ? `${window.location.pathname}?${params.toString()}`
         : window.location.pathname;
-    
+
     window.history.replaceState({}, '', newURL);
 }
 
@@ -101,7 +101,7 @@ export function updateURL(state, options = {}) {
  * Read state from URL into an object
  * @param {Object} schema - Schema defining expected parameters
  * @returns {Object} State object
- * 
+ *
  * Schema format:
  * {
  *   key: { type: 'string'|'int'|'array', default: any }
@@ -110,22 +110,22 @@ export function updateURL(state, options = {}) {
 export function readStateFromURL(schema) {
     const state = {};
     const params = getURLParams();
-    
+
     for (const [key, config] of Object.entries(schema)) {
         const { type = 'string', default: defaultValue = null } = config;
-        
+
         switch (type) {
             case 'int':
             case 'integer':
             case 'number':
                 state[key] = getParamInt(key, defaultValue);
                 break;
-                
+
             case 'array':
                 const values = getParamAll(key);
                 state[key] = values.length > 0 ? values : (defaultValue || []);
                 break;
-                
+
             case 'bool':
             case 'boolean':
                 const boolVal = params.get(key);
@@ -135,14 +135,14 @@ export function readStateFromURL(schema) {
                     state[key] = boolVal === '1' || boolVal === 'true';
                 }
                 break;
-                
+
             case 'string':
             default:
                 state[key] = getParam(key, defaultValue);
                 break;
         }
     }
-    
+
     return state;
 }
 
@@ -157,15 +157,15 @@ export function applyStateToForm(state, elementMap) {
         if (value === undefined || value === null) {
             continue;
         }
-        
+
         const element = typeof elementIdOrElement === 'string'
             ? document.getElementById(elementIdOrElement)
             : elementIdOrElement;
-        
+
         if (!element) {
             continue;
         }
-        
+
         // Handle select elements (including multi-select)
         if (element.tagName === 'SELECT') {
             if (element.multiple) {
@@ -198,7 +198,7 @@ export function applyStateToForm(state, elementMap) {
  */
 export function createStateManager(schema, options = {}) {
     let currentState = readStateFromURL(schema);
-    
+
     return {
         /**
          * Get current state
@@ -206,14 +206,14 @@ export function createStateManager(schema, options = {}) {
         get() {
             return { ...currentState };
         },
-        
+
         /**
          * Get a specific state value
          */
         getValue(key) {
             return currentState[key];
         },
-        
+
         /**
          * Set state and update URL
          */
@@ -221,7 +221,7 @@ export function createStateManager(schema, options = {}) {
             currentState = { ...currentState, ...newState };
             updateURL(currentState, options);
         },
-        
+
         /**
          * Update a single state value
          */
@@ -229,7 +229,7 @@ export function createStateManager(schema, options = {}) {
             currentState[key] = value;
             updateURL(currentState, options);
         },
-        
+
         /**
          * Reload state from URL (useful after browser back/forward)
          */
@@ -237,7 +237,7 @@ export function createStateManager(schema, options = {}) {
             currentState = readStateFromURL(schema);
             return { ...currentState };
         },
-        
+
         /**
          * Apply current state to form elements
          */

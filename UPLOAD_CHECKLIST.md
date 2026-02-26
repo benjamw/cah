@@ -63,7 +63,7 @@ All three `.htaccess` files are production-ready and work as-is:
 
 1. **Root `.htaccess`**: Routes everything correctly
    - `/` → Client app
-   - `/api/*` → API endpoints  
+   - `/api/*` → API endpoints
    - `/admin/*` → Admin panel
    - Removes trailing slashes
    - Security headers included

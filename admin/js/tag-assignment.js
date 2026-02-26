@@ -37,10 +37,10 @@ export async function loadTagAssignmentPage() {
     let tagSelect = document.getElementById('tag-assignment-select');
     const cardsContainer = document.getElementById('tag-assignment-cards');
     const quickFiltersDiv = document.getElementById('tag-assignment-quick-filters');
-    
+
     // Get current state from URL
     const state = stateManager.get();
-    
+
     // Clear existing options except the first one
     tagSelect.innerHTML = '<option value="">-- Select a tag --</option>';
 
@@ -54,7 +54,7 @@ export async function loadTagAssignmentPage() {
                 option.textContent = `${tag.name} (W: ${tag.response_card_count || 0}, B: ${tag.prompt_card_count || 0})`;
                 tagSelect.appendChild(option);
             });
-            
+
             // Restore tag selection from URL
             if (state.tag) {
                 tagSelect.value = state.tag.toString();
@@ -68,7 +68,7 @@ export async function loadTagAssignmentPage() {
 
     // Setup event listeners AFTER populating the select
     setupTagAssignmentListeners();
-    
+
     // Restore filter values from URL
     stateManager.applyToForm({
         type: 'tag-assignment-type-filter',
@@ -76,7 +76,7 @@ export async function loadTagAssignmentPage() {
         status: 'tag-assignment-status-filter',
         limit: 'tag-assignment-limit-filter'
     });
-    
+
     // Update quick filter button states
     updateQuickFilterButtons();
 
@@ -87,10 +87,10 @@ export async function loadTagAssignmentPage() {
     } else {
         // Hide quick filters initially
         quickFiltersDiv.style.display = 'none';
-        
+
         // Reset the cards container
         cardsContainer.innerHTML = '<div class="info-message">Select a tag to view and manage card assignments</div>';
-        
+
         // Reset all pagination controls
         document.querySelectorAll('.pagination-prev').forEach(btn => btn.disabled = true);
         document.querySelectorAll('.pagination-next').forEach(btn => btn.disabled = true);
@@ -105,11 +105,11 @@ function setupTagAssignmentListeners() {
     const applyFiltersBtn = document.getElementById('tag-assignment-apply-filters-btn');
     const searchInput = document.getElementById('tag-assignment-search');
     const quickFiltersDiv = document.getElementById('tag-assignment-quick-filters');
-    
+
     // Remove old listeners by cloning elements
     const newTagSelect = tagSelect.cloneNode(true);
     tagSelect.parentNode.replaceChild(newTagSelect, tagSelect);
-    
+
     // Tag selection
     newTagSelect.addEventListener('change', (e) => {
         const tagId = e.target.value;
@@ -123,37 +123,37 @@ function setupTagAssignmentListeners() {
             document.getElementById('tag-assignment-cards').innerHTML = '<div class="info-message">Select a tag to view and manage card assignments</div>';
         }
     });
-    
+
     // Quick filter buttons
     document.getElementById('tag-assignment-show-all').addEventListener('click', () => {
         setQuickFilter('');
     });
-    
+
     document.getElementById('tag-assignment-show-tagged').addEventListener('click', () => {
         setQuickFilter('tagged');
     });
-    
+
     document.getElementById('tag-assignment-show-untagged').addEventListener('click', () => {
         setQuickFilter('untagged');
     });
-    
+
     // Bulk untag button
     document.getElementById('tag-assignment-bulk-untag').addEventListener('click', async () => {
         const state = stateManager.get();
         if (!state.tag) return;
-        
+
         const taggedCards = document.querySelectorAll('.tag-assignment-card.has-tag');
         if (taggedCards.length === 0) {
             alert('No tagged cards on this page to untag');
             return;
         }
-        
+
         const confirmMsg = `Remove this tag from ${taggedCards.length} card(s) on this page?`;
         if (!confirm(confirmMsg)) return;
-        
+
         let successCount = 0;
         let failCount = 0;
-        
+
         for (const cardEl of taggedCards) {
             const cardId = parseInt(cardEl.dataset.cardId);
             try {
@@ -172,15 +172,15 @@ function setupTagAssignmentListeners() {
                 failCount++;
             }
         }
-        
+
         alert(`Bulk untag complete!\nSuccess: ${successCount}\nFailed: ${failCount}`);
-        
+
         // Reload the page if we're filtering by tagged only
         if (state.status === 'tagged') {
             loadTagAssignment();
         }
     });
-    
+
     // Apply filters
     applyFiltersBtn.addEventListener('click', () => {
         const state = stateManager.get();
@@ -188,7 +188,7 @@ function setupTagAssignmentListeners() {
             alert('Please select a tag first');
             return;
         }
-        
+
         stateManager.set({
             type: document.getElementById('tag-assignment-type-filter').value,
             search: document.getElementById('tag-assignment-search').value.trim(),
@@ -196,18 +196,18 @@ function setupTagAssignmentListeners() {
             limit: parseInt(document.getElementById('tag-assignment-limit-filter').value),
             page: 1
         });
-        
+
         updateQuickFilterButtons();
         loadTagAssignment();
     });
-    
+
     // Search on Enter key
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             applyFiltersBtn.click();
         }
     });
-    
+
     // Pagination (handles all pagination controls via class selectors)
     document.querySelectorAll('.pagination-prev').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -218,7 +218,7 @@ function setupTagAssignmentListeners() {
             }
         });
     });
-    
+
     document.querySelectorAll('.pagination-next').forEach(btn => {
         btn.addEventListener('click', () => {
             const state = stateManager.get();
@@ -234,7 +234,7 @@ function setupTagAssignmentListeners() {
 function setQuickFilter(status) {
     const state = stateManager.get();
     if (!state.tag) return;
-    
+
     stateManager.set({ status, page: 1 });
     document.getElementById('tag-assignment-status-filter').value = status;
     updateQuickFilterButtons();
@@ -254,7 +254,7 @@ function updateQuickFilterButtons() {
 async function loadTagAssignment() {
     const state = stateManager.get();
     if (!state.tag) return;
-    
+
     const cardsContainer = document.getElementById('tag-assignment-cards');
     cardsContainer.innerHTML = '<div class="info-message">Loading cards...</div>';
 
@@ -272,7 +272,7 @@ async function loadTagAssignment() {
         if (state.search) {
             params.append('search', state.search);
         }
-        
+
         // Handle tag status filter (show only tagged/untagged cards)
         if (state.status === 'tagged') {
             params.append('tag_id', state.tag.toString());
@@ -288,7 +288,7 @@ async function loadTagAssignment() {
 
         const cards = response.data.cards;
         totalCards = response.data.total;
-        
+
         if (cards.length === 0) {
             cardsContainer.innerHTML = '<div class="info-message">No cards found</div>';
             updatePagination();
@@ -305,7 +305,7 @@ async function loadTagAssignment() {
         });
 
         // Count tagged vs untagged in current page
-        const taggedCount = sortedCards.filter(card => 
+        const taggedCount = sortedCards.filter(card =>
             card.tags && card.tags.some(t => t.tag_id === state.tag)
         ).length;
 
@@ -315,8 +315,8 @@ async function loadTagAssignment() {
             return `
                 <div class="tag-assignment-card ${hasTag ? 'has-tag' : ''}" data-card-id="${card.card_id}">
                     <label class="tag-assignment-label">
-                        <input type="checkbox" 
-                               ${hasTag ? 'checked' : ''} 
+                        <input type="checkbox"
+                               ${hasTag ? 'checked' : ''}
                                onchange="toggleCardTag(${card.card_id}, ${state.tag}, this.checked)">
                         <span class="badge badge-${card.type}">${card.type}</span>
                         <span class="card-text">${card.copy}</span>
@@ -324,7 +324,7 @@ async function loadTagAssignment() {
                 </div>
             `;
         }).join('');
-        
+
         // Add count indicator
         if (state.status === '') {
             const countInfo = document.createElement('div');
@@ -332,7 +332,7 @@ async function loadTagAssignment() {
             countInfo.innerHTML = `<strong>On this page:</strong> ${taggedCount} with tag, ${cards.length - taggedCount} without tag`;
             cardsContainer.insertBefore(countInfo, cardsContainer.firstChild);
         }
-        
+
         updatePagination();
     } catch (error) {
         console.error('Error loading tag assignment:', error);
@@ -345,14 +345,14 @@ async function loadTagAssignment() {
  */
 function updatePagination() {
     const state = stateManager.get();
-    
+
     const totalPages = Math.ceil(totalCards / state.limit);
     const start = (state.page - 1) * state.limit + 1;
     const end = Math.min(state.page * state.limit, totalCards);
     const pageText = `Page ${state.page} of ${totalPages} (${start}-${end} of ${totalCards} cards)`;
     const prevDisabled = state.page <= 1;
     const nextDisabled = state.page >= totalPages || totalCards === 0;
-    
+
     // Update all pagination controls
     document.querySelectorAll('.pagination-info').forEach(el => {
         el.textContent = pageText;
@@ -370,10 +370,10 @@ function updatePagination() {
  */
 export async function toggleCardTag(cardId, tagId, add) {
     try {
-        const endpoint = add 
+        const endpoint = add
             ? `/admin/cards/${cardId}/tags/${tagId}`
             : `/admin/cards/${cardId}/tags/${tagId}`;
-        
+
         const data = await apiRequest(endpoint, {
             method: add ? 'POST' : 'DELETE'
         });

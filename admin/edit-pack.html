@@ -30,39 +30,39 @@
 
                 <form id="edit-pack-form" class="edit-form">
                     <input type="hidden" id="pack-id" value="">
-                    
+
                     <div class="form-group">
                         <label for="pack-name">Pack Name</label>
                         <input type="text" id="pack-name" name="name" required>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="pack-version">Version (optional)</label>
                         <input type="text" id="pack-version" name="version">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="pack-release-date">Release Date (optional)</label>
                         <input type="date" id="pack-release-date" name="release_date">
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="pack-data">Additional Data (JSON, optional)</label>
                         <textarea id="pack-data" name="data" rows="3" placeholder='{"key": "value"}'></textarea>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>
                             <input type="checkbox" id="pack-active" name="active" checked>
                             Active
                         </label>
                     </div>
-                    
+
                     <div class="form-actions">
                         <button type="submit" id="save-pack-btn" class="btn btn-primary">Save Pack</button>
                         <a href="#" id="cancel-link" class="btn btn-secondary">Cancel</a>
                     </div>
-                    
+
                     <div id="save-status" class="status-message"></div>
                 </form>
             </div>
@@ -76,30 +76,30 @@
 
         const packId = getParamInt('id');
         const returnUrl = getParam('return', '/admin/packs.html');
-        
+
         // Set return links
         document.getElementById('return-link').href = returnUrl;
         document.getElementById('cancel-link').href = returnUrl;
-        
+
         if (!packId) {
             document.getElementById('edit-pack-title').textContent = 'Create Pack';
         } else {
             loadPack();
         }
-        
+
         async function loadPack() {
             try {
                 const response = await apiRequest(`/admin/packs/${packId}`);
-                
+
                 if (response.success && response.data.pack) {
                     const pack = response.data.pack;
-                    
+
                     document.getElementById('pack-id').value = pack.pack_id;
                     document.getElementById('pack-name').value = pack.name;
                     document.getElementById('pack-version').value = pack.version || '';
                     document.getElementById('pack-data').value = pack.data || '';
                     document.getElementById('pack-active').checked = pack.active;
-                    
+
                     if (pack.release_date) {
                         // Extract just the date part (YYYY-MM-DD)
                         const date = new Date(pack.release_date);
@@ -108,7 +108,7 @@
                             .slice(0, 10);
                         document.getElementById('pack-release-date').value = localDate;
                     }
-                    
+
                     document.getElementById('edit-pack-title').textContent = `Edit Pack: ${pack.name}`;
                 } else {
                     alert('Pack not found');
@@ -119,18 +119,18 @@
                 alert('Error loading pack');
             }
         }
-        
+
         document.getElementById('edit-pack-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const saveBtn = document.getElementById('save-pack-btn');
             const statusDiv = document.getElementById('save-status');
-            
+
             try {
                 saveBtn.disabled = true;
                 statusDiv.textContent = 'Saving...';
                 statusDiv.className = 'status-message';
-                
+
                 const formData = {
                     name: document.getElementById('pack-name').value,
                     version: document.getElementById('pack-version').value || null,
@@ -138,7 +138,7 @@
                     data: document.getElementById('pack-data').value || null,
                     active: document.getElementById('pack-active').checked
                 };
-                
+
                 let response;
                 if (packId) {
                     response = await apiRequest(`/admin/packs/edit/${packId}`, {
@@ -151,11 +151,11 @@
                         body: JSON.stringify(formData)
                     });
                 }
-                
+
                 if (response.success) {
                     statusDiv.textContent = packId ? 'Pack saved successfully!' : 'Pack created successfully!';
                     statusDiv.className = 'status-message success';
-                    
+
                     setTimeout(() => {
                         window.location.href = returnUrl;
                     }, 1000);

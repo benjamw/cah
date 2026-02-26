@@ -15,7 +15,7 @@ use CAH\Database\Database;
 class CsvImportTest extends TestCase
 {
     private static bool $needsReseed = false;
-    
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -33,23 +33,23 @@ class CsvImportTest extends TestCase
     {
         parent::tearDown();
     }
-    
+
     public static function tearDownAfterClass(): void
     {
         // Re-seed base test data once after all tests in this class complete
         if (self::$needsReseed) {
             $connection = Database::getConnection();
-            
+
             // Reset auto-increment for cards and tags
             $connection->exec("ALTER TABLE cards AUTO_INCREMENT = 1");
             $connection->exec("ALTER TABLE tags AUTO_INCREMENT = 1");
-            
+
             // Insert test response cards
             $stmt = $connection->prepare("INSERT INTO cards (type, copy) VALUES ('response', ?)");
             for ($i = 1; $i <= 300; $i++) {
                 $stmt->execute([sprintf('White Card %03d', $i)]);
             }
-            
+
             // Insert test prompt cards
             $stmt = $connection->prepare("INSERT INTO cards (type, copy, choices) VALUES ('prompt', ?, ?)");
             for ($i = 1; $i <= 40; $i++) {
@@ -61,21 +61,21 @@ class CsvImportTest extends TestCase
             for ($i = 56; $i <= 70; $i++) {
                 $stmt->execute([sprintf('Black Card %03d with ____, ____, and ____.', $i), 3]);
             }
-            
+
             // Insert test tag
             $connection->exec("INSERT INTO tags (name) VALUES ('test_base')");
             $tagId = $connection->lastInsertId();
-            
+
             // Tag all cards
             $totalCards = 370; // 300 response + 70 prompt
             $stmt = $connection->prepare("INSERT INTO cards_to_tags (card_id, tag_id) VALUES (?, ?)");
             for ($i = 1; $i <= $totalCards; $i++) {
                 $stmt->execute([$i, $tagId]);
             }
-            
+
             self::$needsReseed = false;
         }
-        
+
         parent::tearDownAfterClass();
     }
 
@@ -86,7 +86,7 @@ class CsvImportTest extends TestCase
     {
         $line = 'This is a test card,,,,,,,,,,';
         $data = str_getcsv($line);
-        
+
         $cardText = trim((string) $data[0]);
         $tagColumns = array_slice($data, 1, 10);
         $tags = [];
@@ -108,7 +108,7 @@ class CsvImportTest extends TestCase
     {
         $line = 'This is a profane card,Profanity,,,,,,,,,';
         $data = str_getcsv($line);
-        
+
         $cardText = trim((string) $data[0]);
         $tagColumns = array_slice($data, 1, 10);
         $tags = [];
@@ -131,7 +131,7 @@ class CsvImportTest extends TestCase
     {
         $line = 'This is a bad card,Profanity,Sexually Explicit,Violence,,,,,,';
         $data = str_getcsv($line);
-        
+
         $cardText = trim((string) $data[0]);
         $tagColumns = array_slice($data, 1, 10);
         $tags = [];
@@ -154,7 +154,7 @@ class CsvImportTest extends TestCase
     {
         $line = '"A card with, commas in it",Profanity,,,,,,,,,';
         $data = str_getcsv($line);
-        
+
         $cardText = trim((string) $data[0]);
         $tagColumns = array_slice($data, 1, 10);
         $tags = [];
@@ -177,7 +177,7 @@ class CsvImportTest extends TestCase
     {
         $line = 'Test card,  Profanity  , Sexually Explicit ,,,,,,,';
         $data = str_getcsv($line);
-        
+
         $cardText = trim((string) $data[0]);
         $tagColumns = array_slice($data, 1, 10);
         $tags = [];

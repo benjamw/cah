@@ -50,7 +50,7 @@ class ValidatorTest extends TestCase
             $this->assertFalse($result['valid'], "Name '{$testCase['name']}' should be invalid");
             $this->assertStringContainsString($testCase['expectedError'], $result['error']);
         }
-        
+
         // These should actually be VALID (numbers and special chars are allowed)
         $validNamesWithNumbers = ['123', 'Player123', 'Test@User', 'User-Name'];
         foreach ($validNamesWithNumbers as $name) {

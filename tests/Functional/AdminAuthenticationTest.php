@@ -13,7 +13,7 @@ use CAH\Exceptions\UnauthorizedException;
 
 /**
  * Admin Authentication Functional Tests
- * 
+ *
  * Comprehensive tests for admin login, token management, rate limiting,
  * and security edge cases.
  */
@@ -25,10 +25,10 @@ class AdminAuthenticationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create test admin password hash
         $this->adminPasswordHash = password_hash($this->adminPassword, PASSWORD_DEFAULT);
-        
+
         // Set admin password in environment
         $_ENV['ADMIN_PASSWORD_HASH'] = $this->adminPasswordHash;
     }
@@ -51,7 +51,7 @@ class AdminAuthenticationTest extends TestCase
         $this->assertArrayHasKey('token', $result);
         $this->assertArrayHasKey('expires_at', $result);
         $this->assertEquals(64, strlen($result['token'])); // SHA-256 = 64 chars
-        
+
         // Verify token is stored in database
         $tokenData = Database::fetchOne(
             "SELECT * FROM admin_sessions WHERE token = ?",
@@ -78,7 +78,7 @@ class AdminAuthenticationTest extends TestCase
             "SELECT expires_at FROM admin_sessions WHERE token = ?",
             [$token]
         );
-        
+
         $expiresAt = strtotime((string) $tokenData['expires_at']);
         $now = time();
         $expectedExpiry = $now + (24 * 60 * 60); // 24 hours
@@ -105,14 +105,14 @@ class AdminAuthenticationTest extends TestCase
         $this->assertIsArray($result);
         $this->assertArrayHasKey('token', $result, 'Response should include token');
         $this->assertArrayHasKey('expires_at', $result, 'Response should include expiration time');
-        
+
         // Token should be a valid hex string (from bin2hex)
         $this->assertMatchesRegularExpression(
             '/^[a-f0-9]{64}$/i',
             $result['token'],
             'Token should be a 64-character hex string'
         );
-        
+
         // expires_at should be a valid timestamp
         $expiresAt = strtotime($result['expires_at']);
         $this->assertNotFalse($expiresAt, 'expires_at should be a valid timestamp');
@@ -155,7 +155,7 @@ class AdminAuthenticationTest extends TestCase
         // Act & Assert
         $this->expectException(\Exception::class);
         $this->expectExceptionMessage('Admin password not configured');
-        
+
         try {
             AdminAuthService::login('anypassword', '127.0.0.1', 'Test');
         } finally {
@@ -223,7 +223,7 @@ class AdminAuthenticationTest extends TestCase
         $this->assertNotNull($record['locked_until']);
         $lockedUntil = strtotime((string) $record['locked_until']);
         $expectedUnlock = time() + (1440 * 60); // 24 hours from now
-        
+
         $this->assertGreaterThan(time(), $lockedUntil, 'Lockout should be in the future');
         $this->assertLessThan(
             300, // 5 minute tolerance
@@ -332,7 +332,7 @@ class AdminAuthenticationTest extends TestCase
             '192.168.1.1000', // Longer IP (invalid but test it)
             '192.168.001.100', // Leading zeros
         ];
-        
+
         foreach ($similarIps as $testIp) {
             $isValid = AdminAuthService::validateToken($token, $testIp);
             $this->assertFalse(
@@ -340,7 +340,7 @@ class AdminAuthenticationTest extends TestCase
                 "Token should not be valid from IP {$testIp} (logged in from {$originalIp})"
             );
         }
-        
+
         // Only exact match should work
         $this->assertTrue(
             AdminAuthService::validateToken($token, $originalIp),
@@ -360,13 +360,13 @@ class AdminAuthenticationTest extends TestCase
             '127.0.0.1',
             'Browser 1'
         );
-        
+
         $session2 = AdminAuthService::login(
             $this->adminPassword,
             '192.168.1.100',
             'Browser 2'
         );
-        
+
         $session3 = AdminAuthService::login(
             $this->adminPassword,
             '10.0.0.50',
@@ -378,17 +378,17 @@ class AdminAuthenticationTest extends TestCase
             AdminAuthService::validateToken($session1['token'], '127.0.0.1'),
             'Session 1 should be valid'
         );
-        
+
         $this->assertTrue(
             AdminAuthService::validateToken($session2['token'], '192.168.1.100'),
             'Session 2 should be valid'
         );
-        
+
         $this->assertTrue(
             AdminAuthService::validateToken($session3['token'], '10.0.0.50'),
             'Session 3 should be valid'
         );
-        
+
         // Verify all sessions exist in database
         $allSessions = Database::fetchAll(
             "SELECT * FROM admin_sessions WHERE token IN (?, ?, ?)",
@@ -409,13 +409,13 @@ class AdminAuthenticationTest extends TestCase
             '127.0.0.1',
             'Browser 1'
         );
-        
+
         $session2 = AdminAuthService::login(
             $this->adminPassword,
             '192.168.1.100',
             'Browser 2'
         );
-        
+
         // Verify both are valid
         $this->assertTrue(AdminAuthService::validateToken($session1['token'], '127.0.0.1'));
         $this->assertTrue(AdminAuthService::validateToken($session2['token'], '192.168.1.100'));
@@ -425,13 +425,13 @@ class AdminAuthenticationTest extends TestCase
 
         // Assert
         $this->assertTrue($logoutResult, 'Logout should succeed');
-        
+
         // Session 1 should be invalid
         $this->assertFalse(
             AdminAuthService::validateToken($session1['token'], '127.0.0.1'),
             'Logged out session should be invalid'
         );
-        
+
         // Session 2 should still be valid
         $this->assertTrue(
             AdminAuthService::validateToken($session2['token'], '192.168.1.100'),
@@ -456,7 +456,7 @@ class AdminAuthenticationTest extends TestCase
         // Arrange
         $loginResult = AdminAuthService::login($this->adminPassword, '127.0.0.1', 'Test');
         $token = $loginResult['token'];
-        
+
         // Logout once
         $firstLogout = AdminAuthService::logout($token);
         $this->assertTrue($firstLogout);
@@ -482,7 +482,7 @@ class AdminAuthenticationTest extends TestCase
             'Test Browser'
         );
         $token = $loginResult['token'];
-        
+
         // Manually expire the token (set expires_at to past)
         $pastTime = date('Y-m-d H:i:s', time() - 3600); // 1 hour ago
         Database::execute(
@@ -503,7 +503,7 @@ class AdminAuthenticationTest extends TestCase
         $ipAddress = '127.0.0.1';
         $loginResult = AdminAuthService::login($this->adminPassword, $ipAddress, 'Test');
         $token = $loginResult['token'];
-        
+
         // Set expires_at to exactly now
         $now = date('Y-m-d H:i:s', time());
         Database::execute(
@@ -540,13 +540,13 @@ class AdminAuthenticationTest extends TestCase
 
         // Assert
         $this->assertGreaterThanOrEqual(3, $deletedCount, 'Should delete at least 3 expired sessions');
-        
+
         // Verify expired tokens are gone
         foreach ($expiredTokens as $token) {
             $exists = Database::fetchOne("SELECT token FROM admin_sessions WHERE token = ?", [$token]);
             $this->assertNull($exists, 'Expired token should be deleted');
         }
-        
+
         // Verify valid session still exists
         $validExists = Database::fetchOne(
             "SELECT token FROM admin_sessions WHERE token = ?",
@@ -773,7 +773,7 @@ class AdminAuthenticationTest extends TestCase
 
         // Assert - Should return true and delete the session
         $this->assertTrue($result, 'Logout with expired token should return true');
-        
+
         $stillExists = Database::fetchOne("SELECT * FROM admin_sessions WHERE token = ?", [$token]);
         $this->assertNull($stillExists, 'Expired session should be deleted on logout');
     }
@@ -784,7 +784,7 @@ class AdminAuthenticationTest extends TestCase
         $ipAddress = '127.0.0.1';
         $loginResult = AdminAuthService::login($this->adminPassword, $ipAddress, 'Test');
         $token = $loginResult['token'];
-        
+
         // Set expires_at to 2 seconds from now
         $expiresIn2Sec = date('Y-m-d H:i:s', time() + 2);
         Database::execute(
@@ -828,7 +828,7 @@ class AdminAuthenticationTest extends TestCase
         // Assert
         $this->assertIsArray($result);
         $this->assertArrayHasKey('token', $result);
-        
+
         // Restore original password
         $_ENV['ADMIN_PASSWORD_HASH'] = $this->adminPasswordHash;
     }
@@ -837,7 +837,7 @@ class AdminAuthenticationTest extends TestCase
     {
         // Arrange
         $longUserAgent = str_repeat('Mozilla/5.0 ', 100); // Very long UA
-        
+
         // Act
         $result = AdminAuthService::login($this->adminPassword, '127.0.0.1', $longUserAgent);
 
@@ -846,7 +846,7 @@ class AdminAuthenticationTest extends TestCase
             "SELECT user_agent FROM admin_sessions WHERE token = ?",
             [$result['token']]
         );
-        
+
         // Should be truncated or stored completely depending on column size
         $this->assertNotNull($session);
     }
@@ -880,14 +880,14 @@ class AdminAuthenticationTest extends TestCase
         // Assert
         $this->assertIsArray($result);
         $this->assertArrayHasKey('token', $result);
-        
+
         // Verify IP is stored correctly
         $session = Database::fetchOne(
             "SELECT ip_address FROM admin_sessions WHERE token = ?",
             [$result['token']]
         );
         $this->assertEquals($ipv6Address, $session['ip_address']);
-        
+
         // Verify token is IP-bound to IPv6
         $this->assertTrue(AdminAuthService::validateToken($result['token'], $ipv6Address));
         $this->assertFalse(AdminAuthService::validateToken($result['token'], '127.0.0.1'));
@@ -900,7 +900,7 @@ class AdminAuthenticationTest extends TestCase
     public function test_only_environment_password_works(): void
     {
         // This test verifies single admin password behavior
-        
+
         // Arrange
         $correctPassword = $this->adminPassword;
         $wrongPasswords = [

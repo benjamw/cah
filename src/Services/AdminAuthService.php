@@ -45,7 +45,7 @@ class AdminAuthService
         $expiresAt = new \DateTime('+24 hours');
 
         // Store session in database
-        $sql = "INSERT INTO admin_sessions (token, ip_address, user_agent, expires_at) 
+        $sql = "INSERT INTO admin_sessions (token, ip_address, user_agent, expires_at)
                 VALUES (:token, :ip_address, :user_agent, :expires_at)";
 
         Database::execute($sql, [
@@ -72,9 +72,9 @@ class AdminAuthService
     public static function verifyToken(string $token): bool
     {
         $sql = "
-            SELECT session_id, expires_at 
-            FROM admin_sessions 
-            WHERE token = :token 
+            SELECT session_id, expires_at
+            FROM admin_sessions
+            WHERE token = :token
             AND expires_at > NOW()
             LIMIT 1
         ";
@@ -119,8 +119,8 @@ class AdminAuthService
     public static function getActiveSessions(): array
     {
         $sql = "
-            SELECT session_id, ip_address, user_agent, created_at, expires_at 
-            FROM admin_sessions 
+            SELECT session_id, ip_address, user_agent, created_at, expires_at
+            FROM admin_sessions
             WHERE expires_at > NOW()
             ORDER BY created_at DESC
         ";

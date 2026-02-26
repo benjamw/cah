@@ -55,10 +55,10 @@ class CzarRotationTest extends TestCase
             $gameState['players'],
             fn(array $p): bool => $p['id'] !== $firstCzarId && empty($p['is_rando'])
         );
-        
+
         foreach ($nonCzarPlayers as $player) {
             $promptCardId = is_array($gameState['current_prompt_card'])
-                ? $gameState['current_prompt_card']['card_id'] 
+                ? $gameState['current_prompt_card']['card_id']
                 : $gameState['current_prompt_card'];
             $blanksNeeded = CardService::getPromptCardChoices($promptCardId);
             $cardIds = array_slice($this->getCardIds($player['hand']), 0, $blanksNeeded);
@@ -108,7 +108,7 @@ class CzarRotationTest extends TestCase
         // But we need to ensure player1, 2, 3 are all different from firstCzar
         $playersToRotate = [$player1Id, $player2Id, $player3Id];
         array_values(array_filter($playersToRotate, fn(string $id): bool => $id !== $firstCzarId));
-        
+
         // If firstCzar is one of our players, we need to adjust
         if (in_array($firstCzarId, [$player1Id, $player2Id, $player3Id], true)) {
             // Just rotate through all 3 players in order
@@ -116,7 +116,7 @@ class CzarRotationTest extends TestCase
             $gameState = $this->playRoundAndSetNextCzar($gameId, $playersToRotate[0], $playersToRotate[1]);
             $gameState = $this->playRoundAndSetNextCzar($gameId, $playersToRotate[1], $playersToRotate[2]);
             $gameState = $this->playRoundAndSetNextCzar($gameId, $playersToRotate[2], $firstCzarId);
-            
+
             // Order should now be locked
             $this->assertTrue($gameState['order_locked'], 'Order should lock when completing circle');
         } else {
@@ -150,31 +150,31 @@ class CzarRotationTest extends TestCase
         // Start game (first czar is random)
         $gameState = GameService::startGame($gameId, $player1Id);
         $firstCzar = $gameState['current_czar_id'];
-        
+
         $allPlayers = [$player1Id, $player2Id, $player3Id, $player4Id];
         $playerToSkip = null;
         $activePlayers = [];
-        
+
         // Determine which player to skip (not the first czar)
         $nonCzarPlayers = array_filter($allPlayers, fn(string $id): bool => $id !== $firstCzar);
         $nonCzarPlayers = array_values($nonCzarPlayers);
-        
+
         // Skip the middle player (index 1 of non-czar players)
         $playerToSkip = $nonCzarPlayers[1];
         $activePlayers = [$nonCzarPlayers[0], $nonCzarPlayers[2]];
-        
+
         // Play rounds to create order, skipping one player
         // Round 1: first -> active[0]
         $gameState = $this->playRoundAndSetNextCzar($gameId, $firstCzar, $activePlayers[0]);
         $this->assertFalse($gameState['order_locked']);
-        
+
         // Round 2: active[0] -> active[1]
         $gameState = $this->playRoundAndSetNextCzar($gameId, $activePlayers[0], $activePlayers[1]);
         $this->assertFalse($gameState['order_locked']);
-        
+
         // Round 3: active[1] -> first (complete circle, detect skip)
         $gameState = $this->playRoundAndSetNextCzar($gameId, $activePlayers[1], $firstCzar);
-        
+
         // Order should NOT be locked yet due to skipped player
         $this->assertFalse($gameState['order_locked']);
         $this->assertArrayHasKey('skipped_players', $gameState);
@@ -203,11 +203,11 @@ class CzarRotationTest extends TestCase
         // Start game and create order with one player skipped
         $gameState = GameService::startGame($gameId, $creatorId);
         $firstCzar = $gameState['current_czar_id'];
-        
+
         $allPlayers = [$creatorId, $player2Id, $player3Id];
         $playerToSkip = null;
         $activePlayers = [];
-        
+
         // Determine which player to skip (not the first czar)
         foreach ($allPlayers as $pid) {
             if ($pid !== $firstCzar) {
@@ -219,7 +219,7 @@ class CzarRotationTest extends TestCase
             }
         }
         $activePlayers[] = $firstCzar; // Add first czar at the end
-        
+
         // Play rounds to create order, skipping one player
         $gameState = $this->playRoundAndSetNextCzar($gameId, $firstCzar, $activePlayers[0]);
         $gameState = $this->playRoundAndSetNextCzar($gameId, $activePlayers[0], $firstCzar);
@@ -263,10 +263,10 @@ class CzarRotationTest extends TestCase
 
         $gameState = GameService::startGame($gameId, $creatorId);
         $firstCzar = $gameState['current_czar_id'];
-        
+
         $allPlayers = [$creatorId, $player2Id, $player3Id];
         $nonCzarPlayers = array_values(array_filter($allPlayers, fn(string $id): bool => $id !== $firstCzar));
-        
+
         // Create rotation skipping one player
         $this->playRoundAndSetNextCzar($gameId, $firstCzar, $nonCzarPlayers[0]);
         $this->playRoundAndSetNextCzar($gameId, $nonCzarPlayers[0], $firstCzar);
@@ -307,12 +307,12 @@ class CzarRotationTest extends TestCase
         // Start and build order (get the actual first czar, don't assume)
         $gameState = GameService::startGame($gameId, $creatorId);
         $firstCzar = $gameState['current_czar_id'];
-        
+
         // Build a full rotation to lock the order
         // We need to know who comes after whom, so let's just play 4 rounds
         $allPlayers = [$creatorId, $player2Id, $player3Id, $player4Id];
         $nonFirstCzar = array_values(array_filter($allPlayers, fn(string $id): bool => $id !== $firstCzar));
-        
+
         // Round 1: first czar -> player A
         $this->playRoundAndSetNextCzar($gameId, $firstCzar, $nonFirstCzar[0]);
         // Round 2: player A -> player B
@@ -332,10 +332,10 @@ class CzarRotationTest extends TestCase
         $game = Game::find($gameId);
         $gameState = $game['player_data'];
         $currentCzarId = $gameState['current_czar_id'];
-        
+
         // Play a round with current czar
         $gameState = $this->playRoundAndSetNextCzar($gameId, $currentCzarId, null);
-        
+
         // The next czar should skip over the removed player
         // We can't assert which specific player it is without knowing the order,
         // but we can verify player3 is NOT the czar
@@ -349,16 +349,16 @@ class CzarRotationTest extends TestCase
     {
         $game = Game::find($gameId);
         $gameState = $game['player_data'];
-        
+
         // Verify the current czar matches (in case game state has changed)
         if ($gameState['current_czar_id'] !== $currentCzarId) {
             throw new \Exception("Czar mismatch: expected {$currentCzarId}, actual {$gameState['current_czar_id']}");
         }
-        
+
         // Get the prompt card to determine how many cards to submit
         $promptCard = $gameState['current_prompt_card'];
         $promptCardId = is_array($promptCard) ? $promptCard['card_id'] : $promptCard;
-        
+
         // Get the number of blanks from the prompt card
         $blanksNeeded = CardService::getPromptCardChoices($promptCardId);
 
@@ -367,7 +367,7 @@ class CzarRotationTest extends TestCase
             $isCzar = ($player['id'] === $currentCzarId);
             $isRando = ! empty($player['is_rando']);
             $hasHand = ! empty($player['hand']);
-            
+
             if ( ! $isCzar && ! $isRando && $hasHand) {
                 $cardIds = array_slice($this->getCardIds($player['hand']), 0, $blanksNeeded);
                 if (count($cardIds) === $blanksNeeded) {

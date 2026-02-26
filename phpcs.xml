@@ -5,7 +5,7 @@
     <!-- What to scan -->
     <file>src</file>
     <file>api</file>
-    
+
     <!-- Exclude patterns -->
     <exclude-pattern>*/Database/migrations/*</exclude-pattern>
     <exclude-pattern>*/vendor/*</exclude-pattern>
@@ -16,7 +16,7 @@
         <exclude name="PSR12.ControlStructures.ControlStructureSpacing.SpacingAfterOpenBrace"/>
         <exclude name="Generic.Formatting.SpaceAfterNot"/>
     </rule>
-    
+
     <!-- Allow user's preferred spacing style: ( ! instead of (!-->
     <rule ref="Squiz.WhiteSpace.OperatorSpacing">
         <properties>
@@ -59,11 +59,11 @@
             <property name="nestingLevel" value="5"/>
         </properties>
     </rule>
-    
+
     <!-- Show progress and use colors -->
     <arg value="p"/>
     <arg name="colors"/>
-    
+
     <!-- Show sniff codes in all reports -->
     <arg value="s"/>
 </ruleset>

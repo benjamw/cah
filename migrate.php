@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 /**
  * Database Migration Script
- * 
+ *
  * Runs the schema.sql file to create/reset the database tables
  * Usage: php migrate.php
  */
@@ -80,7 +80,7 @@ foreach ($statements as $index => $statement) {
     try {
         $connection->exec($statement);
         $successCount++;
-        
+
         // Extract table name for better output
         if (preg_match('/CREATE TABLE(?: IF NOT EXISTS)?\s+`?(\w+)`?/i', $statement, $matches)) {
             echo "Created table: {$matches[1]}\n";

@@ -26,7 +26,7 @@ class PlayerManagementTest extends TestCase
     {
         return is_array($card) ? $card['card_id'] : $card;
     }
-    
+
     /**
      * Extract card IDs from array of cards (which might be hydrated or not)
      */
@@ -37,7 +37,7 @@ class PlayerManagementTest extends TestCase
         }
         return is_array($cards[0]) ? array_column($cards, 'card_id') : $cards;
     }
-    
+
     public function testRemovePlayerFromWaitingGame(): void
     {
         $createResult = GameService::createGame('Creator', [TEST_TAG_ID]);
@@ -122,7 +122,7 @@ class PlayerManagementTest extends TestCase
         $czar1 = $gameState['current_czar_id'];
         $otherPlayers = array_filter($allPlayerIds, fn(string $id): bool => $id !== $czar1);
         $otherPlayers = array_values($otherPlayers);
-        
+
         $result = GameService::setNextCzar($gameId, $czar1, $otherPlayers[0]);
         $this->assertContains($czar1, $result['player_order']);
         $this->assertCount(2, $result['player_order']);
@@ -137,7 +137,7 @@ class PlayerManagementTest extends TestCase
         // Round 3: Third czar selects first czar (completes the circle)
         $czar3 = $otherPlayers[1];
         $result = GameService::setNextCzar($gameId, $czar3, $czar1);
-        
+
         // Now the order should be locked because we've completed the circle
         $this->assertTrue($result['order_locked'], 'Order should be locked after completing the circle');
         $this->assertCount(3, $result['player_order']);

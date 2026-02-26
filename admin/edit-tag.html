@@ -30,29 +30,29 @@
 
                 <form id="edit-tag-form" class="edit-form">
                     <input type="hidden" id="tag-id" value="">
-                    
+
                     <div class="form-group">
                         <label for="tag-name">Tag Name</label>
                         <input type="text" id="tag-name" name="name" required>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="tag-description">Description (optional)</label>
                         <textarea id="tag-description" name="description" rows="3"></textarea>
                     </div>
-                    
+
                     <div class="form-group">
                         <label>
                             <input type="checkbox" id="tag-active" name="active" checked>
                             Active
                         </label>
                     </div>
-                    
+
                     <div class="form-actions">
                         <button type="submit" id="save-tag-btn" class="btn btn-primary">Save Tag</button>
                         <a href="#" id="cancel-link" class="btn btn-secondary">Cancel</a>
                     </div>
-                    
+
                     <div id="save-status" class="status-message"></div>
                 </form>
             </div>
@@ -66,24 +66,24 @@
 
         const tagId = getParamInt('id');
         const returnUrl = getParam('return', '/admin/tags.html');
-        
+
         // Set return links
         document.getElementById('return-link').href = returnUrl;
         document.getElementById('cancel-link').href = returnUrl;
-        
+
         if (!tagId) {
             document.getElementById('edit-tag-title').textContent = 'Create Tag';
         } else {
             loadTag();
         }
-        
+
         async function loadTag() {
             try {
                 const response = await apiRequest(`/admin/tags/${tagId}`);
-                
+
                 if (response.success && response.data.tag) {
                     const tag = response.data.tag;
-                    
+
                     document.getElementById('tag-id').value = tag.tag_id;
                     document.getElementById('tag-name').value = tag.name;
                     document.getElementById('tag-description').value = tag.description || '';
@@ -98,24 +98,24 @@
                 alert('Error loading tag');
             }
         }
-        
+
         document.getElementById('edit-tag-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            
+
             const saveBtn = document.getElementById('save-tag-btn');
             const statusDiv = document.getElementById('save-status');
-            
+
             try {
                 saveBtn.disabled = true;
                 statusDiv.textContent = 'Saving...';
                 statusDiv.className = 'status-message';
-                
+
                 const formData = {
                     name: document.getElementById('tag-name').value,
                     description: document.getElementById('tag-description').value,
                     active: document.getElementById('tag-active').checked
                 };
-                
+
                 let response;
                 if (tagId) {
                     response = await apiRequest(`/admin/tags/edit/${tagId}`, {
@@ -128,11 +128,11 @@
                         body: JSON.stringify(formData)
                     });
                 }
-                
+
                 if (response.success) {
                     statusDiv.textContent = tagId ? 'Tag saved successfully!' : 'Tag created successfully!';
                     statusDiv.className = 'status-message success';
-                    
+
                     setTimeout(() => {
                         window.location.href = returnUrl;
                     }, 1000);
